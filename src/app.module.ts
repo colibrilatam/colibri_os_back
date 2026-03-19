@@ -9,6 +9,7 @@ import { EvaluationModule } from './evaluation/evaluation.module';
 import { ExecutionModule } from './execution/execution.module';
 import { ReputationModule } from './reputation/reputation.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -28,26 +29,20 @@ import { AnalyticsModule } from './analytics/analytics.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        migrations: ['dist/migrations/*{.js, .ts}'],
         synchronize: configService.get<string>('NODE_ENV') === 'development',
         logging: configService.get<string>('NODE_ENV') === 'development' && configService.get<string>('DB_LOGGING') === 'true',
         autoLoadEntities: true,
       }),
     }),
-
+    AuthModule,
     UsersModule,
-
     ProjectsModule,
-
     NftsModule,
-
     CurriculumModule,
-
     EvaluationModule,
-
     ExecutionModule,
-
     ReputationModule,
-
     AnalyticsModule,
   ],
 })
