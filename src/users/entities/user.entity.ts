@@ -47,6 +47,9 @@ export class User {
   @Column({ name: 'linkedin_id', nullable: true })
   linkedinId: string;
 
+  @Column({ name: 'google_id', nullable: true, unique: true })
+  googleId: string;
+
   @Column({ name: 'crypto_wallet', nullable: true })
   cryptoWallet: string;
 
