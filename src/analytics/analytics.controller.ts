@@ -1,9 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { CreateAnalyticsDto } from './dto/create-analytics.dto';
 import { UpdateAnalyticsDto } from './dto/update-analytics.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 
 @Controller('analytics')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
