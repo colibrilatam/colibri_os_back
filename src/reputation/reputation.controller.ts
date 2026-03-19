@@ -1,9 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ReputationService } from './reputation.service';
 import { CreateReputationDto } from './dto/create-reputation.dto';
 import { UpdateReputationDto } from './dto/update-reputation.dto';
+import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('reputation')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class ReputationController {
   constructor(private readonly reputationService: ReputationService) {}
 
