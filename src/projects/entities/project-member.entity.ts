@@ -5,6 +5,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { Project } from './project.entity';
@@ -22,6 +23,7 @@ export enum RoleInTeam {
 }
 
 @Entity('project_members')
+@Unique(['projectId', 'userId'])
 export class ProjectMember {
   @PrimaryGeneratedColumn('uuid')
   id: string;

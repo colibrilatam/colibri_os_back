@@ -28,7 +28,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get<string>('NODE_ENV') === 'development',
+        synchronize: true,
         logging: configService.get<string>('NODE_ENV') === 'development' && configService.get<string>('DB_LOGGING') === 'true',
         autoLoadEntities: true,
       }),
