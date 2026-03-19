@@ -27,6 +27,11 @@ export enum UserStatus {
   SUSPENDED = 'suspended',
 }
 
+export enum AuthProvider {
+  LOCAL = 'local',
+  GOOGLE = 'google',
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -43,6 +48,13 @@ export class User {
 
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
   status: UserStatus;
+
+  @Column({
+  type: 'enum',
+  enum: AuthProvider,
+  default: AuthProvider.LOCAL,
+  })
+  provider: AuthProvider;
 
   @Column({ name: 'linkedin_id', nullable: true })
   linkedinId: string;
