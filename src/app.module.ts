@@ -33,6 +33,7 @@ import { AuthModule } from './auth/auth.module';
         synchronize: configService.get<string>('NODE_ENV') === 'development',
         logging: configService.get<string>('NODE_ENV') === 'development' && configService.get<string>('DB_LOGGING') === 'true',
         autoLoadEntities: true,
+        //dropSchema: true
       }),
     }),
     AuthModule,

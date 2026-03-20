@@ -40,6 +40,9 @@ export class User {
   @Column({ unique: true })
   email: string;
 
+  @Column({ nullable: true, type: 'varchar' })
+  password: string | null;
+
   @Column({ name: 'full_name' })
   fullName: string;
 
