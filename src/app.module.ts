@@ -33,6 +33,7 @@ import { AuthModule } from './auth/auth.module';
         migrations: ['dist/migrations/*{.js, .ts}'],
         logging: configService.get<string>('NODE_ENV') === 'development' && configService.get<string>('DB_LOGGING') === 'true',
         autoLoadEntities: true,
+        //dropSchema: true
       }),
     }),
     AuthModule,
