@@ -36,7 +36,7 @@ async function bootstrap(): Promise<void> {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  console.log(`🚀 Servidor corriendo en: http://localhost:${port}/api/v1`);
+  console.log(`🚀 Servidor corriendo en el puerto: ${port}`);
 }
 
 bootstrap();
