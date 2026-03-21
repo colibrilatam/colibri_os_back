@@ -8,7 +8,7 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
-import { Project } from './project.entity';
+import { Project } from '../../projects/entities/project.entity';
 import { User } from '../../users/entities/user.entity';
 
 export enum RoleInTeam {
@@ -34,12 +34,7 @@ export class ProjectMember {
   @Column({ name: 'user_id' })
   userId: string;
 
-  @Column({
-    name: 'role_in_team',
-    type: 'enum',
-    enum: RoleInTeam,
-    default: RoleInTeam.OTHER,
-  })
+  @Column({ name: 'role_in_team', type: 'enum', enum: RoleInTeam, default: RoleInTeam.OTHER })
   roleInTeam: RoleInTeam;
 
   @Column({ name: 'joined_at', nullable: true })
@@ -51,13 +46,7 @@ export class ProjectMember {
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
-  @Column({
-    name: 'participation_weight',
-    type: 'numeric',
-    precision: 5,
-    scale: 2,
-    nullable: true,
-  })
+  @Column({ name: 'participation_weight', type: 'numeric', precision: 5, scale: 2, nullable: true })
   participationWeight: number;
 
   @Column({ name: 'is_founder', default: false })
@@ -72,7 +61,6 @@ export class ProjectMember {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  // Relaciones
   @ManyToOne(() => Project, (project) => project.members)
   @JoinColumn({ name: 'project_id' })
   project: Project;

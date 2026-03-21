@@ -1,15 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersModule } from './users/users.module';
 import { ProjectsModule } from './projects/projects.module';
+import { ProjectProfileModule } from './project-profile/project-profile.module';
+import { ProjectMembersModule } from './project-members/project-members.module';
 import { NftsModule } from './nfts/nfts.module';
-import { CurriculumModule } from './curriculum/curriculum.module';
-import { EvaluationModule } from './evaluation/evaluation.module';
-import { ExecutionModule } from './execution/execution.module';
-import { ReputationModule } from './reputation/reputation.module';
-import { AnalyticsModule } from './analytics/analytics.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -29,9 +26,8 @@ import { AuthModule } from './auth/auth.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true,
-        migrations: ['dist/migrations/*{.js, .ts}'],
-        logging: configService.get<string>('NODE_ENV') === 'development' && configService.get<string>('DB_LOGGING') === 'true',
+        synchronize: configService.get<string>('NODE_ENV') === 'development',
+        logging: configService.get<string>('NODE_ENV') === 'development',
         autoLoadEntities: true,
         //dropSchema: true
       }),
@@ -39,12 +35,9 @@ import { AuthModule } from './auth/auth.module';
     AuthModule,
     UsersModule,
     ProjectsModule,
+    ProjectProfileModule,
+    ProjectMembersModule,
     NftsModule,
-    CurriculumModule,
-    EvaluationModule,
-    ExecutionModule,
-    ReputationModule,
-    AnalyticsModule,
   ],
 })
 export class AppModule {}
