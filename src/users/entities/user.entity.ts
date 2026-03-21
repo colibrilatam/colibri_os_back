@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Project } from '../../projects/entities/project.entity';
-import { ProjectMember } from '../../projects/entities/project-member.entity';
+import { ProjectMember } from '../../project-members/entities/project-member.entity';
 import { NftActor } from '../../nfts/entities/nft-actor.entity';
 import { MecenasNftPortfolio } from '../../nfts/entities/mecenas-nft-portfolio.entity';
 import { NftOwnershipEvent } from '../../nfts/entities/nft-ownership-event.entity';
@@ -19,6 +19,7 @@ export enum UserRole {
   MECENAS = 'mecenas',
   EVALUATOR = 'evaluator',
   ADMIN = 'admin',
+  OPERATIVE = 'operative', // ← el rol sin nombre definido aún
 }
 
 export enum UserStatus {
