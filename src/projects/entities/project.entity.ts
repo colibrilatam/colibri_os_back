@@ -10,8 +10,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { ProjectProfile } from './project-profile.entity';
-import { ProjectMember } from './project-member.entity';
+import { ProjectProfile } from '../../project-profile/entities/project-profile.entity';
+import { ProjectMember } from '../../project-members/entities/project-member.entity';
 import { NftProject } from '../../nfts/entities/nft-project.entity';
 import { MecenasNftPortfolio } from '../../nfts/entities/mecenas-nft-portfolio.entity';
 
@@ -79,12 +79,7 @@ export class Project {
   @Column({ name: 'current_pac_id', nullable: true })
   currentPacId: string;
 
-  @Column({
-    name: 'trajectory_status',
-    type: 'enum',
-    enum: TrajectoryStatus,
-    nullable: true,
-  })
+  @Column({ name: 'trajectory_status', type: 'enum', enum: TrajectoryStatus, nullable: true })
   trajectoryStatus: TrajectoryStatus;
 
   @Column({ name: 'last_activity_at', nullable: true })
@@ -96,14 +91,11 @@ export class Project {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  // Relaciones
   @ManyToOne(() => User, (user) => user.projects)
   @JoinColumn({ name: 'owner_user_id' })
   owner: User;
 
-  @OneToOne(() => ProjectProfile, (profile) => profile.project, {
-    cascade: true,
-  })
+  @OneToOne(() => ProjectProfile, (profile) => profile.project, { cascade: true })
   profile: ProjectProfile;
 
   @OneToMany(() => ProjectMember, (member) => member.project)

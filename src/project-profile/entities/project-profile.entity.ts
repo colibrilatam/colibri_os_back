@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Project } from './project.entity';
+import { Project } from '../../projects/entities/project.entity';
 
 @Entity('project_profiles')
 export class ProjectProfile {
@@ -50,7 +50,6 @@ export class ProjectProfile {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  // Relaciones
   @OneToOne(() => Project, (project) => project.profile)
   @JoinColumn({ name: 'project_id' })
   project: Project;
