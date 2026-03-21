@@ -5,6 +5,8 @@ import { ProjectsModule } from './projects/projects.module';
 import { ProjectProfileModule } from './project-profile/project-profile.module';
 import { ProjectMembersModule } from './project-members/project-members.module';
 import { NftsModule } from './nfts/nfts.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -30,7 +32,8 @@ import { NftsModule } from './nfts/nfts.module';
         //dropSchema: true
       }),
     }),
-
+    AuthModule,
+    UsersModule,
     ProjectsModule,
     ProjectProfileModule,
     ProjectMembersModule,

@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { ICreateUser } from './interfaces/create-user.interface';
 import { UserRepository } from './user.repository';
+import { User } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
@@ -24,19 +25,31 @@ export class UsersService {
     return await this.userRepository.findByEmail(email);
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findAll() {
+    return await this.userRepository.findAll();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOneById(id: string) {
+    const userFound = await this.userRepository.findOneByID(id)
+    if (!userFound) {
+      throw new NotFoundException('Usuario no encontrado')
+    }
+    return userFound;
   }
 
-  update(id: number, updateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: string, updateUserDto: Partial<User>) {
+    const userFound = await this.userRepository.findOneByID(id)
+    if (!userFound) {
+      throw new NotFoundException('Usuario no encontrado')
+    }
+    return await this.userRepository.updateUser(id, updateUserDto)
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: string) {
+    const userFound = await this.userRepository.findOneByID(id)
+    if (!userFound) {
+      throw new NotFoundException('Usuario no encontrado')
+    }
+    return await this.userRepository.deleteUser(id)
   }
 }
