@@ -7,7 +7,7 @@ export class CreateNftActorDto {
     @IsEnum(ActorNftType)
     actorNftType: ActorNftType;
     
-    @ApiProperty({ description: 'Número estándar que identifica cada red blockchain', example: '1 (Ethereum)' })
+    @ApiProperty({ description: 'Número estándar que identifica cada red blockchain', example: 1 })
     @IsNumber()
     chainId: number;
     

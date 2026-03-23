@@ -10,13 +10,16 @@ import { NftActorRepository } from './nft-actor/nft-actor.repository';
 import { NftActorService } from './nft-actor/nft-actor.service';
 import { NftActorController } from './nft-actor/nft-actor.controller';
 import { UsersModule } from 'src/users/users.module';
+import { MecenasNftPortfolioController } from './mecenas-nft-portfolio/mecenas-nft-portfolio.controller';
+import { MecenasNftPortfolioService } from './mecenas-nft-portfolio/mecenas-nft-portfolio.service';
+import { MecenasNftPortfolioRepository } from './mecenas-nft-portfolio/mecenas-nft-portfolio.repository';
 
 @Module({
   imports: [ UsersModule,
     TypeOrmModule.forFeature([NftProject, NftActor, MecenasNftPortfolio, NftOwnershipEvent]),
   ],
-  controllers: [NftProjectController, NftActorController],
-  providers: [NftProjectService,NftActorRepository, NftActorService],
-  exports: [NftProjectService, NftActorService],
+  controllers: [NftProjectController, NftActorController, MecenasNftPortfolioController],
+  providers: [NftProjectService,NftActorRepository, NftActorService, MecenasNftPortfolioService, MecenasNftPortfolioRepository],
+  exports: [NftProjectService, NftActorService, MecenasNftPortfolioService],
 })
 export class NftsModule {}
