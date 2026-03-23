@@ -4,6 +4,7 @@ import { NftProjectService } from './nfts-project.service';
 import { CreateNftProjectDto } from './dto/create-nft-project.dto';
 import { UpdateNftProjectDto } from './dto/update-nft-project.dto';
 
+
 @ApiTags('NFT Projects')
 @Controller('nft-projects')
 export class NftProjectController {
