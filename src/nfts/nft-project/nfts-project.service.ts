@@ -1,9 +1,10 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NftProject } from './entities/nft-project.entity';
+import { NftProject } from '../entities/nft-project.entity';
 import { CreateNftProjectDto } from './dto/create-nft-project.dto';
 import { UpdateNftProjectDto } from './dto/update-nft-project.dto';
+
 
 @Injectable()
 export class NftProjectService {
