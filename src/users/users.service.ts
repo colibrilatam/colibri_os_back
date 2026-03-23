@@ -43,7 +43,8 @@ export class UsersService {
     if (!userFound) {
       throw new NotFoundException('Usuario no encontrado')
     }
-    return await this.userRepository.updateUser(id, updateUserDto)
+    await this.userRepository.updateUser(id, updateUserDto)
+    return { message: 'Usuario actualizado correctamente' }
   }
 
   async remove(id: string) {
