@@ -18,8 +18,9 @@ export class UserRepository {
         return userFound
     }
 
-    async findAll(): Promise<User[]> {
-        return await this.userRepository.find()
+    async findAll(): Promise<Omit<User, 'password'>[]> {
+        const users = await this.userRepository.find()
+        return users.map(({ password, ...userData }) => userData)
     }
 
     async findOneByID(id: string) {
