@@ -4,6 +4,7 @@
 
 # Environment
 .env
+.env.production
 .env.local
 .env.*.local
 
