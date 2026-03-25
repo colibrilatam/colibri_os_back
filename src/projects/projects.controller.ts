@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 
 @ApiTags('Projects')
 @Controller('projects')
@@ -10,10 +11,11 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Crear un proyecto' })
-  create(@Body() dto: CreateProjectDto) {
-    // TODO: reemplazar por usuario autenticado cuando haya auth
-    const ownerUserId = 'owner-uuid-placeholder';
+  create(@Req() req: any, @Body() dto: CreateProjectDto) {
+    const ownerUserId = req.user.sub;
     return this.projectsService.create(ownerUserId, dto);
   }
 
@@ -30,12 +32,16 @@ export class ProjectsController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar un proyecto' })
   update(@Param('id') id: string, @Body() dto: UpdateProjectDto) {
     return this.projectsService.update(id, dto);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Eliminar un proyecto' })
   remove(@Param('id') id: string) {
     return this.projectsService.remove(id);
