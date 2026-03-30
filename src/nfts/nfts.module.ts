@@ -16,9 +16,10 @@ import { NftProjectService } from './nft-project/nfts-project.service';
 import { NftOwnershipEventController } from './nft-ownership-event/nft-ownership-event.controller';
 import { NftOwnershipEventService } from './nft-ownership-event/nft-ownership-event.service';
 import { NftOwnershipEventRepository } from './nft-ownership-event/nft-ownership-event.repository';
+import { ProjectsModule } from 'src/projects/projects.module';
 
 @Module({
-  imports: [ UsersModule,
+  imports: [ UsersModule, ProjectsModule,
     TypeOrmModule.forFeature([NftProject, NftActor, MecenasNftPortfolio, NftOwnershipEvent]),
   ],
   controllers: [NftProjectController, NftActorController, MecenasNftPortfolioController, NftOwnershipEventController],

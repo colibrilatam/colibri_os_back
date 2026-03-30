@@ -27,7 +27,7 @@ import { UsersModule } from './users/users.module';
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: configService.get<string>('NODE_ENV') === 'development',
-        logging: configService.get<string>('NODE_ENV') === 'development',
+        logging: false,
         autoLoadEntities: true,
         //dropSchema: true
       }),
