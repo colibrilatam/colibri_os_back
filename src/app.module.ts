@@ -7,6 +7,7 @@ import { ProjectMembersModule } from './project-members/project-members.module';
 import { NftsModule } from './nfts/nfts.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { LearningResourceModule } from './learning-resource/learning-resource.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { UsersModule } from './users/users.module';
     ProjectProfileModule,
     ProjectMembersModule,
     NftsModule,
+    LearningResourceModule
   ],
 })
 export class AppModule {}
