@@ -24,6 +24,14 @@ export enum UserRole {
   GUEST = "guest"
 }
 
+export enum Gender {
+  MALE = 'male',
+  FEMALE = 'female',
+  NON_BINARY = 'non_binary',
+  OTHER = 'other',
+  PREFER_NOT_TO_SAY = 'prefer_not_to_say',
+}
+
 export enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
@@ -82,6 +90,14 @@ export class User {
 
   @Column({ type: 'text', nullable: true })
   avatar: string;
+
+  @Column({
+  type: 'enum',
+  enum: Gender,
+  nullable: true,           // nunca obligatorio
+  default: null,
+  })
+  gender: Gender | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
