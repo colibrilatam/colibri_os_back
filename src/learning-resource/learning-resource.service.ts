@@ -6,13 +6,13 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { LearningResourceRepository } from './learning-resource.repository';
-import { LearningResource } from 'src/curriculum/entities/learning-resource.entity';
+import { LearningResource } from 'src/learning-resource/entities/learning-resource.entity';
 import { QueryLearningResourceDto } from './dto/query.learning-resource.dto';
 import { PaginatedResult } from './interface/paginated-result.interface';
 import { Repository } from 'typeorm';
 import { Pac } from 'src/curriculum/entities/pac.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MicroActionDefinition } from 'src/curriculum/entities/micro-action-definition.entity';
+import { MicroActionDefinition } from 'src/micro-action-definitions/entities/micro-action-definition.entity';
 import { ICreateLearningResource } from './interface/create-learning-resource.interface';
 import { IUpdateLearningResource } from './interface/update-learning-resource.interface';
 

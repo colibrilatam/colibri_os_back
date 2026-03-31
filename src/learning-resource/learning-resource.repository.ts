@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere } from 'typeorm';
-import { LearningResource } from 'src/curriculum/entities/learning-resource.entity';
+import { LearningResource } from 'src/learning-resource/entities/learning-resource.entity';
 import { QueryLearningResourceDto } from './dto/query.learning-resource.dto';
 import { PaginatedResult } from './interface/paginated-result.interface';
 import { ICreateLearningResource } from './interface/create-learning-resource.interface';

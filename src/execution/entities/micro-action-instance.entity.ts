@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Project } from '../../projects/entities/project.entity';
-import { MicroActionDefinition } from '../../curriculum/entities/micro-action-definition.entity';
+import { MicroActionDefinition } from '../../micro-action-definitions/entities/micro-action-definition.entity';
 import { Evidence } from './evidence.entity';
 
 export enum MicroActionInstanceStatus {

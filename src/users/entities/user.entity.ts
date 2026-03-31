@@ -16,10 +16,12 @@ import { NftOwnershipEvent } from '../../nfts/entities/nft-ownership-event.entit
 export enum UserRole {
   ENTREPRENEUR = 'entrepreneur',
   MENTOR = 'mentor',
-  MECENAS = 'mecenas',
   EVALUATOR = 'evaluator',
-  ADMIN = 'admin',
-  OPERATIVE = 'operative', // ← el rol sin nombre definido aún
+  MECENAS_SEMILLA = 'mecenas_semilla',       // ← era MECENAS genérico
+  MECENAS_FUNDACIONAL = 'mecenas_fundacional', // nuevo
+  MECENAS_CAMBIO = 'mecenas_cambio',          // nuevo
+  ADMIN = 'admin', // ← el rol sin nombre definido aún
+  GUEST = "guest"
 }
 
 export enum UserStatus {

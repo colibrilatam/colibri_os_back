@@ -2,23 +2,19 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Tramo } from './tramo.entity';
-import { Pac } from './pac.entity';
-import { UncertaintyType, RiskType } from './curriculum.enums';
+import { Category } from '../../categories/entities/category.entity';
+import { UncertaintyType, RiskType } from '../../curriculum/entities/curriculum.enums';
 
-@Entity('categories')
-export class Category {
+export { UncertaintyType, RiskType };
+
+@Entity('tramos')
+export class Tramo {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-
-  @Column({ name: 'tramo_id' })
-  tramoId: string;
 
   @Column({ unique: true })
   code: string;
@@ -51,14 +47,26 @@ export class Category {
   })
   primaryRiskType: RiskType;
 
-  @Column({ name: 'competency_mapping_key', nullable: true })
-  competencyMappingKey: string;
+  @Column({
+    name: 'ic_floor',
+    type: 'numeric',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
+  icFloor: number;
 
-  @Column({ name: 'skill_mapping_key', nullable: true })
-  skillMappingKey: string;
+  @Column({ name: 'eligibility_rule', type: 'text', nullable: true })
+  eligibilityRule: string;
 
-  @Column({ name: 'skills_key', nullable: true })
-  skillsKey: string;
+  @Column({
+    name: 'public_threshold',
+    type: 'numeric',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
+  publicThreshold: number;
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
@@ -76,10 +84,6 @@ export class Category {
   updatedAt: Date;
 
   // Relaciones
-  @ManyToOne(() => Tramo, (tramo) => tramo.categories)
-  @JoinColumn({ name: 'tramo_id' })
-  tramo: Tramo;
-
-  @OneToMany(() => Pac, (pac) => pac.category)
-  pacs: Pac[];
+  @OneToMany(() => Category, (category) => category.tramo)
+  categories: Category[];
 }

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LearningResource } from 'src/curriculum/entities/learning-resource.entity';
-import { MicroActionDefinition } from 'src/curriculum/entities/micro-action-definition.entity';
+import { LearningResource } from 'src/learning-resource/entities/learning-resource.entity';
+import { MicroActionDefinition } from 'src/micro-action-definitions/entities/micro-action-definition.entity';
 import { Pac } from 'src/curriculum/entities/pac.entity';
 import { LearningResourceController } from './learning-resource.controller';
 import { LearningResourceRepository } from './learning-resource.repository';

@@ -8,6 +8,10 @@ import { NftsModule } from './nfts/nfts.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { LearningResourceModule } from './learning-resource/learning-resource.module';
+import { TramosModule } from './tramos/tramos.module';
+import { CategoriesModule } from './categories/categories.module';
+import { PacsModule } from './pacs/pacs.module';
+import { MicroActionDefinitionsModule } from './micro-action-definitions/micro-action-definitions.module';
 
 @Module({
   imports: [
@@ -39,7 +43,11 @@ import { LearningResourceModule } from './learning-resource/learning-resource.mo
     ProjectProfileModule,
     ProjectMembersModule,
     NftsModule,
-    LearningResourceModule
+    LearningResourceModule,
+    TramosModule,
+    CategoriesModule,
+    PacsModule,
+    MicroActionDefinitionsModule
   ],
 })
 export class AppModule {}

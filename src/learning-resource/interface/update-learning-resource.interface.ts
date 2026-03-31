@@ -1,4 +1,4 @@
-import { ResourceType } from "src/curriculum/entities/learning-resource.entity";
+import { ResourceType } from "src/learning-resource/entities/learning-resource.entity";
 
 export interface IUpdateLearningResource {
     pacId?: string;
