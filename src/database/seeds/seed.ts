@@ -44,7 +44,7 @@ export default async function seed() {
                 email: 'mecenas@colibri.com',
                 password: await bcrypt.hash('Test@1234', 10),
                 fullName: 'Sofia Mecenas',
-                role: UserRole.MECENAS,
+                role: UserRole.MECENAS_SEMILLA,
                 status: UserStatus.ACTIVE,
                 provider: AuthProvider.LOCAL,
             },

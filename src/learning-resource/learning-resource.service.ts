@@ -10,7 +10,7 @@ import { LearningResource } from 'src/learning-resource/entities/learning-resour
 import { QueryLearningResourceDto } from './dto/query.learning-resource.dto';
 import { PaginatedResult } from './interface/paginated-result.interface';
 import { Repository } from 'typeorm';
-import { Pac } from 'src/curriculum/entities/pac.entity';
+import { Pac } from 'src/pacs/entities/pac.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MicroActionDefinition } from 'src/micro-action-definitions/entities/micro-action-definition.entity';
 import { ICreateLearningResource } from './interface/create-learning-resource.interface';

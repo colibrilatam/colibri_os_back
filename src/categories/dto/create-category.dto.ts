@@ -9,7 +9,7 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
-import { UncertaintyType, RiskType } from '../entities/category.entity';
+import { UncertaintyType, RiskType } from '../../curriculum/entities/curriculum.enums';
 
 export class CreateCategoryDto {
   @IsUUID()

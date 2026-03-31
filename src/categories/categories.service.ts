@@ -64,23 +64,25 @@ export class CategoriesService {
   async update(id: string, dto: UpdateCategoryDto): Promise<Category> {
     const category = await this.findOne(id);
 
-    if (dto.tramoId && dto.tramoId !== category.tramoId) {
-      await this.tramosService.findOne(dto.tramoId);
+    // ✅ Cast explícito para que TS reconozca las propiedades opcionales
+    const { tramoId, code } = dto as Partial<CreateCategoryDto>;
+
+    if (tramoId && tramoId !== category.tramoId) {
+      await this.tramosService.findOne(tramoId);
     }
 
-    if (dto.code && dto.code !== category.code) {
+    if (code && code !== category.code) {
       const existing = await this.categoryRepository.findOne({
-        where: { code: dto.code },
+        where: { code },
       });
       if (existing) {
-        throw new ConflictException(`Ya existe una categoría con el código "${dto.code}"`);
+        throw new ConflictException(`Ya existe una categoría con el código "${code}"`);
       }
     }
 
     Object.assign(category, dto);
     return this.categoryRepository.save(category);
   }
-
   async remove(id: string): Promise<void> {
     const category = await this.findOne(id);
     await this.categoryRepository.remove(category);

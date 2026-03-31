@@ -64,16 +64,18 @@ export class PacsService {
   async update(id: string, dto: UpdatePacDto): Promise<Pac> {
     const pac = await this.findOne(id);
 
-    if (dto.categoryId && dto.categoryId !== pac.categoryId) {
-      await this.categoriesService.findOne(dto.categoryId);
+    const { categoryId, code } = dto as Partial<CreatePacDto>;
+
+    if (categoryId && categoryId !== pac.categoryId) {
+      await this.categoriesService.findOne(categoryId);
     }
 
-    if (dto.code && dto.code !== pac.code) {
+    if (code && code !== pac.code) {
       const existing = await this.pacRepository.findOne({
-        where: { code: dto.code },
+        where: { code },
       });
       if (existing) {
-        throw new ConflictException(`Ya existe un PAC con el código "${dto.code}"`);
+        throw new ConflictException(`Ya existe un PAC con el código "${code}"`);
       }
     }
 

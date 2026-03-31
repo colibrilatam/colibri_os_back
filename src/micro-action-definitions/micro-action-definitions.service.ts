@@ -81,33 +81,35 @@ export class MicroActionDefinitionsService {
   }
 
   async update(
-    id: string,
-    dto: UpdateMicroActionDefinitionDto,
-  ): Promise<MicroActionDefinition> {
-    const mad = await this.findOne(id);
+  id: string,
+  dto: UpdateMicroActionDefinitionDto,
+): Promise<MicroActionDefinition> {
+  const mad = await this.findOne(id);
 
-    if (dto.pacId && dto.pacId !== mad.pacId) {
-      await this.pacsService.findOne(dto.pacId);
-    }
+  const { pacId, rubricId, code } = dto as Partial<CreateMicroActionDefinitionDto>;
 
-    if (dto.rubricId && dto.rubricId !== mad.rubricId) {
-      await this.validateRubric(dto.rubricId);
-    }
-
-    if (dto.code && dto.code !== mad.code) {
-      const existing = await this.madRepository.findOne({
-        where: { code: dto.code },
-      });
-      if (existing) {
-        throw new ConflictException(
-          `Ya existe una microacción con el código "${dto.code}"`,
-        );
-      }
-    }
-
-    Object.assign(mad, dto);
-    return this.madRepository.save(mad);
+  if (pacId && pacId !== mad.pacId) {
+    await this.pacsService.findOne(pacId);
   }
+
+  if (rubricId && rubricId !== mad.rubricId) {
+    await this.validateRubric(rubricId);
+  }
+
+  if (code && code !== mad.code) {
+    const existing = await this.madRepository.findOne({
+      where: { code },
+    });
+    if (existing) {
+      throw new ConflictException(
+        `Ya existe una microacción con el código "${code}"`,
+      );
+    }
+  }
+
+  Object.assign(mad, dto);
+  return this.madRepository.save(mad);
+}
 
   async remove(id: string): Promise<void> {
     const mad = await this.findOne(id);
