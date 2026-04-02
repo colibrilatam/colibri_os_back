@@ -33,9 +33,13 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
+        dropSchema: true,
         logging: false,
         autoLoadEntities: true,
-        dropSchema: true
+        ssl:
+          configService.get<string>('NODE_ENV') === 'production'
+            ? { rejectUnauthorized: false }
+            : false,
       }),
     }),
     AuthModule,
@@ -52,4 +56,4 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
     HierarchyModule
   ],
 })
-export class AppModule {}
+export class AppModule { }
