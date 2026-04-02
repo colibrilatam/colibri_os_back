@@ -33,7 +33,7 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
-        dropSchema: true,
+        //dropSchema: true,
         logging: false,
         autoLoadEntities: true,
         ssl:
