@@ -32,10 +32,10 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get<string>('NODE_ENV') === 'development',
+        synchronize: true,
         logging: false,
         autoLoadEntities: true,
-        //dropSchema: true
+        dropSchema: true
       }),
     }),
     AuthModule,
