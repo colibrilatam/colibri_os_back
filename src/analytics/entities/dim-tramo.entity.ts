@@ -6,7 +6,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Tramo } from '../../curriculum/entities/tramo.entity';
+import { Tramo } from '../../tramos/entities/tramo.entity';
 import { DimCategory } from './dim-category.entity';
 import { FactProjectActivity } from './fact-project-activity.entity';
 import { FactValidatedEvidence } from './fact-validated-evidence.entity';

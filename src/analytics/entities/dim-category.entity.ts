@@ -7,7 +7,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Category } from '../../curriculum/entities/category.entity';
+import { Category } from '../../categories/entities/category.entity';
 import { DimTramo } from './dim-tramo.entity';
 import { DimPac } from './dim-pac.entity';
 

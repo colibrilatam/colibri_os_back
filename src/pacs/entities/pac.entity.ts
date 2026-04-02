@@ -8,9 +8,9 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Category } from './category.entity';
-import { MicroActionDefinition } from './micro-action-definition.entity';
-import { LearningResource } from './learning-resource.entity';
+import { Category } from '../../categories/entities/category.entity';
+import { MicroActionDefinition } from '../../micro-action-definitions/entities/micro-action-definition.entity';
+import { LearningResource } from '../../learning-resource/entities/learning-resource.entity';
 
 @Entity('pacs')
 export class Pac {

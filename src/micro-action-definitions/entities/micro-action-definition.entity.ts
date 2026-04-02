@@ -8,8 +8,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Pac } from './pac.entity';
-import { LearningResource } from './learning-resource.entity';
+import { Pac } from '../../pacs/entities/pac.entity';
+import { LearningResource } from '../../learning-resource/entities/learning-resource.entity';
 import { Rubric } from '../../evaluation/entities/rubric.entity';
 
 export enum MicroActionType {

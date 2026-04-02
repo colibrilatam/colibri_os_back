@@ -7,8 +7,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Pac } from './pac.entity';
-import { MicroActionDefinition } from './micro-action-definition.entity';
+import { Pac } from '../../pacs/entities/pac.entity';
+import { MicroActionDefinition } from '../../micro-action-definitions/entities/micro-action-definition.entity';
 
 export enum ResourceType {
   VIDEO = 'video',

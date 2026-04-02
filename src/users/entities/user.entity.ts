@@ -16,10 +16,20 @@ import { NftOwnershipEvent } from '../../nfts/entities/nft-ownership-event.entit
 export enum UserRole {
   ENTREPRENEUR = 'entrepreneur',
   MENTOR = 'mentor',
-  MECENAS = 'mecenas',
   EVALUATOR = 'evaluator',
-  ADMIN = 'admin',
-  OPERATIVE = 'operative', // ← el rol sin nombre definido aún
+  MECENAS_SEMILLA = 'mecenas_semilla',       // ← era MECENAS genérico
+  MECENAS_FUNDACIONAL = 'mecenas_fundacional', // nuevo
+  MECENAS_CAMBIO = 'mecenas_cambio',          // nuevo
+  ADMIN = 'admin', // ← el rol sin nombre definido aún
+  GUEST = "guest"
+}
+
+export enum Gender {
+  MALE = 'male',
+  FEMALE = 'female',
+  NON_BINARY = 'non_binary',
+  OTHER = 'other',
+  PREFER_NOT_TO_SAY = 'prefer_not_to_say',
 }
 
 export enum UserStatus {
@@ -80,6 +90,14 @@ export class User {
 
   @Column({ type: 'text', nullable: true })
   avatar: string;
+
+  @Column({
+  type: 'enum',
+  enum: Gender,
+  nullable: true,           // nunca obligatorio
+  default: null,
+  })
+  gender: Gender | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

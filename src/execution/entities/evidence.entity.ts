@@ -13,7 +13,7 @@ import { Project } from '../../projects/entities/project.entity';
 import { MicroActionInstance } from './micro-action-instance.entity';
 import { EvidenceVersion } from './evidence-version.entity';
 import { Evaluation } from '../../evaluation/entities/evaluation.entity';
-import { EvidenceType } from '../../curriculum/entities/micro-action-definition.entity';
+import { EvidenceType } from '../../micro-action-definitions/entities/micro-action-definition.entity';
 
 export enum EvidenceStatus {
   DRAFT = 'draft',

@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { Project } from '../../projects/entities/project.entity';
 import { User } from '../../users/entities/user.entity';
-import { Tramo } from '../../curriculum/entities/tramo.entity';
+import { Tramo } from '../../tramos/entities/tramo.entity';
 import { IcAlgorithmVersion } from './ic-algorithm-version.entity';
 import { ReputationIndexExplanation } from './reputation-index-explanation.entity';
 

@@ -7,7 +7,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Pac } from '../../curriculum/entities/pac.entity';
+import { Pac } from '../../pacs/entities/pac.entity';
 import { DimCategory } from './dim-category.entity';
 import { FactProjectActivity } from './fact-project-activity.entity';
 

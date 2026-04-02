@@ -8,7 +8,7 @@ import {
   Min,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { ResourceType } from 'src/curriculum/entities/learning-resource.entity';
+import { ResourceType } from 'src/learning-resource/entities/learning-resource.entity';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class QueryLearningResourceDto {
