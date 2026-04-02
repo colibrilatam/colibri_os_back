@@ -12,6 +12,7 @@ import { TramosModule } from './tramos/tramos.module';
 import { CategoriesModule } from './categories/categories.module';
 import { PacsModule } from './pacs/pacs.module';
 import { MicroActionDefinitionsModule } from './micro-action-definitions/micro-action-definitions.module';
+import { HierarchyModule } from './hierarchy/hierarchy.module';
 
 @Module({
   imports: [
@@ -47,7 +48,8 @@ import { MicroActionDefinitionsModule } from './micro-action-definitions/micro-a
     TramosModule,
     CategoriesModule,
     PacsModule,
-    MicroActionDefinitionsModule
+    MicroActionDefinitionsModule,
+    HierarchyModule
   ],
 })
 export class AppModule {}
