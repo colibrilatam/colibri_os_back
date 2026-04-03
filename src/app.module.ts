@@ -13,12 +13,18 @@ import { CategoriesModule } from './categories/categories.module';
 import { PacsModule } from './pacs/pacs.module';
 import { MicroActionDefinitionsModule } from './micro-action-definitions/micro-action-definitions.module';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
+import { MicroActionInstanceModule } from './micro-action-instance/micro-action-instance.module';
+import { EvidenceModule } from './evidence/evidence.module';
+import { GoogleDriveModule } from './google-drive/google-drive.module';
+import { EvaluationModule } from './evaluation/evaluation.module';
+import { googleDriveConfig } from './google-drive/google-drive.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      load: [googleDriveConfig], // ← config de Google Drive
     }),
 
     TypeOrmModule.forRootAsync({
@@ -53,7 +59,11 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
     CategoriesModule,
     PacsModule,
     MicroActionDefinitionsModule,
-    HierarchyModule
+    HierarchyModule,
+    MicroActionInstanceModule,
+    EvidenceModule,
+    GoogleDriveModule,
+    EvaluationModule,
   ],
 })
 export class AppModule { }

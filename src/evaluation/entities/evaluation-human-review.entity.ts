@@ -37,21 +37,21 @@ export class EvaluationHumanReview {
     scale: 2,
     nullable: true,
   })
-  humanScore: number;
+  humanScore: number | null;
 
   @Column({ name: 'human_dimension_scores_json', type: 'jsonb', nullable: true })
-  humanDimensionScoresJson: object;
+  humanDimensionScoresJson: object | null;
 
-  @Column({ name: 'agrees_with_ai', nullable: true })
-  agreesWithAi: boolean;
+  @Column({ name: 'agrees_with_ai', type: 'boolean', nullable: true })
+  agreesWithAi: boolean | null;
 
   @Column({ name: 'override_reason', type: 'text', nullable: true })
-  overrideReason: string;
+  overrideReason: string | null;
 
   @Column({ type: 'text', nullable: true })
-  comment: string;
+  comment: string | null;
 
-  @Column({ name: 'reviewed_at' })
+  @Column({ name: 'reviewed_at', type: 'timestamptz' })
   reviewedAt: Date;
 
   @CreateDateColumn({ name: 'created_at' })
