@@ -19,9 +19,18 @@ export class MecenasNftPortfolioService {
         const user = await this.userService.findOneById(data.mecenasUserId);
         const portfolio = await this.mecenasNftRepository.findByNftProjectId(data.nftProjectId);
         const nftProject = await this.nftProjectService.findOne(data.nftProjectId);
-        const project = await this.projectService.findOne(data.targetProjectId as string)
-        if (portfolio && !portfolio.releasedAt)throw new ConflictException('El NFT ya está en el portafolio de un mecenas')
-        return await this.mecenasNftRepository.createMecenasNft({ ...data, mecenasUserId: user.id, nftProjectId: nftProject.id });
+        if (portfolio && !portfolio.releasedAt) {
+            throw new ConflictException('El NFT ya está en el portafolio de un mecenas');
+        }
+
+        if (data.targetProjectId) {
+            await this.projectService.findOne(data.targetProjectId);
+        }
+        return await this.mecenasNftRepository.createMecenasNft({
+            ...data,
+            mecenasUserId: user.id,
+            nftProjectId: nftProject.id,
+        });
     }
 
     async findByMecenasId(mecenasUserId: string) {
@@ -40,5 +49,11 @@ export class MecenasNftPortfolioService {
         const portfolio = await this.mecenasNftRepository.findById(id);
         if (!portfolio) throw new NotFoundException('No se encontró el portafolio de mecenas NFT');
         await this.mecenasNftRepository.updateMecenasNft(portfolio.id, data);
+    }
+
+    async findById(id: string) {
+        const portfolio = await this.mecenasNftRepository.findById(id);
+        if (!portfolio) throw new NotFoundException('No se encontró el portafolio de mecenas NFT');
+        return portfolio;
     }
 }

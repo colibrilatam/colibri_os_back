@@ -26,10 +26,10 @@ export class NftOwnershipEvent {
   nftProjectId: string;
 
   @Column({ name: 'from_user_id', nullable: true })
-  fromUserId: string;
+  fromUserId: string | null;
 
   @Column({ name: 'to_user_id', nullable: true })
-  toUserId: string;
+  toUserId: string | null;
 
   @Column({ type: 'enum', enum: NftEventType, name: 'event_type' })
   eventType: NftEventType;
