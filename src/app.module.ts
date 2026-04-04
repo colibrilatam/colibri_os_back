@@ -61,7 +61,7 @@ import { googleDriveConfig } from './google-drive/google-drive.config';
     PacsModule,
     MicroActionDefinitionsModule,
     HierarchyModule,
-    MecenasSemillaModule
+    MecenasSemillaModule,
     MicroActionInstanceModule,
     EvidenceModule,
     GoogleDriveModule,
