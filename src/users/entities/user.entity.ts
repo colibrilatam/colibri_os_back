@@ -12,6 +12,7 @@ import { ProjectMember } from '../../project-members/entities/project-member.ent
 import { NftActor } from '../../nfts/entities/nft-actor.entity';
 import { MecenasNftPortfolio } from '../../nfts/entities/mecenas-nft-portfolio.entity';
 import { NftOwnershipEvent } from '../../nfts/entities/nft-ownership-event.entity';
+import { Exclude } from 'class-transformer';
 
 export enum UserRole {
   ENTREPRENEUR = 'entrepreneur',
@@ -51,6 +52,7 @@ export class User {
   @Column({ unique: true })
   email: string;
 
+  @Exclude()
   @Column({ nullable: true, type: 'varchar' })
   password: string | null;
 

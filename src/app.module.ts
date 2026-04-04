@@ -13,6 +13,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { PacsModule } from './pacs/pacs.module';
 import { MicroActionDefinitionsModule } from './micro-action-definitions/micro-action-definitions.module';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
+import { MecenasSemillaModule } from './mecenas-semilla/mecenas-semilla.module';
 
 @Module({
   imports: [
@@ -53,7 +54,8 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
     CategoriesModule,
     PacsModule,
     MicroActionDefinitionsModule,
-    HierarchyModule
+    HierarchyModule,
+    MecenasSemillaModule
   ],
 })
 export class AppModule { }

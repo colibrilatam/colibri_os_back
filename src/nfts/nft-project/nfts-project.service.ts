@@ -11,7 +11,7 @@ export class NftProjectService {
   constructor(
     @InjectRepository(NftProject)
     private readonly nftProjectRepository: Repository<NftProject>,
-  ) {}
+  ) { }
 
   async create(projectId: string, dto: CreateNftProjectDto): Promise<NftProject> {
     const existing = await this.nftProjectRepository.findOne({ where: { projectId } });
@@ -63,5 +63,17 @@ export class NftProjectService {
   async remove(id: string): Promise<void> {
     const nftProject = await this.findOne(id);
     await this.nftProjectRepository.remove(nftProject);
+  }
+
+  async createSimulated(currentHolderUserId: string, index: number): Promise<NftProject> {
+    const nftProject = this.nftProjectRepository.create({
+      projectId: null,
+      chainId: 0,
+      contractAddress: 'PENDING_BLOCKCHAIN',
+      tokenId: `COLIBRI-${Date.now()}-${index}-${currentHolderUserId}`,
+      currentHolderUserId,
+      mintedAt: new Date(),
+    });
+    return this.nftProjectRepository.save(nftProject);
   }
 }
