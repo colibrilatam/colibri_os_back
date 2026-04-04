@@ -1,4 +1,5 @@
-// src/curriculum/tramos.service.ts
+// src/tramos/tramos.service.ts
+
 import {
   Injectable,
   NotFoundException,
@@ -7,6 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tramo } from './entities/tramo.entity';
+import { Project } from '../projects/entities/project.entity';
 import { CreateTramoDto } from './dto/create-tramo.dto';
 import { UpdateTramoDto } from './dto/update-tramo.dto';
 
@@ -15,6 +17,9 @@ export class TramosService {
   constructor(
     @InjectRepository(Tramo)
     private readonly tramoRepository: Repository<Tramo>,
+
+    @InjectRepository(Project)
+    private readonly projectRepository: Repository<Project>,
   ) {}
 
   async create(dto: CreateTramoDto): Promise<Tramo> {
@@ -22,9 +27,10 @@ export class TramosService {
       where: { code: dto.code },
     });
     if (existing) {
-      throw new ConflictException(`Ya existe un tramo con el código "${dto.code}"`);
+      throw new ConflictException(
+        `Ya existe un tramo con el código "${dto.code}"`,
+      );
     }
-
     const tramo = this.tramoRepository.create(dto);
     return this.tramoRepository.save(tramo);
   }
@@ -33,6 +39,32 @@ export class TramosService {
     return this.tramoRepository.find({
       order: { sortOrder: 'ASC' },
     });
+  }
+
+  async findAllByProject(
+    projectId: string,
+  ): Promise<(Tramo & { isCurrent: boolean; isUnlocked: boolean })[]> {
+    const project = await this.projectRepository.findOne({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Proyecto ${projectId} no encontrado`);
+    }
+
+    const tramos = await this.tramoRepository.find({
+      order: { sortOrder: 'ASC' },
+      relations: ['categories'],
+    });
+
+    const currentTramo = tramos.find((t) => t.id === project.currentTramoId);
+    const currentSortOrder = currentTramo?.sortOrder ?? 1;
+
+    return tramos.map((tramo) => ({
+      ...tramo,
+      isCurrent: tramo.id === project.currentTramoId,
+      isUnlocked: tramo.sortOrder <= currentSortOrder,
+    }));
   }
 
   async findOne(id: string): Promise<Tramo> {
@@ -54,7 +86,9 @@ export class TramosService {
         where: { code: dto.code },
       });
       if (existing) {
-        throw new ConflictException(`Ya existe un tramo con el código "${dto.code}"`);
+        throw new ConflictException(
+          `Ya existe un tramo con el código "${dto.code}"`,
+        );
       }
     }
 

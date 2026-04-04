@@ -1,4 +1,5 @@
 // src/curriculum/tramos.controller.ts
+
 import {
   Controller,
   Get,
@@ -24,9 +25,19 @@ export class TramosController {
     return this.tramosService.create(dto);
   }
 
+  // GET /tramos — todos los tramos globales
   @Get()
   findAll() {
     return this.tramosService.findAll();
+  }
+
+  // GET /tramos/project/:projectId — tramos con contexto del proyecto
+  // Muestra cuál es el actual y cuáles están desbloqueados
+  @Get('project/:projectId')
+  findAllByProject(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+  ) {
+    return this.tramosService.findAllByProject(projectId);
   }
 
   @Get(':id')
