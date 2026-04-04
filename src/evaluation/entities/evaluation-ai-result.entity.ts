@@ -28,8 +28,8 @@ export class EvaluationAiResult {
   @Column({ name: 'ai_model_used' })
   aiModelUsed: string;
 
-  @Column({ name: 'ai_model_version', nullable: true })
-  aiModelVersion: string;
+  @Column({ name: 'ai_model_version', type: 'varchar', nullable: true })
+  aiModelVersion: string | null;
 
   @Column({
     name: 'ai_result',
@@ -46,10 +46,10 @@ export class EvaluationAiResult {
     scale: 2,
     nullable: true,
   })
-  aiScore: number;
+  aiScore: number | null;
 
   @Column({ name: 'ai_dimension_scores_json', type: 'jsonb', nullable: true })
-  aiDimensionScoresJson: object;
+  aiDimensionScoresJson: object | null;
 
   @Column({
     name: 'ai_confidence',
@@ -58,16 +58,16 @@ export class EvaluationAiResult {
     scale: 2,
     nullable: true,
   })
-  aiConfidence: number;
+  aiConfidence: number | null;
 
   @Column({ name: 'ai_reasoning', type: 'text', nullable: true })
-  aiReasoning: string;
+  aiReasoning: string | null;
 
   @Column({ name: 'raw_response_json', type: 'jsonb', nullable: true })
-  rawResponseJson: object;
+  rawResponseJson: object | null;
 
-  @Column({ name: 'processed_at', nullable: true })
-  processedAt: Date;
+  @Column({ name: 'processed_at', type: 'timestamptz', nullable: true })
+  processedAt: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Project } from '../../projects/entities/project.entity';
-import { MicroActionInstance } from './micro-action-instance.entity';
+import { MicroActionInstance } from '../../micro-action-instance/entities/micro-action-instance.entity';
 import { EvidenceVersion } from './evidence-version.entity';
 import { Evaluation } from '../../evaluation/entities/evaluation.entity';
 import { EvidenceType } from '../../micro-action-definitions/entities/micro-action-definition.entity';
@@ -108,7 +108,7 @@ export class Evidence {
   contentHash: string;
 
   @Column({ name: 'validated_by_user_id', nullable: true })
-  validatedByUserId: string;
+  validatedByUserId: string | null;
 
   @Column({ name: 'validation_notes', type: 'text', nullable: true })
   validationNotes: string;

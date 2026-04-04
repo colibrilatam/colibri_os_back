@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Evidence } from '../../execution/entities/evidence.entity';
+import { Evidence } from '../../evidence/entities/evidence.entity';
 import { Rubric } from './rubric.entity';
 import { EvaluationAiResult } from './evaluation-ai-result.entity';
 import { EvaluationHumanReview } from './evaluation-human-review.entity';
@@ -47,10 +47,10 @@ export class Evaluation {
   evaluationResult: EvaluationResult;
 
   @Column({ type: 'numeric', precision: 5, scale: 2, nullable: true })
-  score: number;
+  score: number | null;
 
   @Column({ name: 'dimension_scores_json', type: 'jsonb', nullable: true })
-  dimensionScoresJson: object;
+  dimensionScoresJson: object | null;
 
   @Column({ name: 'is_final', default: false })
   isFinal: boolean;
@@ -65,7 +65,7 @@ export class Evaluation {
   evaluationSourceWeight: number;
 
   @Column({ type: 'text', nullable: true })
-  comment: string;
+  comment: string | null;
 
   @Column({ name: 'evaluated_at', nullable: true })
   evaluatedAt: Date;

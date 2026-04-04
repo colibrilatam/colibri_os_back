@@ -45,11 +45,11 @@ export class Rubric {
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
-  @Column({ name: 'valid_from', nullable: true })
-  validFrom: Date;
+  @Column({ name: 'valid_from', type: 'timestamptz', nullable: true })
+  validFrom: Date | null;
 
-  @Column({ name: 'valid_to', nullable: true })
-  validTo: Date;
+  @Column({ name: 'valid_to', type: 'timestamptz', nullable: true })
+  validTo: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
