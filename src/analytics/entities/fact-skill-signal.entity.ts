@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { DimProject } from './dim-project.entity';
 import { DimUser } from './dim-user.entity';
-import { Evidence } from '../../execution/entities/evidence.entity';
+import { Evidence } from '../../evidence/entities/evidence.entity';
 import { CompetencyLevel } from './analytics.enums';
 
 @Entity('fact_skill_signals')

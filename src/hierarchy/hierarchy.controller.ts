@@ -20,11 +20,8 @@ export class HierarchyController {
   @ApiOperation({
     summary: 'Obtener la jerarquía simplificada (tramos, categorías y PACs) sin micro acciones ni recursos',
   })
-  async getShallowHierarchy(
-    @Query('onlyActive') onlyActive: boolean,
-  ) {
-    const active = onlyActive !== false;
-    return this.hierarchyService.getShallowHierarchy(active);
+  async getShallowHierarchy() {
+    return this.hierarchyService.getShallowHierarchy();
   }
 
 }

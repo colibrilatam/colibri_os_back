@@ -6,10 +6,9 @@ import { User } from 'src/users/entities/user.entity';
 import { Project } from 'src/projects/entities/project.entity';
 
 export async function seedNfts(dataSource: DataSource, users: User[], projects: Project[]) {
-    const [entrepreneur, mecenas, mentor] = users;
+    const [mecenas, mentor] = users;
     const [ecotech, agroia] = projects;
 
-    // NftProjects
     const nftProjectRepo = dataSource.getRepository(NftProject);
     const nftProjects = nftProjectRepo.create([
         {
@@ -19,7 +18,7 @@ export async function seedNfts(dataSource: DataSource, users: User[], projects: 
             tokenId: '1',
             nftHash: 'hash_ecotech_001',
             metadataUri: 'https://api.colibri.os/nfts/metadata/1',
-            currentHolderUserId: entrepreneur.id,
+            currentHolderUserId: null, // ← elegible para mecenas
         },
         {
             projectId: agroia.id,
@@ -28,13 +27,13 @@ export async function seedNfts(dataSource: DataSource, users: User[], projects: 
             tokenId: '2',
             nftHash: 'hash_agroia_002',
             metadataUri: 'https://api.colibri.os/nfts/metadata/2',
-            currentHolderUserId: mecenas.id,
+            currentHolderUserId: null, // ← elegible para mecenas
         },
     ]);
     const savedNftProjects = await nftProjectRepo.save(nftProjects);
     console.log('✅ NFT Projects creados:', savedNftProjects.length);
 
-    // NftActors
+    // NftActors — estos sí tienen holder porque son credenciales de actores
     const nftActorRepo = dataSource.getRepository(NftActor);
     const nftActors = nftActorRepo.create([
         {
@@ -59,15 +58,22 @@ export async function seedNfts(dataSource: DataSource, users: User[], projects: 
     const savedNftActors = await nftActorRepo.save(nftActors);
     console.log('✅ NFT Actors creados:', savedNftActors.length);
 
-    // NftOwnershipEvents
+    // Ownership events — solo registramos el mint inicial, sin transfers
     const ownershipRepo = dataSource.getRepository(NftOwnershipEvent);
     const events = ownershipRepo.create([
         {
             nftProjectId: savedNftProjects[0].id,
-            fromUserId: entrepreneur.id,
-            toUserId: mecenas.id,
-            eventType: NftEventType.TRANSFER,
-            txHash: '0xabc123',
+            fromUserId: null, // mint inicial, no hay from
+            toUserId: null,   // sin holder aún
+            eventType: NftEventType.MINT,
+            occurredAt: new Date(),
+            recordedAt: new Date(),
+        },
+        {
+            nftProjectId: savedNftProjects[1].id,
+            fromUserId: null,
+            toUserId: null,
+            eventType: NftEventType.MINT,
             occurredAt: new Date(),
             recordedAt: new Date(),
         },

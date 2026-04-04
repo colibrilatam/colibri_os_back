@@ -11,7 +11,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Project } from '../../projects/entities/project.entity';
 import { MicroActionDefinition } from '../../micro-action-definitions/entities/micro-action-definition.entity';
-import { Evidence } from './evidence.entity';
+import { Evidence } from '../../evidence/entities/evidence.entity';
 
 export enum MicroActionInstanceStatus {
   STARTED = 'started',
@@ -44,26 +44,26 @@ export class MicroActionInstance {
   })
   status: MicroActionInstanceStatus;
 
-  @Column({ name: 'started_at', nullable: true })
-  startedAt: Date;
+  @Column({ name: 'started_at', type: 'timestamptz', nullable: true })
+  startedAt: Date | null;
 
-  @Column({ name: 'submitted_at', nullable: true })
-  submittedAt: Date;
+  @Column({ name: 'submitted_at', type: 'timestamptz', nullable: true })
+  submittedAt: Date | null;
 
-  @Column({ name: 'completed_at', nullable: true })
-  completedAt: Date;
+  @Column({ name: 'completed_at', type: 'timestamptz', nullable: true })
+  completedAt: Date | null;
 
-  @Column({ name: 'validated_at', nullable: true })
-  validatedAt: Date;
+  @Column({ name: 'validated_at', type: 'timestamptz', nullable: true })
+  validatedAt: Date | null;
 
-  @Column({ name: 'closed_at', nullable: true })
-  closedAt: Date;
+  @Column({ name: 'closed_at', type: 'timestamptz', nullable: true })
+  closedAt: Date | null;
 
-  @Column({ name: 'execution_window_days_snapshot', nullable: true })
-  executionWindowDaysSnapshot: number;
+  @Column({ name: 'execution_window_days_snapshot', type: 'int', nullable: true })
+  executionWindowDaysSnapshot: number | null;
 
-  @Column({ name: 'is_on_time', nullable: true })
-  isOnTime: boolean;
+  @Column({ name: 'is_on_time', type: 'boolean', nullable: true })
+  isOnTime: boolean | null;
 
   @Column({ name: 'attempt_number', default: 1 })
   attemptNumber: number;
@@ -72,7 +72,7 @@ export class MicroActionInstance {
   reopenedCount: number;
 
   @Column({ name: 'execution_notes', type: 'text', nullable: true })
-  executionNotes: string;
+  executionNotes: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

@@ -4,6 +4,10 @@ import { Tramo } from 'src/tramos/entities/tramo.entity';
 export async function seedTramos(dataSource: DataSource) {
     const repo = dataSource.getRepository(Tramo);
 
+    // Los tramos son estructura global del sistema (catálogo compartido).
+    // No pertenecen a un proyecto específico.
+    // La asociación proyecto ↔ tramo se registra en la capa de ejecución (Grupo 3),
+    // por ejemplo en una entidad ProjectProgress o ProjectTramo.
     const tramos = repo.create([
         {
             code: 'TRAMO_1',

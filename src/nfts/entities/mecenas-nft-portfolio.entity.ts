@@ -29,7 +29,7 @@ export class MecenasNftPortfolio {
   nftProjectId: string;
 
   @Column({ name: 'target_project_id', nullable: true })
-  targetProjectId: string;
+  targetProjectId: string | null;
 
   @Column({
     name: 'portfolio_role',
@@ -37,7 +37,7 @@ export class MecenasNftPortfolio {
     enum: PortfolioRole,
     nullable: true,
   })
-  portfolioRole: PortfolioRole;
+  portfolioRole: PortfolioRole | null;
 
   @Column({ name: 'acquired_at', nullable: true })
   acquiredAt: Date;

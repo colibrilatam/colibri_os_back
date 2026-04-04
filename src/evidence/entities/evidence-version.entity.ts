@@ -32,8 +32,8 @@ export class EvidenceVersion {
   @Column({ name: 'is_material_change', default: false })
   isMaterialChange: boolean;
 
-  @Column({ name: 'supersedes_version_number', nullable: true })
-  supersedesVersionNumber: number;
+  @Column({ name: 'supersedes_version_number', type: 'int', nullable: true })
+  supersedesVersionNumber: number | null;
 
   @Column({ name: 'created_by_user_id' })
   createdByUserId: string;
