@@ -16,7 +16,7 @@ import {
 import { EvidenceService } from './evidence.service';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { UpdateEvidenceDto } from './dto/update-evidence.dto';
-import { RequestUploadUrlDto } from './dto/request-upload-url.dto';
+import { RequestUploadSignatureDto } from './dto/request-upload-signature.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -30,7 +30,6 @@ export class EvidenceController {
   constructor(private readonly service: EvidenceService) {}
 
   // ─── POST /evidence ───────────────────────────────────────────────────────────
-  // El emprendedor crea una evidencia en estado DRAFT
   @Post()
   @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
@@ -41,22 +40,22 @@ export class EvidenceController {
     return this.service.create(userId, dto);
   }
 
-  // ─── POST /evidence/request-upload-url ───────────────────────────────────────
-  // Paso 1 de subida de archivo: el backend genera una URL resumable de Drive
-  // El frontend luego sube el archivo DIRECTO a esa URL (sin pasar por el backend)
-  @Post('request-upload-url')
+  // ─── POST /evidence/request-upload-signature ──────────────────────────────────
+  // Paso 1: el backend genera la firma para que el frontend suba directo a Cloudinary
+  // El frontend usa: signature, timestamp, apiKey, cloudName, folder, publicId
+  @Post('request-upload-signature')
   @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  requestUploadUrl(
+  requestUploadSignature(
     @CurrentUser('id') userId: string,
-    @Body() dto: RequestUploadUrlDto,
+    @Body() dto: RequestUploadSignatureDto,
   ) {
-    return this.service.requestUploadUrl(userId, dto);
+    return this.service.requestUploadSignature(userId, dto);
   }
 
   // ─── POST /evidence/confirm-upload ───────────────────────────────────────────
-  // Paso 2 de subida de archivo: el frontend avisa que el archivo ya fue subido
-  // El backend guarda el storageUri y crea la EvidenceVersion correspondiente
+  // Paso 2: el frontend avisa que el archivo ya fue subido a Cloudinary
+  // El backend verifica, guarda la URL y crea la EvidenceVersion
   @Post('confirm-upload')
   @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
@@ -68,7 +67,6 @@ export class EvidenceController {
   }
 
   // ─── POST /evidence/:id/submit ────────────────────────────────────────────────
-  // El emprendedor envía la evidencia a revisión → pasa de DRAFT a SUBMITTED
   @Post(':id/submit')
   @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
@@ -80,7 +78,6 @@ export class EvidenceController {
   }
 
   // ─── GET /evidence/project/:projectId ────────────────────────────────────────
-  // Todas las evidencias de un proyecto
   @Get('project/:projectId')
   @Roles(
     UserRole.ENTREPRENEUR,
@@ -95,7 +92,6 @@ export class EvidenceController {
   }
 
   // ─── GET /evidence/micro-action-instance/:instanceId ─────────────────────────
-  // Todas las evidencias de una microacción específica
   @Get('micro-action-instance/:instanceId')
   @Roles(
     UserRole.ENTREPRENEUR,
@@ -110,7 +106,6 @@ export class EvidenceController {
   }
 
   // ─── GET /evidence/:id/versions ──────────────────────────────────────────────
-  // Historial completo de versiones de una evidencia
   @Get(':id/versions')
   @Roles(
     UserRole.ENTREPRENEUR,
@@ -135,8 +130,6 @@ export class EvidenceController {
   }
 
   // ─── PATCH /evidence/:id ─────────────────────────────────────────────────────
-  // Actualiza descripción, privacidad o publicSignalEnabled
-  // Solo permitido en estado DRAFT o REJECTED
   @Patch(':id')
   @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   update(
@@ -148,8 +141,6 @@ export class EvidenceController {
   }
 
   // ─── DELETE /evidence/:id ─────────────────────────────────────────────────────
-  // Solo se puede eliminar si está en DRAFT
-  // También elimina el archivo de Google Drive si existe
   @Delete(':id')
   @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)

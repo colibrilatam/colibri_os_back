@@ -1,3 +1,5 @@
+// src/app.module.ts
+
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -12,20 +14,18 @@ import { TramosModule } from './tramos/tramos.module';
 import { CategoriesModule } from './categories/categories.module';
 import { PacsModule } from './pacs/pacs.module';
 import { MicroActionDefinitionsModule } from './micro-action-definitions/micro-action-definitions.module';
-import { HierarchyModule } from './hierarchy/hierarchy.module';
-import { MecenasSemillaModule } from './mecenas-semilla/mecenas-semilla.module';
 import { MicroActionInstanceModule } from './micro-action-instance/micro-action-instance.module';
 import { EvidenceModule } from './evidence/evidence.module';
-import { GoogleDriveModule } from './google-drive/google-drive.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
-import { googleDriveConfig } from './google-drive/google-drive.config';
+import { cloudinaryConfig } from './cloudinary/cloudinary.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-      load: [googleDriveConfig], // ← config de Google Drive
+      load: [cloudinaryConfig],
     }),
 
     TypeOrmModule.forRootAsync({
@@ -39,14 +39,9 @@ import { googleDriveConfig } from './google-drive/google-drive.config';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true,
-        //dropSchema: true,
+        synchronize: configService.get<string>('NODE_ENV') === 'development',
         logging: false,
         autoLoadEntities: true,
-        ssl:
-          configService.get<string>('NODE_ENV') === 'production'
-            ? { rejectUnauthorized: false }
-            : false,
       }),
     }),
     AuthModule,
@@ -60,12 +55,10 @@ import { googleDriveConfig } from './google-drive/google-drive.config';
     CategoriesModule,
     PacsModule,
     MicroActionDefinitionsModule,
-    HierarchyModule,
-    MecenasSemillaModule,
     MicroActionInstanceModule,
     EvidenceModule,
-    GoogleDriveModule,
+    CloudinaryModule,
     EvaluationModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}
