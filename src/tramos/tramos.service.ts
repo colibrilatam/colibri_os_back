@@ -20,7 +20,7 @@ export class TramosService {
 
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
-  ) {}
+  ) { }
 
   async create(dto: CreateTramoDto): Promise<Tramo> {
     const existing = await this.tramoRepository.findOne({
@@ -47,11 +47,13 @@ export class TramosService {
     const project = await this.projectRepository.findOne({
       where: { id: projectId },
     });
-
+    
     if (!project) {
       throw new NotFoundException(`Proyecto ${projectId} no encontrado`);
     }
 
+    if (!project.currentTramoId) return [];
+    
     const tramos = await this.tramoRepository.find({
       order: { sortOrder: 'ASC' },
       relations: ['categories'],

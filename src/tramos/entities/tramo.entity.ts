@@ -22,6 +22,9 @@ export class Tramo {
   @Column()
   name: string;
 
+  @Column({ name: 'nft_image_url', nullable: true })
+  nftImageUrl?: string;
+
   @Column({ type: 'text', nullable: true })
   description: string;
 
