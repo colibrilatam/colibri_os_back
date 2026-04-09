@@ -33,10 +33,10 @@ async function seed() {
 
         // Cada función recibe lo que necesita del paso anterior
         const users           = await seedUsers(AppDataSource);
-        const projects        = await seedProjects(AppDataSource, users);
+        const tramos          = await seedTramos(AppDataSource);
+        const projects        = await seedProjects(AppDataSource, users, tramos);
         await seedNfts(AppDataSource, users, projects);
         await seedProjectMembers(AppDataSource, users, projects);
-        const tramos          = await seedTramos(AppDataSource);
         const categories      = await seedCategories(AppDataSource, tramos);
         const pacs            = await seedPacs(AppDataSource, categories);
         const microActions    = await seedMicroActions(AppDataSource, pacs);

@@ -14,6 +14,7 @@ import { ProjectProfile } from '../../project-profile/entities/project-profile.e
 import { ProjectMember } from '../../project-members/entities/project-member.entity';
 import { NftProject } from '../../nfts/entities/nft-project.entity';
 import { MecenasNftPortfolio } from '../../nfts/entities/mecenas-nft-portfolio.entity';
+import { Tramo } from 'src/tramos/entities/tramo.entity';
 
 export enum ProjectStatus {
   ACTIVE = 'active',
@@ -90,6 +91,10 @@ export class Project {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @ManyToOne(() => Tramo, { nullable: true })
+  @JoinColumn({ name: 'current_tramo_id' })
+  currentTramo: Tramo;
 
   @ManyToOne(() => User, (user) => user.projects)
   @JoinColumn({ name: 'owner_user_id' })

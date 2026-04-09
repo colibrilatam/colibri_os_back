@@ -19,6 +19,7 @@ import { EvidenceModule } from './evidence/evidence.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
 import { cloudinaryConfig } from './cloudinary/cloudinary.config';
+import { HierarchyModule } from './hierarchy/hierarchy.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { cloudinaryConfig } from './cloudinary/cloudinary.config';
         synchronize: configService.get<string>('NODE_ENV') === 'development',
         logging: false,
         autoLoadEntities: true,
+        dropSchema: true
       }),
     }),
     AuthModule,
@@ -59,6 +61,7 @@ import { cloudinaryConfig } from './cloudinary/cloudinary.config';
     EvidenceModule,
     CloudinaryModule,
     EvaluationModule,
+    HierarchyModule
   ],
 })
 export class AppModule {}
