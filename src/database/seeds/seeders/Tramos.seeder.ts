@@ -12,7 +12,7 @@ export async function seedTramos(dataSource: DataSource) {
             sortOrder: 1,
             executionWindowDays: 30,
             isActive: true,
-            nftImageUrl: '/nfts/t1.png',
+            nftImageUrl: '/nfts/T1.png',
         },
         {
             code: 'T2',
@@ -21,7 +21,7 @@ export async function seedTramos(dataSource: DataSource) {
             sortOrder: 2,
             executionWindowDays: 60,
             isActive: true,
-            nftImageUrl: '/nfts/t2.png',
+            nftImageUrl: '/nfts/T2.png',
         },
         {
             code: 'T3',
@@ -30,7 +30,7 @@ export async function seedTramos(dataSource: DataSource) {
             sortOrder: 3,
             executionWindowDays: 90,
             isActive: true,
-            nftImageUrl: '/nfts/t3.png',
+            nftImageUrl: '/nfts/T3.png',
         },
         {
             code: 'T4',
@@ -39,7 +39,7 @@ export async function seedTramos(dataSource: DataSource) {
             sortOrder: 4,
             executionWindowDays: 120,
             isActive: true,
-            nftImageUrl: '/nfts/t4.png',
+            nftImageUrl: '/nfts/T4.png',
         },
     ]);
 
