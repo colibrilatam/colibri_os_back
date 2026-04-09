@@ -43,7 +43,7 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
         synchronize: configService.get<string>('NODE_ENV') === 'development',
         logging: false,
         autoLoadEntities: true,
-        dropSchema: true
+        //dropSchema: true
       }),
     }),
     AuthModule,
