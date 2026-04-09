@@ -10,17 +10,21 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import * as crypto from 'crypto';
-import { Evidence, EvidenceStatus, PrivacyLevel } from './entities/evidence.entity';
+import {
+  Evidence,
+  EvidenceStatus,
+  PrivacyLevel,
+} from './entities/evidence.entity';
 import { EvidenceVersion } from './entities/evidence-version.entity';
-import { GoogleDriveService } from '../google-drive/google-drive.service';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { MicroActionInstanceService } from '../micro-action-instance/micro-action-instance.service';
 import { MicroActionInstanceStatus } from '../micro-action-instance/entities/micro-action-instance.entity';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { UpdateEvidenceDto } from './dto/update-evidence.dto';
-import { RequestUploadUrlDto } from './dto/request-upload-url.dto';
+import { RequestUploadSignatureDto } from './dto/request-upload-signature.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
+import { CloudinarySignature } from '../cloudinary/cloudinary.service';
 
-// Estados desde los cuales se puede modificar la evidencia
 const EDITABLE_STATUSES: EvidenceStatus[] = [
   EvidenceStatus.DRAFT,
   EvidenceStatus.REJECTED,
@@ -37,18 +41,17 @@ export class EvidenceService {
     @InjectRepository(EvidenceVersion)
     private readonly versionRepo: Repository<EvidenceVersion>,
 
-    private readonly googleDriveService: GoogleDriveService,
+    private readonly cloudinaryService: CloudinaryService,
     private readonly microActionInstanceService: MicroActionInstanceService,
     private readonly dataSource: DataSource,
   ) {}
 
-  // ─── Crear evidencia (comienza en DRAFT) ──────────────────────────────────────
+  // ─── Crear evidencia en DRAFT ─────────────────────────────────────────────────
 
   async create(
     authorUserId: string,
     dto: CreateEvidenceDto,
   ): Promise<Evidence> {
-    // Validamos que la MicroActionInstance exista y pertenezca al usuario
     const instance = await this.microActionInstanceService.findOne(
       dto.microActionInstanceId,
     );
@@ -59,7 +62,6 @@ export class EvidenceService {
       );
     }
 
-    // Verificamos que la instancia esté en un estado que acepte evidencia
     const validInstanceStatuses: MicroActionInstanceStatus[] = [
       MicroActionInstanceStatus.STARTED,
       MicroActionInstanceStatus.IN_PROGRESS,
@@ -72,7 +74,6 @@ export class EvidenceService {
       );
     }
 
-    // Verificamos que no haya ya una evidencia activa (no rechazada) para esta instancia
     const existingActive = await this.evidenceRepo.findOne({
       where: {
         microActionInstanceId: dto.microActionInstanceId,
@@ -86,7 +87,6 @@ export class EvidenceService {
       );
     }
 
-    // FIX: cast explícito para evitar ambigüedad de overload en repo.create()
     const evidence = this.evidenceRepo.create({
       microActionInstanceId: dto.microActionInstanceId,
       authorUserId,
@@ -100,17 +100,21 @@ export class EvidenceService {
     } as Evidence);
 
     const saved = await this.evidenceRepo.save(evidence);
-    this.logger.log(`Evidence ${saved.id} creada en DRAFT por usuario ${authorUserId}`);
+    this.logger.log(
+      `Evidence ${saved.id} creada en DRAFT por usuario ${authorUserId}`,
+    );
 
     return saved;
   }
 
-  // ─── Solicitar URL de subida a Google Drive ───────────────────────────────────
+  // ─── Paso 1: Generar firma para upload directo a Cloudinary ───────────────────
+  // El frontend recibe la firma y sube el archivo DIRECTO a Cloudinary
+  // sin que el archivo pase por nuestro backend
 
-  async requestUploadUrl(
+  async requestUploadSignature(
     authorUserId: string,
-    dto: RequestUploadUrlDto,
-  ): Promise<{ uploadUrl: string; driveFileName: string }> {
+    dto: RequestUploadSignatureDto,
+  ): Promise<CloudinarySignature> {
     const evidence = await this.findOneAndAssertOwnership(
       dto.evidenceId,
       authorUserId,
@@ -118,24 +122,21 @@ export class EvidenceService {
 
     this.assertEditable(evidence);
 
-    const session = await this.googleDriveService.generateResumableUploadUrl(
-      dto.fileName,
-      dto.mimeType,
+    const signature = this.cloudinaryService.generateUploadSignature(
       evidence.projectId,
       evidence.id,
+      dto.mimeType,
     );
 
     this.logger.log(
-      `URL de upload generada para evidence ${evidence.id} — archivo: ${dto.fileName}`,
+      `Firma de upload generada para evidence ${evidence.id}`,
     );
 
-    return {
-      uploadUrl: session.uploadUrl,
-      driveFileName: session.driveFileName,
-    };
+    return signature;
   }
 
-  // ─── Confirmar subida: guarda storageUri y crea EvidenceVersion ───────────────
+  // ─── Paso 2: Confirmar que el archivo fue subido a Cloudinary ─────────────────
+  // El frontend avisa que el upload terminó y nos pasa el publicId y la URL
 
   async confirmUpload(
     authorUserId: string,
@@ -148,15 +149,14 @@ export class EvidenceService {
 
     this.assertEditable(evidence);
 
-    // Verificamos que el archivo realmente existe en Drive
-    const fileMeta = await this.googleDriveService.getFileMetadata(
-      dto.driveFileId,
-    );
+    // Determinamos el resourceType según el mimeType
+    const resourceType = this.cloudinaryService.getResourceType(dto.mimeType);
 
-    // Hacemos el archivo accesible si la evidencia es pública
-    if (evidence.privacyLevel === PrivacyLevel.PUBLIC) {
-      await this.googleDriveService.makeFileAccessible(dto.driveFileId);
-    }
+    // Verificamos que el archivo realmente existe en Cloudinary
+    const fileMeta = await this.cloudinaryService.getFileMetadata(
+      dto.cloudinaryPublicId,
+      resourceType,
+    );
 
     // Calculamos el número de versión
     const lastVersion = await this.versionRepo.findOne({
@@ -164,28 +164,25 @@ export class EvidenceService {
       order: { versionNumber: 'DESC' },
     });
 
-    const nextVersionNumber = lastVersion ? lastVersion.versionNumber + 1 : 1;
+    const nextVersionNumber = lastVersion
+      ? lastVersion.versionNumber + 1
+      : 1;
 
-    // Generamos hash del storageUri para trazabilidad
+    // Hash del storageUri para trazabilidad
     const contentHash = crypto
       .createHash('sha256')
       .update(dto.storageUri)
       .digest('hex');
 
-    // Usamos una transacción para que evidence y version se guarden juntos
     await this.dataSource.transaction(async (manager) => {
-      // Actualizamos la evidence
-      evidence.canonicalUri = dto.storageUri;
+      evidence.canonicalUri = fileMeta.secureUrl;
       evidence.contentHash = contentHash;
       await manager.save(Evidence, evidence);
 
-      // FIX: usamos undefined en vez de null para supersedesVersionNumber
-      // porque la entidad EvidenceVersion lo tiene como number | null
-      // y TypeORM acepta undefined como "no enviar el campo"
       const version = manager.create(EvidenceVersion, {
         evidenceId: evidence.id,
         versionNumber: nextVersionNumber,
-        storageUri: dto.storageUri,
+        storageUri: fileMeta.secureUrl,
         contentHash,
         changeSummary: dto.changeSummary ?? `Versión ${nextVersionNumber}`,
         isMaterialChange: dto.isMaterialChange ?? nextVersionNumber === 1,
@@ -197,7 +194,7 @@ export class EvidenceService {
     });
 
     this.logger.log(
-      `Evidence ${evidence.id} actualizada con archivo Drive ${fileMeta.fileId} — versión ${nextVersionNumber}`,
+      `Evidence ${evidence.id} actualizada — Cloudinary publicId: ${fileMeta.publicId} — versión ${nextVersionNumber}`,
     );
 
     return this.findOne(evidence.id);
@@ -220,13 +217,14 @@ export class EvidenceService {
     evidence.submittedAt = new Date();
 
     const saved = await this.evidenceRepo.save(evidence);
-
-    this.logger.log(`Evidence ${id} enviada a revisión por usuario ${authorUserId}`);
+    this.logger.log(
+      `Evidence ${id} enviada a revisión por usuario ${authorUserId}`,
+    );
 
     return saved;
   }
 
-  // ─── Update (descripción, privacidad, etc.) ───────────────────────────────────
+  // ─── Actualizar (descripción, privacidad, etc.) ───────────────────────────────
 
   async update(
     id: string,
@@ -236,30 +234,6 @@ export class EvidenceService {
     const evidence = await this.findOneAndAssertOwnership(id, authorUserId);
 
     this.assertEditable(evidence);
-
-    // Si cambia la privacidad a PUBLIC y hay archivo, lo hacemos accesible
-    if (
-      dto.privacyLevel === PrivacyLevel.PUBLIC &&
-      evidence.privacyLevel !== PrivacyLevel.PUBLIC &&
-      evidence.canonicalUri
-    ) {
-      const fileId = this.extractDriveFileId(evidence.canonicalUri);
-      if (fileId) {
-        await this.googleDriveService.makeFileAccessible(fileId);
-      }
-    }
-
-    // Si cambia de PUBLIC a PRIVATE, revocamos acceso
-    if (
-      dto.privacyLevel === PrivacyLevel.PRIVATE &&
-      evidence.privacyLevel === PrivacyLevel.PUBLIC &&
-      evidence.canonicalUri
-    ) {
-      const fileId = this.extractDriveFileId(evidence.canonicalUri);
-      if (fileId) {
-        await this.googleDriveService.revokePublicAccess(fileId);
-      }
-    }
 
     Object.assign(evidence, dto);
 
@@ -300,7 +274,7 @@ export class EvidenceService {
   }
 
   async findVersions(evidenceId: string): Promise<EvidenceVersion[]> {
-    await this.findOne(evidenceId); // valida que exista
+    await this.findOne(evidenceId);
 
     return this.versionRepo.find({
       where: { evidenceId },
@@ -319,21 +293,22 @@ export class EvidenceService {
       );
     }
 
-    // Si tiene archivo en Drive, lo eliminamos también
+    // Si tiene archivo en Cloudinary, lo eliminamos también
     if (evidence.canonicalUri) {
-      const fileId = this.extractDriveFileId(evidence.canonicalUri);
-      if (fileId) {
-        await this.googleDriveService.deleteFile(fileId).catch((err) => {
-          // No bloqueamos el borrado de la evidencia si falla Drive
+      const publicId = this.extractCloudinaryPublicId(evidence.canonicalUri);
+      if (publicId) {
+        await this.cloudinaryService.deleteFile(publicId).catch((err) => {
           this.logger.warn(
-            `No se pudo eliminar el archivo de Drive para evidence ${id}: ${err.message}`,
+            `No se pudo eliminar el archivo de Cloudinary para evidence ${id}: ${err.message}`,
           );
         });
       }
     }
 
     await this.evidenceRepo.remove(evidence);
-    this.logger.log(`Evidence ${id} eliminada por usuario ${authorUserId}`);
+    this.logger.log(
+      `Evidence ${id} eliminada por usuario ${authorUserId}`,
+    );
   }
 
   // ─── Helpers privados ─────────────────────────────────────────────────────────
@@ -361,15 +336,10 @@ export class EvidenceService {
     }
   }
 
-  // Extrae el fileId de una URL de Google Drive
-  // Formatos: /file/d/{fileId}/view  o  ?id={fileId}
-  private extractDriveFileId(uri: string): string | null {
-    const matchPath = uri.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (matchPath) return matchPath[1];
-
-    const matchQuery = uri.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-    if (matchQuery) return matchQuery[1];
-
-    return null;
+  // Extrae el publicId de una URL de Cloudinary
+  // Formato: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{publicId}.{ext}
+  private extractCloudinaryPublicId(uri: string): string | null {
+    const match = uri.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^.]+)?$/);
+    return match ? match[1] : null;
   }
 }

@@ -23,7 +23,7 @@ export class ProjectsService {
 
   async findAll(): Promise<Project[]> {
     return this.projectRepository.find({
-      relations: ['owner', 'profile', 'members'],
+      relations: ['owner', 'profile', 'members', 'currentTramo'],
     });
   }
 

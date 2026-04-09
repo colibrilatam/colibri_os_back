@@ -1,5 +1,4 @@
 // src/evidence/dto/confirm-upload.dto.ts
-// El emprendedor confirma que el archivo ya fue subido a Drive
 
 import { IsUUID, IsString, IsOptional, IsBoolean } from 'class-validator';
 
@@ -7,13 +6,17 @@ export class ConfirmUploadDto {
   @IsUUID()
   evidenceId: string;
 
-  // File ID que devolvió Google Drive después del upload
+  // Public ID devuelto por Cloudinary después del upload
   @IsString()
-  driveFileId: string;
+  cloudinaryPublicId: string;
 
-  // URL pública o compartida del archivo en Drive
+  // URL segura devuelta por Cloudinary (secure_url)
   @IsString()
   storageUri: string;
+
+  // MIME type del archivo subido — necesario para saber el resourceType
+  @IsString()
+  mimeType: string;
 
   @IsOptional()
   @IsString()
