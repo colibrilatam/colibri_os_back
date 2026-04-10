@@ -4,12 +4,15 @@ import { Repository } from 'typeorm';
 import { Project } from './entities/project.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { TramosService } from '../tramos/tramos.service';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
+
+    private readonly tramosService: TramosService,
   ) {}
 
   async create(ownerUserId: string, dto: CreateProjectDto): Promise<Project> {
@@ -18,12 +21,23 @@ export class ProjectsService {
       ownerUserId,
       openedAt: new Date(),
     });
-    return this.projectRepository.save(project);
+    const saved = await this.projectRepository.save(project);
+
+    // Si el proyecto ya nace con un tramo asignado, iniciamos el historial
+    if (saved.currentTramoId) {
+      await this.tramosService.initTramoHistory(
+        saved.id,
+        saved.currentTramoId,
+        ownerUserId,
+      );
+    }
+
+    return saved;
   }
 
   async findAll(): Promise<Project[]> {
     return this.projectRepository.find({
-      relations: ['owner', 'profile', 'members', 'currentTramo'],
+      relations: ['owner', 'profile', 'members'],
     });
   }
 
