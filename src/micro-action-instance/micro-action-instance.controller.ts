@@ -77,7 +77,7 @@ export class MicroActionInstanceController {
   @ApiResponse({ status: 401, description: 'No autenticado.' })
   @ApiResponse({ status: 403, description: 'Sin permisos.' })
   create(
-    @CurrentUser('id') userId: string,
+    @CurrentUser('sub') userId: string,
     @Body() dto: CreateMicroActionInstanceDto,
   ) {
     return this.service.create(userId, dto);
@@ -155,7 +155,7 @@ export class MicroActionInstanceController {
       ],
     },
   })
-  findMyInstances(@CurrentUser('id') userId: string) {
+  findMyInstances(@CurrentUser('sub') userId: string) {
     return this.service.findAllByUser(userId);
   }
 
@@ -236,7 +236,7 @@ export class MicroActionInstanceController {
   @ApiResponse({ status: 404, description: 'Instancia no encontrada.' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser('sub') userId: string,
     @Body() dto: UpdateMicroActionInstanceDto,
   ) {
     return this.service.update(id, userId, dto);
@@ -272,7 +272,7 @@ export class MicroActionInstanceController {
   @ApiResponse({ status: 403, description: 'No sos el dueño de esta instancia.' })
   submit(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser('sub') userId: string,
   ) {
     return this.service.submit(id, userId);
   }
@@ -308,7 +308,7 @@ export class MicroActionInstanceController {
   @ApiResponse({ status: 403, description: 'No sos el dueño de esta instancia.' })
   reopen(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser('sub') userId: string,
   ) {
     return this.service.reopen(id, userId);
   }
@@ -336,7 +336,7 @@ export class MicroActionInstanceController {
   @ApiResponse({ status: 403, description: 'No sos el dueño de esta instancia.' })
   remove(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser('sub') userId: string,
   ) {
     return this.service.remove(id, userId);
   }

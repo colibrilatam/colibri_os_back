@@ -40,7 +40,7 @@ export class MicroActionDefinition {
   pacId: string;
 
   @Column({ name: 'rubric_id', nullable: true })
-  rubricId: string;
+  rubricId: string | null;
 
   @Column({ unique: true })
   code: string;
