@@ -40,7 +40,7 @@ export class Tramo {
     enum: UncertaintyType,
     nullable: true,
   })
-  uncertaintyType: UncertaintyType;
+  uncertaintyType: UncertaintyType; // uncertaintyType → origen de la incertidumbre
 
   @Column({
     name: 'primary_risk_type',
@@ -48,7 +48,10 @@ export class Tramo {
     enum: RiskType,
     nullable: true,
   })
-  primaryRiskType: RiskType;
+  primaryRiskType: RiskType; // primaryRiskType → tipo de riesgo (producto)
+
+  @Column('text', { array: true, nullable: true })
+  associatedRisks: string[]; // lista de riesgos concretos
 
   @Column({
     name: 'ic_floor',

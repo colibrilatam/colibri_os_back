@@ -20,6 +20,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
 import { cloudinaryConfig } from './cloudinary/cloudinary.config';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
+import { MecenasSemillaModule } from './mecenas-semilla/mecenas-semilla.module';
 
 @Module({
   imports: [
@@ -43,7 +44,7 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
         synchronize: configService.get<string>('NODE_ENV') === 'development',
         logging: false,
         autoLoadEntities: true,
-        //dropSchema: true
+        dropSchema: true
       }),
     }),
     AuthModule,
@@ -61,7 +62,8 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
     EvidenceModule,
     CloudinaryModule,
     EvaluationModule,
-    HierarchyModule
+    HierarchyModule,
+    MecenasSemillaModule
   ],
 })
 export class AppModule {}
