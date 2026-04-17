@@ -15,6 +15,7 @@ import { ProjectMember } from '../../project-members/entities/project-member.ent
 import { NftProject } from '../../nfts/entities/nft-project.entity';
 import { MecenasNftPortfolio } from '../../nfts/entities/mecenas-nft-portfolio.entity';
 import { Tramo } from 'src/tramos/entities/tramo.entity';
+import { ProjectPac } from './project.pac.entity';
 
 export enum ProjectStatus {
   ACTIVE = 'active',
@@ -40,6 +41,9 @@ export class Project {
 
   @Column({ name: 'project_name' })
   projectName: string;
+
+  @Column({ name: 'project_image', nullable: true, type: 'text' })
+  projectImageUrl: string | null;
 
   @Column({ type: 'enum', enum: ProjectStatus, default: ProjectStatus.ACTIVE })
   status: ProjectStatus;
@@ -111,4 +115,7 @@ export class Project {
 
   @OneToMany(() => MecenasNftPortfolio, (portfolio) => portfolio.targetProject)
   mecenasPortfolios: MecenasNftPortfolio[];
+
+  @OneToMany(() => ProjectPac, (projectPac) => projectPac.project)
+  projectPacs: ProjectPac[];
 }
