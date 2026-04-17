@@ -51,25 +51,24 @@ export class MecenasSemillaService {
   }
 
   async getDashboard(mecenasUserId: string) {
-    await this.usersService.findOneById(mecenasUserId);
+  await this.usersService.findOneById(mecenasUserId);
 
-    const [summary, allPortfolios] = await Promise.all([
-      this.mecenasRepository.getPortfolioSummary(mecenasUserId),
-      this.portfolioService.findByMecenasId(mecenasUserId).catch(() => []),
-    ]);
+  const [summary, allPortfolios] = await Promise.all([
+    this.mecenasRepository.getPortfolioSummary(mecenasUserId),
+    this.portfolioService.findByMecenasId(mecenasUserId).catch((): MecenasNftPortfolio[] => []),  // ← tipado explícito
+  ]);
 
-    // ← filtrar solo los que tienen proyecto asignado
-    const sponsoredProjects = allPortfolios
-      .filter((p) => p.targetProjectId !== null)
-      .map((p) => p.targetProject);
+  const sponsoredProjects = allPortfolios
+    .filter((p) => p.targetProjectId !== null)
+    .map((p) => p.targetProject);
 
-    return {
-      totalNfts: summary.total,
-      assignedNfts: summary.assigned,
-      availableNfts: summary.available,
-      sponsoredProjects,
-    };
-  }
+  return {
+    totalNfts: summary.total,
+    assignedNfts: summary.assigned,
+    availableNfts: summary.available,
+    sponsoredProjects,
+  };
+}
 
 
   async buyNfts(mecenasUserId: string, quantity: number) {
@@ -102,10 +101,11 @@ export class MecenasSemillaService {
 
   // ─── PASO 4: Exploración de proyectos ───────────────────────────────────────
 
+  
   async getProjects(mecenasUserId: string) {
     const [eligible, sponsored] = await Promise.all([
       this.mecenasRepository.findEligibleProjects(),
-      this.portfolioService.findByMecenasId(mecenasUserId).catch(() => []),
+      this.portfolioService.findByMecenasId(mecenasUserId).catch((): MecenasNftPortfolio[] => []),  // ← tipado explícito
     ]);
 
     return {

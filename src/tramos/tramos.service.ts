@@ -4,13 +4,16 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Tramo } from './entities/tramo.entity';
 import { Project } from '../projects/entities/project.entity';
+import { ProjectTramoHistory } from './entities/project-tramo-history.entity';
 import { CreateTramoDto } from './dto/create-tramo.dto';
 import { UpdateTramoDto } from './dto/update-tramo.dto';
+import { ChangeTramoDto } from './dto/change-tramo.dto';
 
 @Injectable()
 export class TramosService {
@@ -20,7 +23,14 @@ export class TramosService {
 
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
-  ) { }
+
+
+    @InjectRepository(ProjectTramoHistory)
+    private readonly historyRepository: Repository<ProjectTramoHistory>,
+  ) {}
+
+
+  // ─── CRUD básico ────────────────────────────────────────────────────────────
 
   async create(dto: CreateTramoDto): Promise<Tramo> {
     const existing = await this.tramoRepository.findOne({
@@ -101,5 +111,111 @@ export class TramosService {
   async remove(id: string): Promise<void> {
     const tramo = await this.findOne(id);
     await this.tramoRepository.remove(tramo);
+  }
+
+  // ─── Historial de tramos ────────────────────────────────────────────────────
+
+  /**
+   * Cambia el tramo activo de un proyecto:
+   * 1. Cierra el registro de historia anterior (leftAt + daysInTramo).
+   * 2. Crea un nuevo registro de historia abierto.
+   * 3. Actualiza currentTramoId en el proyecto.
+   */
+  async changeTramo(
+    projectId: string,
+    dto: ChangeTramoDto,
+    changedByUserId?: string,
+  ): Promise<ProjectTramoHistory> {
+    // Validar que el proyecto existe
+    const project = await this.projectRepository.findOne({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new NotFoundException(`Proyecto ${projectId} no encontrado`);
+    }
+
+    // Validar que el nuevo tramo existe
+    const newTramo = await this.tramoRepository.findOne({
+      where: { id: dto.newTramoId },
+    });
+    if (!newTramo) {
+      throw new NotFoundException(`Tramo ${dto.newTramoId} no encontrado`);
+    }
+
+    // Evitar asignar el mismo tramo que ya tiene
+    if (project.currentTramoId === dto.newTramoId) {
+      throw new BadRequestException(
+        `El proyecto ya se encuentra en el tramo "${newTramo.name}"`,
+      );
+    }
+
+    const now = new Date();
+
+    // Cerrar el registro de historia abierto anterior (leftAt === NULL)
+    const openRecord = await this.historyRepository.findOne({
+      where: { projectId, leftAt: IsNull() },
+    });
+
+    if (openRecord) {
+      const diffMs = now.getTime() - openRecord.enteredAt.getTime();
+      openRecord.leftAt = now;
+      openRecord.daysInTramo = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      await this.historyRepository.save(openRecord);
+    }
+
+    // Crear el nuevo registro de historia abierto
+    const newRecord = this.historyRepository.create({
+      projectId,
+      tramoId: dto.newTramoId,
+      enteredAt: now,
+      leftAt: null,
+      changeReason: dto.changeReason ?? null,
+      changedByUserId: changedByUserId ?? null,
+    });
+    const saved = await this.historyRepository.save(newRecord);
+
+    // Actualizar el proyecto
+    project.currentTramoId = dto.newTramoId;
+    await this.projectRepository.save(project);
+
+    return saved;
+  }
+
+  /**
+   * Devuelve el historial completo de tramos de un proyecto, ordenado por fecha de entrada.
+   */
+  async getTramoHistory(projectId: string): Promise<ProjectTramoHistory[]> {
+    const project = await this.projectRepository.findOne({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new NotFoundException(`Proyecto ${projectId} no encontrado`);
+    }
+
+    return this.historyRepository.find({
+      where: { projectId },
+      relations: ['tramo'],
+      order: { enteredAt: 'ASC' },
+    });
+  }
+
+  /**
+   * Inicializa el primer registro de historia cuando se crea un proyecto
+   * y se le asigna su tramo inicial. Llamar desde ProjectsService.
+   */
+  async initTramoHistory(
+    projectId: string,
+    tramoId: string,
+    changedByUserId?: string,
+  ): Promise<ProjectTramoHistory> {
+    const record = this.historyRepository.create({
+      projectId,
+      tramoId,
+      enteredAt: new Date(),
+      leftAt: null,
+      changeReason: 'Inicio de trayectoria',
+      changedByUserId: changedByUserId ?? null,
+    });
+    return this.historyRepository.save(record);
   }
 }
