@@ -5,6 +5,8 @@ import { Project } from './entities/project.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { TramosService } from '../tramos/tramos.service';
+import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import type { Express } from 'express';
 
 @Injectable()
 export class ProjectsService {
@@ -13,14 +15,30 @@ export class ProjectsService {
     private readonly projectRepository: Repository<Project>,
 
     private readonly tramosService: TramosService,
-  ) {}
+    private readonly cloudinaryService: CloudinaryService,
+  ) { }
 
-  async create(ownerUserId: string, dto: CreateProjectDto): Promise<Project> {
+  async create(
+    ownerUserId: string,
+    dto: CreateProjectDto,
+    file?: Express.Multer.File,
+  ) {
+    let imageUrl: string | null = null;
+
+    if (file) {
+      const uploadResult: any =
+        await this.cloudinaryService.uploadImage(file);
+
+      imageUrl = uploadResult.secure_url;
+    }
+
     const project = this.projectRepository.create({
       ...dto,
+      projectImageUrl: imageUrl,
       ownerUserId,
       openedAt: new Date(),
     });
+
     const saved = await this.projectRepository.save(project);
 
     // Si el proyecto ya nace con un tramo asignado, iniciamos el historial

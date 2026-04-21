@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
 import { ProjectStatus, TrajectoryStatus } from '../entities/project.entity';
+import { Transform } from 'class-transformer';
 
 export class CreateProjectDto {
   @ApiProperty({ example: 'Mi Startup' })
@@ -8,9 +9,15 @@ export class CreateProjectDto {
   @IsNotEmpty()
   projectName: string;
 
+  // En CreateProjectDto, podés agregar opcionalmente:
+  @ApiPropertyOptional({ type: 'string', format: 'binary', description: 'Imagen del proyecto' })
+  @IsOptional()
+  image?: any;
+
   @ApiPropertyOptional({ enum: ProjectStatus })
   @IsEnum(ProjectStatus)
   @IsOptional()
+  @Transform(({ value }) => value?.toLowerCase())
   status?: ProjectStatus;
 
   @ApiPropertyOptional({ example: 'Argentina' })

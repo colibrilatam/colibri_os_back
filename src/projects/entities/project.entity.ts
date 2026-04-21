@@ -87,6 +87,9 @@ export class Project {
   @Column({ name: 'trajectory_status', type: 'enum', enum: TrajectoryStatus, nullable: true })
   trajectoryStatus: TrajectoryStatus;
 
+  @Column({ name: 'nft_image_url', nullable: true })
+  nftImageUrl: string;
+
   @Column({ name: 'last_activity_at', nullable: true })
   lastActivityAt: Date;
 
