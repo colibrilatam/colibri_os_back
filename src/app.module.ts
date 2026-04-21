@@ -35,22 +35,12 @@ import { MecenasSemillaModule } from './mecenas-semilla/mecenas-semilla.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_NAME'),
+        url: configService.get<string>('DATABASE_URL'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: configService.get<string>('NODE_ENV') === 'development',
         logging: false,
         autoLoadEntities: true,
         //dropSchema: true,
-        extra: {
-          ssl: {
-            rejectUnauthorized: false,
-          },
-          family: 4,
-        }
       }),
     }),
     AuthModule,
