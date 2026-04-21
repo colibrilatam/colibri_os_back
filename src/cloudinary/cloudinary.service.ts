@@ -8,6 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import * as crypto from 'crypto';
+import type { Express } from 'express';
 
 export interface CloudinarySignature {
   signature: string;
@@ -182,18 +183,30 @@ export class CloudinaryService {
     if (!RESOURCE_TYPE_MAP[mimeType]) {
       throw new InternalServerErrorException(
         `Tipo de archivo no permitido: ${mimeType}. ` +
-          `Tipos aceptados: ${Object.keys(RESOURCE_TYPE_MAP).join(', ')}`,
+        `Tipos aceptados: ${Object.keys(RESOURCE_TYPE_MAP).join(', ')}`,
       );
     }
   }
 
   private getRequiredConfig(key: string): string {
-  const value = this.configService.get<string>(key);
-  if (!value) {
-    throw new InternalServerErrorException(
-      `Falta variable de configuración requerida: ${key}`,
-    );
+    const value = this.configService.get<string>(key);
+    if (!value) {
+      throw new InternalServerErrorException(
+        `Falta variable de configuración requerida: ${key}`,
+      );
+    }
+    return value;
   }
-  return value;
-}
+
+  async uploadImage(file: Express.Multer.File) {
+    return new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { folder: 'colibri/projects' },
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        },
+      ).end(file.buffer);
+    });
+  }
 }
