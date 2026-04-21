@@ -1,22 +1,29 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { ApiOperation, ApiTags, ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Express } from 'express';
 
 @ApiTags('Projects')
 @Controller('projects')
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(private readonly projectsService: ProjectsService) { }
 
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Crear un proyecto' })
-  create(@Req() req: any, @Body() dto: CreateProjectDto) {
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image'))
+  create(
+    @Req() req: any,
+    @Body() dto: CreateProjectDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
     const ownerUserId = req.user.sub;
-    return this.projectsService.create(ownerUserId, dto);
+    return this.projectsService.create(ownerUserId, dto, file);
   }
 
   @Get()
