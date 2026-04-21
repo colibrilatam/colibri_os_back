@@ -45,4 +45,27 @@ export class NftProjectController {
   remove(@Param('id') id: string) {
     return this.nftProjectService.remove(id);
   }
+
+  // GET /nft-projects/check/:projectId
+  @Get('check/:projectId')
+  @ApiOperation({
+    summary: 'Verificar si un proyecto tiene NFT activo',
+    description: 'Punto de bifurcación del flujo. Si `hasNft = false`, el frontend debe ofrecer la Compuerta 2.',
+  })
+  checkNftStatus(@Param('projectId') projectId: string) {
+    return this.nftProjectService.checkNftStatus(projectId);
+  }
+
+  // POST /nft-projects/associate
+  @Post('associate')
+  @ApiOperation({
+    summary: 'Compuerta 2 — Asociar NFT existente a un proyecto',
+    description: 'El emprendedor vincula un NFT que ya existe en el sistema a su proyecto.',
+  })
+  associateToProject(@Body() dto: { nftProjectId: string; projectId: string }) {
+    return this.nftProjectService.associateToProject(
+      dto.nftProjectId,
+      dto.projectId,
+    );
+  }
 }

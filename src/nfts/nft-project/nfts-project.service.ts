@@ -76,4 +76,61 @@ export class NftProjectService {
     });
     return this.nftProjectRepository.save(nftProject);
   }
+
+  // 1. BIFURCACIÓN — verificar si un proyecto tiene NFT
+async checkNftStatus(projectId: string): Promise<{
+  hasNft: boolean;
+  nftProject: NftProject | null;
+}> {
+  const nftProject = await this.nftProjectRepository.findOne({
+    where: { projectId },
+    relations: ['currentHolder'],
+  });
+
+  return {
+    hasNft: !!nftProject,
+    nftProject: nftProject ?? null,
+  };
+}
+
+// 2. COMPUERTA 2 — asociar un NFT sin proyecto al proyecto del emprendedor
+async associateToProject(
+  nftProjectId: string,
+  projectId: string,
+): Promise<NftProject> {
+  const nft = await this.findOne(nftProjectId);
+
+  if (nft.projectId) {
+    throw new ConflictException(
+      `Este NFT ya está asociado al proyecto ${nft.projectId}`,
+    );
+  }
+
+  const alreadyLinked = await this.nftProjectRepository.findOne({
+    where: { projectId },
+  });
+
+  if (alreadyLinked) {
+    throw new ConflictException(
+      `El proyecto ${projectId} ya tiene un NFT asociado`,
+    );
+  }
+
+  nft.projectId = projectId;
+  return this.nftProjectRepository.save(nft);
+}
+
+// 3. CIERRE DE TRAMO — evolucionar visualmente el NFT
+async evolveVisual(
+  projectId: string,
+  newTramoId: string,
+  newVisualVersion: string,
+): Promise<NftProject> {
+  const nft = await this.findByProject(projectId);
+
+  nft.representedTramoId = newTramoId;
+  nft.currentVisualVersion = newVisualVersion;
+
+  return this.nftProjectRepository.save(nft);
+}
 }
