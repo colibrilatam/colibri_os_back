@@ -48,7 +48,8 @@ import { MecenasSemillaModule } from './mecenas-semilla/mecenas-semilla.module';
         extra: {
           ssl: {
             rejectUnauthorized: false,
-          }
+          },
+          family: 4,
         }
       }),
     }),
