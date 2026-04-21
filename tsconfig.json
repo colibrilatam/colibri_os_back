@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
+    "types": ["node", "multer"], 
     "baseUrl": "./",
-    "ignoreDeprecations": "5.0",  
-    "strictPropertyInitialization": false, 
+    "ignoreDeprecations": "5.0",
+    "strictPropertyInitialization": false,
     "moduleResolution": "nodenext",
     "module": "nodenext",
     "resolvePackageJsonExports": true,
@@ -22,7 +23,6 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false,
-    "strictPropertyInitialization": false
+    "noFallthroughCasesInSwitch": false
   }
 }

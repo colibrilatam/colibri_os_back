@@ -34,7 +34,7 @@ export class AuthService {
         password: passwordHash,
         fullName: user.fullName,
         provider: AuthProvider.LOCAL,
-        role: UserRole.ENTREPRENEUR
+        role: user.role
      })
      return{
         message: 'Usuario registrado con éxito',
