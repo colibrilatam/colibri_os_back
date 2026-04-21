@@ -44,7 +44,12 @@ import { MecenasSemillaModule } from './mecenas-semilla/mecenas-semilla.module';
         synchronize: configService.get<string>('NODE_ENV') === 'development',
         logging: false,
         autoLoadEntities: true,
-        //dropSchema: true
+        //dropSchema: true,
+        extra: {
+          ssl: {
+            rejectUnauthorized: false,
+          }
+        }
       }),
     }),
     AuthModule,
@@ -66,4 +71,4 @@ import { MecenasSemillaModule } from './mecenas-semilla/mecenas-semilla.module';
     MecenasSemillaModule
   ],
 })
-export class AppModule {}
+export class AppModule { }
