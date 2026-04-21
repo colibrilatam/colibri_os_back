@@ -10,6 +10,7 @@ import { EvaluationService } from './evaluation.service';
 import { EvaluationController } from './evaluation.controller';
 import { EvidenceModule } from '../evidence/evidence.module';
 import { Evidence } from '../evidence/entities/evidence.entity';
+import { DigitalCredentialsModule } from 'src/digital-credentials/digital-credentials.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { Evidence } from '../evidence/entities/evidence.entity';
       Evidence,
     ]),
     EvidenceModule,
+    DigitalCredentialsModule
   ],
   controllers: [EvaluationController],
   providers: [EvaluationService],

@@ -21,6 +21,8 @@ import { EvaluationModule } from './evaluation/evaluation.module';
 import { cloudinaryConfig } from './cloudinary/cloudinary.config';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
 import { MecenasSemillaModule } from './mecenas-semilla/mecenas-semilla.module';
+import { DigitalCredentialsModule } from './digital-credentials/digital-credentials.module';
+import { TramoClosureModule } from './tramo-closure/tramo-closure.module';
 
 @Module({
   imports: [
@@ -37,7 +39,7 @@ import { MecenasSemillaModule } from './mecenas-semilla/mecenas-semilla.module';
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get<string>('NODE_ENV') === 'development',
+        synchronize: true,
         logging: false,
         autoLoadEntities: true,
         //dropSchema: true,
@@ -59,7 +61,9 @@ import { MecenasSemillaModule } from './mecenas-semilla/mecenas-semilla.module';
     CloudinaryModule,
     EvaluationModule,
     HierarchyModule,
-    MecenasSemillaModule
+    MecenasSemillaModule,
+    DigitalCredentialsModule,
+    TramoClosureModule
   ],
 })
 export class AppModule { }

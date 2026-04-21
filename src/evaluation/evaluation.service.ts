@@ -25,6 +25,7 @@ import { FinalizeEvaluationDto } from './dto/finalize-evaluation.dto';
 import { CreateRubricDto } from './dto/create-rubric.dto';
 import { UpdateRubricDto } from './dto/update-rubric.dto';
 import { UserRole } from '../users/entities/user.entity';
+import { DigitalCredentialsService } from '../digital-credentials/digital-credentials.service';
 
 @Injectable()
 export class EvaluationService {
@@ -46,14 +47,14 @@ export class EvaluationService {
     @InjectRepository(Evidence)
     private readonly evidenceRepo: Repository<Evidence>,
 
+    private readonly digitalCredentialsService: DigitalCredentialsService,
+
     private readonly dataSource: DataSource,
   ) {}
 
   // ─── EVALUACIONES ─────────────────────────────────────────────────────────────
 
-  // Crea una evaluación para una evidencia (la dispara el sistema o un admin)
   async createEvaluation(dto: CreateEvaluationDto): Promise<Evaluation> {
-    // FIX: se usaba 'evaluation' antes de declararlo — corregido a 'dto'
     const evidence = await this.evidenceRepo.findOne({
       where: { id: dto.evidenceId },
     });
@@ -70,7 +71,6 @@ export class EvaluationService {
       );
     }
 
-    // Verificamos que la rúbrica exista y esté activa
     const rubric = await this.rubricRepo.findOne({
       where: { id: dto.rubricId, isActive: true },
     });
@@ -81,7 +81,6 @@ export class EvaluationService {
       );
     }
 
-    // Verificamos que no haya una evaluación activa para esta evidencia
     const existingEval = await this.evaluationRepo.findOne({
       where: { evidenceId: dto.evidenceId, isFinal: false },
     });
@@ -101,7 +100,6 @@ export class EvaluationService {
       isFinal: false,
     });
 
-    // Pasamos la evidencia a UNDER_REVIEW
     evidence.status = EvidenceStatus.UNDER_REVIEW;
     evidence.validationStatus = ValidationStatus.AI_REVIEWED;
 
@@ -117,7 +115,6 @@ export class EvaluationService {
     return this.findOneEvaluation(evaluation.id);
   }
 
-  // Registra el resultado del análisis de IA sobre la evidencia
   async submitAiResult(dto: SubmitAiResultDto): Promise<EvaluationAiResult> {
     const evaluation = await this.findOneEvaluation(dto.evaluationId);
 
@@ -127,7 +124,6 @@ export class EvaluationService {
       );
     }
 
-    // Si ya existe un resultado de IA, lo actualizamos
     const existing = await this.aiResultRepo.findOne({
       where: { evaluationId: dto.evaluationId },
     });
@@ -148,7 +144,6 @@ export class EvaluationService {
       return this.aiResultRepo.save(existing);
     }
 
-    // FIX: cast explícito para evitar ambigüedad de overload en repo.create()
     const aiResult = this.aiResultRepo.create({
       evaluationId: dto.evaluationId,
       rubricId: evaluation.rubricId,
@@ -166,7 +161,6 @@ export class EvaluationService {
 
     const saved = await this.aiResultRepo.save(aiResult);
 
-    // Si la evaluación es automática la finalizamos directo
     if (evaluation.evaluationType === EvaluationType.AUTOMATIC) {
       await this.autoFinalize(evaluation, dto.aiResult, dto.aiScore);
     }
@@ -178,7 +172,6 @@ export class EvaluationService {
     return saved;
   }
 
-  // Registra la revisión humana del evaluador o mentor
   async submitHumanReview(
     reviewerUserId: string,
     reviewerRole: UserRole,
@@ -194,7 +187,6 @@ export class EvaluationService {
       );
     }
 
-    // Si ya existe una review humana, la actualizamos
     const existing = await this.humanReviewRepo.findOne({
       where: { evaluationId: dto.evaluationId },
     });
@@ -214,7 +206,6 @@ export class EvaluationService {
       return this.humanReviewRepo.save(existing);
     }
 
-    // FIX: cast explícito para evitar ambigüedad de overload en repo.create()
     const humanReview = this.humanReviewRepo.create({
       evaluationId: dto.evaluationId,
       reviewerUserId,
@@ -236,7 +227,6 @@ export class EvaluationService {
     return saved;
   }
 
-  // Consolida y cierra la evaluación con el veredicto final
   async finalizeEvaluation(dto: FinalizeEvaluationDto): Promise<Evaluation> {
     const evaluation = await this.findOneEvaluation(dto.evaluationId);
 
@@ -248,14 +238,12 @@ export class EvaluationService {
       where: { id: evaluation.evidenceId },
     });
 
-    // FIX: guard para que TypeScript sepa que evidence no es null de aquí en adelante
     if (!evidence) {
       throw new NotFoundException(
         `Evidence ${evaluation.evidenceId} no encontrada`,
       );
     }
 
-    // Mapeamos resultado → estado de evidencia y validación
     const { evidenceStatus, validationStatus } = this.mapResultToStatuses(
       dto.evaluationResult,
     );
@@ -263,8 +251,6 @@ export class EvaluationService {
     const now = new Date();
 
     await this.dataSource.transaction(async (manager) => {
-      // Finalizamos la evaluación
-      // FIX: campos nullable deben declararse como | null en la entidad Evaluation
       evaluation.evaluationResult = dto.evaluationResult;
       evaluation.score = dto.score ?? null;
       evaluation.dimensionScoresJson = dto.dimensionScoresJson ?? null;
@@ -273,10 +259,9 @@ export class EvaluationService {
       evaluation.evaluatedAt = now;
       await manager.save(Evaluation, evaluation);
 
-      // Actualizamos la evidencia
       evidence.status = evidenceStatus;
       evidence.validationStatus = validationStatus;
-      evidence.validatedByUserId = null; // se setea desde human review si aplica
+      evidence.validatedByUserId = null;
 
       if (evidenceStatus === EvidenceStatus.APPROVED) {
         evidence.approvedAt = now;
@@ -287,6 +272,16 @@ export class EvaluationService {
 
       await manager.save(Evidence, evidence);
     });
+
+    // Emisión automática de credencial digital al aprobar
+    if (dto.evaluationResult === EvaluationResult.APPROVED) {
+      await this.digitalCredentialsService.issueForApprovedEvidence({
+        projectId: evidence.projectId,
+        userId: evidence.authorUserId,
+        evidenceId: evidence.id,
+        evaluationId: evaluation.id,
+      });
+    }
 
     this.logger.log(
       `Evaluation ${dto.evaluationId} finalizada — resultado: ${dto.evaluationResult}`,
@@ -347,7 +342,6 @@ export class EvaluationService {
       );
     }
 
-    // FIX: cast explícito para evitar ambigüedad de overload en repo.create()
     const rubric = this.rubricRepo.create({
       ...dto,
       validFrom: dto.validFrom ? new Date(dto.validFrom) : null,
@@ -426,7 +420,6 @@ export class EvaluationService {
     }
   }
 
-  // Finalización automática para evaluaciones 100% automáticas
   private async autoFinalize(
     evaluation: Evaluation,
     aiResult: EvaluationResult,
