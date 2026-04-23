@@ -92,7 +92,7 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   // ─── SNAPSHOTS ────────────────────────────────────────────────────────────────
 
   @Get('projects/:projectId/latest')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN, UserRole.MECENAS_SEMILLA, UserRole.MECENAS_FUNDACIONAL, UserRole.MECENAS_CAMBIO)
   @ApiOperation({
     summary: 'Obtener el snapshot reputacional vigente de un proyecto',
     description: 'Devuelve el snapshot con `validTo = null`, es decir el estado reputacional actual del proyecto. Es el dato que alimenta el panel del R-Lab.',
@@ -105,7 +105,7 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   }
 
   @Get('projects/:projectId/history')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN, UserRole.MECENAS_SEMILLA, UserRole.MECENAS_FUNDACIONAL, UserRole.MECENAS_CAMBIO)
   @ApiOperation({
     summary: 'Historial de snapshots de un proyecto',
     description: 'Devuelve todos los snapshots calculados para el proyecto, ordenados del más reciente al más antiguo. Útil para ver la evolución del IC en el tiempo.',
@@ -117,7 +117,7 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   }
 
   @Get('snapshots/:id')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN, UserRole.MECENAS_SEMILLA, UserRole.MECENAS_FUNDACIONAL, UserRole.MECENAS_CAMBIO)
   @ApiOperation({
     summary: 'Obtener un snapshot con todas sus explicaciones',
     description: 'Devuelve el snapshot completo con el desglose granular de qué contribuyó al resultado. Es la vista de auditoría del IC.',
