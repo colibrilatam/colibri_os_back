@@ -68,7 +68,7 @@ export class ReputationController {
   // ─── MOTOR DE CÁLCULO ─────────────────────────────────────────────────────────
 
   @Post('calculate')
-  @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
+  //@Roles(UserRole.ADMIN, UserRole.EVALUATOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Calcular el Índice Colibrí de un proyecto',
