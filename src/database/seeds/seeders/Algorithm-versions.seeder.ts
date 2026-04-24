@@ -1,0 +1,135 @@
+import { DataSource, DeepPartial } from 'typeorm';
+import { IcAlgorithmVersion } from 'src/reputation/entities/ic-algorithm-version.entity';
+
+export async function seedAlgorithmVersions(dataSource: DataSource) {
+  const repo = dataSource.getRepository(IcAlgorithmVersion);
+
+  const versionsData: DeepPartial<IcAlgorithmVersion>[] = [
+    {
+      code: 'IC-v1.0',
+      description: 'Versión inicial del algoritmo. Peso equitativo entre acción y evidencia.',
+      weightAction: 30,
+      weightEvidence: 30,
+      weightConsistency: 20,
+      weightCollaboration: 10,
+      weightSustainability: 10,
+      effectiveFrom: new Date('2024-01-01'),
+      effectiveTo: new Date('2024-03-31'),
+      isActive: false,
+      approvedBy: 'admin-seed',
+    },
+    {
+      code: 'IC-v1.1',
+      description: 'Ajuste menor: se reduce constancia y se refuerza evidencia.',
+      weightAction: 30,
+      weightEvidence: 35,
+      weightConsistency: 15,
+      weightCollaboration: 10,
+      weightSustainability: 10,
+      effectiveFrom: new Date('2024-04-01'),
+      effectiveTo: new Date('2024-06-30'),
+      isActive: false,
+      approvedBy: 'admin-seed',
+    },
+    {
+      code: 'IC-v2.0',
+      description: 'Segunda generación. Se introduce peso diferenciado para colaboración.',
+      weightAction: 25,
+      weightEvidence: 30,
+      weightConsistency: 20,
+      weightCollaboration: 15,
+      weightSustainability: 10,
+      effectiveFrom: new Date('2024-07-01'),
+      effectiveTo: new Date('2024-09-30'),
+      isActive: false,
+      approvedBy: 'admin-seed',
+    },
+    {
+      code: 'IC-v2.1',
+      description: 'Refinamiento Q3: se equilibra colaboración y sostenibilidad.',
+      weightAction: 25,
+      weightEvidence: 25,
+      weightConsistency: 20,
+      weightCollaboration: 15,
+      weightSustainability: 15,
+      effectiveFrom: new Date('2024-10-01'),
+      effectiveTo: new Date('2024-12-31'),
+      isActive: false,
+      approvedBy: 'admin-seed',
+    },
+    {
+      code: 'IC-v3.0',
+      description: 'Versión 2025. Mayor peso a sostenibilidad, alineado con nuevos tramos.',
+      weightAction: 20,
+      weightEvidence: 25,
+      weightConsistency: 20,
+      weightCollaboration: 15,
+      weightSustainability: 20,
+      effectiveFrom: new Date('2025-01-01'),
+      effectiveTo: new Date('2025-03-31'),
+      isActive: false,
+      approvedBy: 'admin-seed',
+    },
+    {
+      code: 'IC-v3.1',
+      description: 'Ajuste Q2-2025: se refuerza la dimensión de acción tras análisis de datos.',
+      weightAction: 30,
+      weightEvidence: 20,
+      weightConsistency: 20,
+      weightCollaboration: 15,
+      weightSustainability: 15,
+      effectiveFrom: new Date('2025-04-01'),
+      effectiveTo: new Date('2025-06-30'),
+      isActive: false,
+      approvedBy: 'admin-seed',
+    },
+    {
+      code: 'IC-v3.2',
+      description: 'Incorpora fórmula de constancia con ventana deslizante de 30 días.',
+      weightAction: 25,
+      weightEvidence: 25,
+      weightConsistency: 25,
+      weightCollaboration: 15,
+      weightSustainability: 10,
+      consistencyFormulaJson: {
+        type: 'sliding_window',
+        windowDays: 30,
+        penaltyFactor: 0.8,
+      },
+      effectiveFrom: new Date('2025-07-01'),
+      effectiveTo: new Date('2025-12-31'),
+      isActive: false,
+      approvedBy: 'admin-seed',
+    },
+    {
+      // ← Esta es la activa. Siempre última para que el save no sea pisado.
+      code: 'IC-v4.0',
+      description: 'Versión activa 2026. Modelo completo con todas las dimensiones calibradas.',
+      weightAction: 30,
+      weightEvidence: 25,
+      weightConsistency: 20,
+      weightCollaboration: 15,
+      weightSustainability: 10,
+      consistencyFormulaJson: {
+        type: 'sliding_window',
+        windowDays: 30,
+        penaltyFactor: 0.8,
+      },
+      collaborationFormulaJson: {
+        type: 'peer_signal',
+        minPeers: 2,
+        decayDays: 60,
+      },
+      sustainabilityRubricVersion: 'rubric-v2',
+      effectiveFrom: new Date('2026-01-01'),
+      effectiveTo: undefined,
+      isActive: true,
+      approvedBy: 'admin-seed',
+    },
+  ];
+
+  const versions = repo.create(versionsData);
+  const saved = await repo.save(versions);
+  console.log('✅ Versiones del algoritmo creadas:', saved.length);
+  return saved;
+}
