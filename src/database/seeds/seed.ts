@@ -9,6 +9,7 @@ import { seedPacs } from './seeders/Pacs.seeder';
 import { seedRubrics } from './seeders/Rubrics.seeder';
 import { seedMicroActionDefinitions } from './seeders/Micro-action-definitions.seeder';
 import { seedLearningResources } from './seeders/Learning-resources.seeder';
+import { seedAlgorithmVersions } from './seeders/Algorithm-versions.seeder';
 
 async function seed() {
     await AppDataSource.initialize();
@@ -30,7 +31,8 @@ async function seed() {
         "nft_projects",
         "projects",
         "users",
-        "rubrics"
+        "rubrics",
+        "ic_algorithm_versions"
       RESTART IDENTITY CASCADE;
     `);
 
@@ -48,6 +50,8 @@ async function seed() {
         const rubrics = await seedRubrics(AppDataSource);
         const microActionDefs = await seedMicroActionDefinitions(AppDataSource, pacs, rubrics);
         await seedLearningResources(AppDataSource, pacs, microActionDefs);
+
+        await seedAlgorithmVersions(AppDataSource);
 
         console.log('\n🌱 Seed completado exitosamente');
     } catch (error) {
