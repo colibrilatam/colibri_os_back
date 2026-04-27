@@ -36,17 +36,13 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Tramos')
-@ApiBearerAuth()
-@ApiUnauthorizedResponse({ description: 'Token JWT ausente o inválido.' })
 @Controller('tramos')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class TramosController {
   constructor(private readonly tramosService: TramosService) {}
 
   // ─── CRUD base ────────────────────────────────────────────────────────────
 
   @Post()
-  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Crear un nuevo tramo',
     description:
@@ -104,7 +100,6 @@ export class TramosController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Actualizar un tramo',
     description:
@@ -149,7 +144,6 @@ export class TramosController {
   // ─── Historial de tramos ──────────────────────────────────────────────────
 
   @Post('project/:projectId/change')
-  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Cambiar el tramo activo de un proyecto',
     description:
@@ -172,7 +166,6 @@ export class TramosController {
   }
 
   @Get('project/:projectId/history')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Obtener historial de tramos de un proyecto',
     description:

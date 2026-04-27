@@ -17,14 +17,11 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Tramo Closure')
-@ApiBearerAuth()
 @Controller('tramo-closure')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class TramoClosureController {
   constructor(private readonly service: TramoClosureService) {}
 
   @Post('evaluate')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN, UserRole.EVALUATOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Evaluar si un tramo está listo para cerrarse',
@@ -57,7 +54,6 @@ Devuelve:
   }
 
   @Post('close')
-  @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Cerrar un tramo y avanzar al siguiente',
