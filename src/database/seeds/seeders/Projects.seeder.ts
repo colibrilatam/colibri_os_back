@@ -111,7 +111,7 @@ const PROJECT_DATA: ProjectSeedData[] = [
   {
     slug: 'flujoclave',
     projectName: 'FlujoClave',
-    status: ProjectStatus.INACTIVE,
+    status: ProjectStatus.ACTIVE,
     trajectoryStatus: TrajectoryStatus.STALLED,
     country: 'Colombia',
     industry: 'Fintech',
