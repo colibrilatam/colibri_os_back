@@ -7,29 +7,19 @@ import { Project } from 'src/projects/entities/project.entity';
 
 export async function seedNfts(dataSource: DataSource, users: User[], projects: Project[]) {
     const [mecenas, mentor] = users;
-    const [ecotech, agroia] = projects;
-
+    
     const nftProjectRepo = dataSource.getRepository(NftProject);
-    const nftProjects = nftProjectRepo.create([
-        {
-            projectId: ecotech.id,
+    const nftProjects = nftProjectRepo.create(projects.map((p, index) => {
+        return {
+            projectId: p.id,
             chainId: 137,
             contractAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-            tokenId: '1',
+            tokenId: String(index + 1),
             nftHash: 'hash_ecotech_001',
             metadataUri: 'https://api.colibri.os/nfts/metadata/1',
             currentHolderUserId: null, // ← elegible para mecenas
-        },
-        {
-            projectId: agroia.id,
-            chainId: 137,
-            contractAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-            tokenId: '2',
-            nftHash: 'hash_agroia_002',
-            metadataUri: 'https://api.colibri.os/nfts/metadata/2',
-            currentHolderUserId: null, // ← elegible para mecenas
-        },
-    ]);
+        }
+    }))
     const savedNftProjects = await nftProjectRepo.save(nftProjects);
     console.log('✅ NFT Projects creados:', savedNftProjects.length);
 
