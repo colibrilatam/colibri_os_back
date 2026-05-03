@@ -1,14 +1,17 @@
 export enum UncertaintyType {
-  MARKET = 'market',
-  TECHNICAL = 'technical',
-  FINANCIAL = 'financial',
-  OPERATIONAL = 'operational',
-  REGULATORY = 'regulatory',
+  IDENTITARY_FORMULATION = 'Identitaria y de formulación',
+  MARKET = 'Incertidumbre de mercado',
+  OPERATIONAL = 'Incertidumbre técnica y operativa',
+  SCALABILITY = 'Incertidumbre de escalabilidad',
+  ORGANIZATIONAL = 'Incertidumbre organizacional y estratégica',
+  MACRO_SYSTEMIC = 'Incertidumbre macro y sistémica'
 }
 
 export enum RiskType {
-  DESIRABILITY = 'desirability',
-  FEASIBILITY = 'feasibility',
-  VIABILITY = 'viability',
-  ADAPTABILITY = 'adaptability',
+  HUMANO = 'humano',
+  DEMANDA = 'demanda',
+  EJECUCION = 'ejecucion',
+  MONETIZACION = 'monetizacion',
+  OPERATIVO = 'operativo',
+  MACRO = 'macro',
 }
