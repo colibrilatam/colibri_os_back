@@ -64,7 +64,7 @@ export class CreateTramoDto {
   @ApiPropertyOptional({
     description: 'Tipo de riesgo primario que enfrenta el emprendedor en este tramo',
     enum: RiskType,
-    example: RiskType.DESIRABILITY,
+    example: RiskType.DEMANDA,
   })
   @IsEnum(RiskType)
   @IsOptional()
