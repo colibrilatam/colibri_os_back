@@ -72,7 +72,7 @@ export class CreateCategoryDto {
   @ApiPropertyOptional({
     description: 'Tipo de riesgo primario asociado a los PACs de esta categoría',
     enum: RiskType,
-    example: RiskType.DESIRABILITY,
+    example: RiskType.HUMANO,
   })
   @IsEnum(RiskType)
   @IsOptional()
