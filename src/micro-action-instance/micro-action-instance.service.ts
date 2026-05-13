@@ -19,6 +19,9 @@ function getAllowedTransitions(): {
   [key in MicroActionInstanceStatus]: MicroActionInstanceStatus[];
 } {
   return {
+    pending: [
+      MicroActionInstanceStatus.STARTED,
+    ],
     started: [
       MicroActionInstanceStatus.IN_PROGRESS,
       MicroActionInstanceStatus.SUBMITTED,
@@ -61,7 +64,7 @@ export class MicroActionInstanceService {
     instance.microActionDefinitionId = dto.microActionDefinitionId;
     instance.executionWindowDaysSnapshot = dto.executionWindowDaysSnapshot ?? null;
     instance.executionNotes = dto.executionNotes ?? null;
-    instance.status = MicroActionInstanceStatus.STARTED;
+    instance.status = MicroActionInstanceStatus.PENDING;
     instance.startedAt = new Date();
     instance.attemptNumber = 1;
     instance.reopenedCount = 0;

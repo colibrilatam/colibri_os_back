@@ -14,6 +14,7 @@ import { MicroActionDefinition } from '../../micro-action-definitions/entities/m
 import { Evidence } from '../../evidence/entities/evidence.entity';
 
 export enum MicroActionInstanceStatus {
+  PENDING = 'pending',
   STARTED = 'started',
   IN_PROGRESS = 'in_progress',
   SUBMITTED = 'submitted',
@@ -40,7 +41,7 @@ export class MicroActionInstance {
   @Column({
     type: 'enum',
     enum: MicroActionInstanceStatus,
-    default: MicroActionInstanceStatus.STARTED,
+    default: MicroActionInstanceStatus.PENDING,
   })
   status: MicroActionInstanceStatus;
 
