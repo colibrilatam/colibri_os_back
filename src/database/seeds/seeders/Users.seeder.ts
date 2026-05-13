@@ -1,6 +1,6 @@
 import * as bcrypt from 'bcrypt';
 import { DataSource } from 'typeorm';
-import { AuthProvider, User, UserRole, UserStatus } from 'src/users/entities/user.entity';
+import { AuthProvider, Gender, User, UserRole, UserStatus } from 'src/users/entities/user.entity';
 
 export async function seedUsers(dataSource: DataSource) {
     const repo = dataSource.getRepository(User);
@@ -14,6 +14,7 @@ export async function seedUsers(dataSource: DataSource) {
             password,
             fullName: 'Lucas Emprendedor',
             role: UserRole.ENTREPRENEUR,
+            gender: Gender.MALE,
             status: UserStatus.ACTIVE,
             provider: AuthProvider.LOCAL,
         },
@@ -22,6 +23,7 @@ export async function seedUsers(dataSource: DataSource) {
             password,
             fullName: 'Ana Startup',
             role: UserRole.ENTREPRENEUR,
+            gender: Gender.FEMALE,
             status: UserStatus.ACTIVE,
             provider: AuthProvider.LOCAL,
         },
@@ -30,6 +32,7 @@ export async function seedUsers(dataSource: DataSource) {
             password,
             fullName: 'Martin Founder',
             role: UserRole.ENTREPRENEUR,
+            gender: Gender.FEMALE,
             status: UserStatus.ACTIVE,
             provider: AuthProvider.LOCAL,
         },
@@ -38,6 +41,7 @@ export async function seedUsers(dataSource: DataSource) {
             password,
             fullName: 'Sofia Builder',
             role: UserRole.ENTREPRENEUR,
+            gender: Gender.FEMALE,
             status: UserStatus.ACTIVE,
             provider: AuthProvider.LOCAL,
         },
@@ -48,6 +52,7 @@ export async function seedUsers(dataSource: DataSource) {
             password,
             fullName: 'Sofia Mecenas',
             role: UserRole.MECENAS_SEMILLA,
+            gender: Gender.FEMALE,
             status: UserStatus.ACTIVE,
             provider: AuthProvider.LOCAL,
         },
@@ -58,6 +63,7 @@ export async function seedUsers(dataSource: DataSource) {
             password,
             fullName: 'Carlos Mentor',
             role: UserRole.MENTOR,
+            gender: Gender.MALE,
             status: UserStatus.ACTIVE,
             provider: AuthProvider.LOCAL,
         },
