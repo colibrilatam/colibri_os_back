@@ -10,15 +10,17 @@ import { seedRubrics } from './seeders/Rubrics.seeder';
 import { seedMicroActionDefinitions } from './seeders/Micro-action-definitions.seeder';
 import { seedLearningResources } from './seeders/Learning-resources.seeder';
 import { seedAlgorithmVersions } from './seeders/Algorithm-versions.seeder';
+import { seedMicroActionInstances } from './seeders/Micro-action-instances.seeder';
 
 async function seed() {
     await AppDataSource.initialize();
     console.log('📦 Conectado a la DB');
 
     try {
-        await AppDataSource.query(`
-      TRUNCATE TABLE
+        await AppDataSource.query(
+        `TRUNCATE TABLE
         "learning_resources",
+        "micro_action_instances",
         "micro_action_definitions",
         "project_pacs",
         "pacs",
@@ -33,7 +35,7 @@ async function seed() {
         "users",
         "rubrics",
         "ic_algorithm_versions"
-      RESTART IDENTITY CASCADE;
+        RESTART IDENTITY CASCADE;
     `);
 
         const users = await seedUsers(AppDataSource);
@@ -49,6 +51,12 @@ async function seed() {
 
         const rubrics = await seedRubrics(AppDataSource);
         const microActionDefs = await seedMicroActionDefinitions(AppDataSource, pacs, rubrics);
+        const microActionInstances = await seedMicroActionInstances(
+            AppDataSource,
+            users,
+            projects,
+            microActionDefs,
+        );
         await seedLearningResources(AppDataSource, pacs, microActionDefs);
 
         await seedAlgorithmVersions(AppDataSource);
