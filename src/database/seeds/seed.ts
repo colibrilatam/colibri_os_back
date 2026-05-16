@@ -11,6 +11,7 @@ import { seedMicroActionDefinitions } from './seeders/Micro-action-definitions.s
 import { seedLearningResources } from './seeders/Learning-resources.seeder';
 import { seedAlgorithmVersions } from './seeders/Algorithm-versions.seeder';
 import { seedMicroActionInstances } from './seeders/Micro-action-instances.seeder';
+import { seedEvidences } from './seeders/evidence.seeder';
 
 async function seed() {
     await AppDataSource.initialize();
@@ -18,8 +19,10 @@ async function seed() {
 
     try {
         await AppDataSource.query(
-        `TRUNCATE TABLE
+            `TRUNCATE TABLE
         "learning_resources",
+        "evidence_versions",
+        "evidences",
         "micro_action_instances",
         "micro_action_definitions",
         "project_pacs",
@@ -57,6 +60,9 @@ async function seed() {
             projects,
             microActionDefs,
         );
+
+        await seedEvidences(AppDataSource, users, projects, microActionDefs, microActionInstances);
+
         await seedLearningResources(AppDataSource, pacs, microActionDefs);
 
         await seedAlgorithmVersions(AppDataSource);
