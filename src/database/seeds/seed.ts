@@ -12,6 +12,7 @@ import { seedLearningResources } from './seeders/Learning-resources.seeder';
 import { seedAlgorithmVersions } from './seeders/Algorithm-versions.seeder';
 import { seedMicroActionInstances } from './seeders/Micro-action-instances.seeder';
 import { seedEvidences } from './seeders/evidence.seeder';
+import { seedProjectPacs } from './seeders/ProjectPac.seeder';
 
 async function seed() {
     await AppDataSource.initialize();
@@ -48,6 +49,7 @@ async function seed() {
 
         // seedProjects ahora recibe pacs para asignar currentPacId y crear ProjectPacs
         const projects = await seedProjects(AppDataSource, users, tramos, pacs);
+        const projectPacs = await seedProjectPacs(AppDataSource, projects, pacs);
 
         await seedNfts(AppDataSource, users, projects);
         await seedProjectMembers(AppDataSource, users, projects);

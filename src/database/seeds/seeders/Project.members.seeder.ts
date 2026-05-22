@@ -1,14 +1,15 @@
 import { DataSource } from 'typeorm';
-import { ProjectMember, RoleInTeam } from 'src/project-members/entities/project-member.entity';
-import { User } from 'src/users/entities/user.entity';
+import { GenderProjectMember, ProjectMember, RoleInTeam } from 'src/project-members/entities/project-member.entity';
+import { User, UserRole } from 'src/users/entities/user.entity';
 import { Project } from 'src/projects/entities/project.entity';
 
 export async function seedProjectMembers(dataSource: DataSource, users: User[], projects: Project[]) {
     const repo = dataSource.getRepository(ProjectMember);
+
     const [entrepreneur, , mentor] = users;
     const [ecotech] = projects;
 
-    const members = repo.create([
+    const originalMembers = repo.create([
         {
             projectId: ecotech.id,
             userId: entrepreneur.id,
@@ -31,6 +32,62 @@ export async function seedProjectMembers(dataSource: DataSource, users: User[], 
         },
     ]);
 
-    await repo.save(members);
-    console.log('✅ Project Members creados:', members.length);
+    await repo.save(originalMembers);
+
+    const flujoClave = projects.find((p) => p.projectName === 'FlujoClave');
+    if (!flujoClave) throw new Error('❌ Proyecto FlujoClave no encontrado');
+
+    const entrepreneurs = users.filter((u) => u.role === UserRole.ENTREPRENEUR);
+    const [lucas, ana, martin, sofia] = entrepreneurs;
+
+    const flujoClaveMembers = repo.create([
+        {
+            projectId: flujoClave.id,
+            userId: ana.id,
+            roleInTeam: RoleInTeam.FOUNDER,
+            gender: GenderProjectMember.FEMALE,
+            isActive: true,
+            isFounder: true,
+            isPrimaryOperator: true,
+            participationWeight: 0.40,
+            joinedAt: new Date(),
+        },
+        {
+            projectId: flujoClave.id,
+            userId: sofia.id,
+            roleInTeam: RoleInTeam.CMO,
+            gender: GenderProjectMember.FEMALE,
+            isActive: true,
+            isFounder: false,
+            isPrimaryOperator: false,
+            participationWeight: 0.25,
+            joinedAt: new Date(),
+        },
+        {
+            projectId: flujoClave.id,
+            userId: lucas.id,
+            roleInTeam: RoleInTeam.CTO,
+            gender: GenderProjectMember.MALE,
+            isActive: true,
+            isFounder: false,
+            isPrimaryOperator: false,
+            participationWeight: 0.20,
+            joinedAt: new Date(),
+        },
+        {
+            projectId: flujoClave.id,
+            userId: martin.id,
+            roleInTeam: RoleInTeam.DEVELOPER,
+            gender: GenderProjectMember.MALE,
+            isActive: true,
+            isFounder: false,
+            isPrimaryOperator: false,
+            participationWeight: 0.15,
+            joinedAt: new Date(),
+        },
+    ]);
+
+    await repo.save(flujoClaveMembers);
+
+    console.log('✅ Project Members creados:', originalMembers.length + flujoClaveMembers.length);
 }
