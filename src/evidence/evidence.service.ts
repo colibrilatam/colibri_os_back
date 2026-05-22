@@ -44,7 +44,7 @@ export class EvidenceService {
     private readonly cloudinaryService: CloudinaryService,
     private readonly microActionInstanceService: MicroActionInstanceService,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   // ─── Crear evidencia en DRAFT ─────────────────────────────────────────────────
 
@@ -258,11 +258,17 @@ export class EvidenceService {
   async findAllByProject(projectId: string): Promise<Evidence[]> {
     return this.evidenceRepo.find({
       where: { projectId },
-      relations: ['versions', 'microActionInstance'],
+      relations: [
+        'versions',
+        'microActionInstance',
+        'microActionInstance.microActionDefinition',
+        'microActionInstance.microActionDefinition.pac',
+        'evaluations',
+        'author',
+      ],
       order: { createdAt: 'DESC' },
     });
   }
-
   async findAllByMicroActionInstance(
     microActionInstanceId: string,
   ): Promise<Evidence[]> {

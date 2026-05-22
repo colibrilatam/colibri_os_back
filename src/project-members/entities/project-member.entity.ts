@@ -11,6 +11,14 @@ import {
 import { Project } from '../../projects/entities/project.entity';
 import { User } from '../../users/entities/user.entity';
 
+export enum GenderProjectMember {
+  MALE = 'male',
+  FEMALE = 'female',
+  NON_BINARY = 'non_binary',
+  OTHER = 'other',
+  PREFER_NOT_TO_SAY = 'prefer_not_to_say',
+}
+
 export enum RoleInTeam {
   FOUNDER = 'founder',
   CO_FOUNDER = 'co_founder',
@@ -30,6 +38,9 @@ export class ProjectMember {
 
   @Column({ name: 'project_id' })
   projectId: string;
+
+  @Column({type: 'enum', enum: GenderProjectMember, nullable: true})
+  gender: GenderProjectMember;
 
   @Column({ name: 'user_id' })
   userId: string;
