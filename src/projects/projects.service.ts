@@ -7,13 +7,14 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 import { TramosService } from '../tramos/tramos.service';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import type { Express } from 'express';
+import { ProjectPac, ProjectPacStatus } from './entities/project.pac.entity';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
-
+    private readonly projectPacRepository: Repository<ProjectPac>,
     private readonly tramosService: TramosService,
     private readonly cloudinaryService: CloudinaryService,
   ) { }
@@ -79,5 +80,14 @@ export class ProjectsService {
   async remove(id: string): Promise<void> {
     const project = await this.findOne(id);
     await this.projectRepository.remove(project);
+  }
+
+  async updateProjectPac(projectPacId: string, status: ProjectPacStatus){
+    const projectPac = await this.projectPacRepository.findOneBy({id: projectPacId});
+    if (!projectPac) {
+      throw new NotFoundException(`ProjectPac con id ${projectPacId} no encontrado`);
+    }
+    projectPac.status = status;
+    await this.projectPacRepository.save(projectPac);
   }
 }
