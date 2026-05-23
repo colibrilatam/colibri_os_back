@@ -40,14 +40,13 @@ const EXAMPLE_EVIDENCE = {
 @ApiTags('Evidence')
 @ApiBearerAuth()
 @Controller('evidence')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard)
 export class EvidenceController {
   constructor(private readonly service: EvidenceService) {}
 
   // ─── POST /evidence ───────────────────────────────────────────────────────
 
   @Post()
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Crear una evidencia',
@@ -63,7 +62,6 @@ export class EvidenceController {
   // ─── POST /evidence/request-upload-signature ──────────────────────────────
 
   @Post('request-upload-signature')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Paso 1 — Solicitar firma para subir archivo a Cloudinary',
@@ -100,7 +98,6 @@ export class EvidenceController {
   // ─── POST /evidence/confirm-upload ───────────────────────────────────────
 
   @Post('confirm-upload')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Paso 2 — Confirmar que el archivo fue subido a Cloudinary',
@@ -125,7 +122,6 @@ export class EvidenceController {
   // ─── POST /evidence/:id/submit ────────────────────────────────────────────
 
   @Post(':id/submit')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Enviar evidencia a revisión',
@@ -149,7 +145,6 @@ export class EvidenceController {
   // ─── GET /evidence/project/:projectId ────────────────────────────────────
 
   @Get('project/:projectId')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Listar evidencias de un proyecto', description: 'Devuelve todas las evidencias asociadas al proyecto.' })
   @ApiParam({ name: 'projectId', description: 'UUID del proyecto', example: 'proj-uuid-0001' })
   @ApiResponse({ status: 200, description: 'Lista de evidencias del proyecto.', schema: { example: [EXAMPLE_EVIDENCE] } })
@@ -160,7 +155,6 @@ export class EvidenceController {
   // ─── GET /evidence/micro-action-instance/:instanceId ─────────────────────
 
   @Get('micro-action-instance/:instanceId')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Listar evidencias de una instancia de microacción', description: 'Devuelve todas las evidencias vinculadas a una microacción instanciada específica.' })
   @ApiParam({ name: 'instanceId', description: 'UUID de la instancia de microacción', example: 'mai-uuid-0001' })
   @ApiResponse({ status: 200, description: 'Lista de evidencias de la instancia.', schema: { example: [EXAMPLE_EVIDENCE] } })
@@ -171,7 +165,6 @@ export class EvidenceController {
   // ─── GET /evidence/:id/versions ──────────────────────────────────────────
 
   @Get(':id/versions')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Historial de versiones de una evidencia', description: 'Devuelve todas las versiones de archivo de una evidencia, ordenadas cronológicamente.' })
   @ApiParam({ name: 'id', description: 'UUID de la evidencia', example: 'ev-uuid-0001' })
   @ApiResponse({
@@ -192,7 +185,6 @@ export class EvidenceController {
   // ─── GET /evidence/:id ───────────────────────────────────────────────────
 
   @Get(':id')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Obtener una evidencia por ID', description: 'Devuelve el detalle completo de la evidencia con sus versiones y evaluaciones.' })
   @ApiParam({ name: 'id', description: 'UUID de la evidencia', example: 'ev-uuid-0001' })
   @ApiResponse({ status: 200, description: 'Detalle de la evidencia.', schema: { example: EXAMPLE_EVIDENCE } })
@@ -204,7 +196,6 @@ export class EvidenceController {
   // ─── PATCH /evidence/:id ─────────────────────────────────────────────────
 
   @Patch(':id')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Actualizar una evidencia', description: 'Permite actualizar descripción, privacidad y señal pública. Solo disponible cuando la evidencia está en `draft`.' })
   @ApiParam({ name: 'id', description: 'UUID de la evidencia', example: 'ev-uuid-0001' })
   @ApiBody({ type: UpdateEvidenceDto })
@@ -221,7 +212,6 @@ export class EvidenceController {
   // ─── DELETE /evidence/:id ─────────────────────────────────────────────────
 
   @Delete(':id')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Eliminar una evidencia', description: 'Solo disponible en estado `draft`. Una vez enviada no se puede eliminar.' })
   @ApiParam({ name: 'id', description: 'UUID de la evidencia', example: 'ev-uuid-0001' })
