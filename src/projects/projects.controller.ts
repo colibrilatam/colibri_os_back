@@ -6,6 +6,7 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Express } from 'express';
+import { ProjectPacStatus } from './entities/project.pac.entity';
 
 @ApiTags('Projects')
 @Controller('projects')
@@ -52,5 +53,16 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Eliminar un proyecto' })
   remove(@Param('id') id: string) {
     return this.projectsService.remove(id);
+  }
+
+  @Patch('pac/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Actualizar el estado de un PAC de un proyecto' })
+  async updateProjectPac(
+    @Param('id') projectPacId: string,
+    @Body('status') status: ProjectPacStatus
+  ) {
+    return await this.projectsService.updateProjectPac(projectPacId, status);
   }
 }
