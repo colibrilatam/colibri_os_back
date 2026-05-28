@@ -65,4 +65,15 @@ export class ProjectsController {
   ) {
     return await this.projectsService.updateProjectPac(projectPacId, status);
   }
+
+  @Post(':projectId/pac/:pacId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Crear un ProjectPac' })
+  async createProjectPac(
+    @Param('projectId') projectId: string,
+    @Param('pacId') pacId: string,
+  ) {
+    return await this.projectsService.createProjectPac(projectId, pacId);
+  }
 }

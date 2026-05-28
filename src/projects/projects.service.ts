@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from './entities/project.entity';
@@ -14,7 +14,7 @@ export class ProjectsService {
   constructor(
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
-    private readonly projectPacRepository: Repository<ProjectPac>,
+    @InjectRepository(ProjectPac) private readonly projectPacRepository: Repository<ProjectPac>,
     private readonly tramosService: TramosService,
     private readonly cloudinaryService: CloudinaryService,
   ) { }
@@ -90,4 +90,49 @@ export class ProjectsService {
     projectPac.status = status;
     await this.projectPacRepository.save(projectPac);
   }
+
+async createProjectPac(projectId: string, pacId: string) {
+
+  const existingProject = await this.projectRepository.findOne({
+    where: { id: projectId },
+  });
+
+  if (!existingProject) {
+    throw new NotFoundException('Project not found');
+  }
+
+  const existingPac = await this.projectPacRepository.findOne({
+    where: { id: pacId },
+  });
+
+  if (!existingPac) {
+    throw new NotFoundException('Pac not found');
+  }
+
+  const existingProjectPacRelation = await this.projectPacRepository.findOne({
+    where: {
+      projectId,
+      pacId,
+    },
+  });
+
+  if (existingProjectPacRelation) {
+    throw new BadRequestException(
+      'This PAC is already assigned to the project',
+    );
+  }
+
+  const newProjectPacRelation = this.projectPacRepository.create({
+    projectId,
+    pacId,
+    status: ProjectPacStatus.PENDING,
+    progress: 0
+  });
+
+  const savedProjectPacRelation = await this.projectPacRepository.save(
+    newProjectPacRelation,
+  );
+
+  return savedProjectPacRelation;
+}
 }
