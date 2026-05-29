@@ -8,6 +8,7 @@ import { TramosService } from '../tramos/tramos.service';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import type { Express } from 'express';
 import { ProjectPac, ProjectPacStatus } from './entities/project.pac.entity';
+import { Pac } from '../pacs/entities/pac.entity'
 
 @Injectable()
 export class ProjectsService {
@@ -15,6 +16,8 @@ export class ProjectsService {
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
     @InjectRepository(ProjectPac) private readonly projectPacRepository: Repository<ProjectPac>,
+    @InjectRepository(Pac)
+    private readonly pacRepository: Repository<Pac>,
     private readonly tramosService: TramosService,
     private readonly cloudinaryService: CloudinaryService,
   ) { }
@@ -101,7 +104,7 @@ async createProjectPac(projectId: string, pacId: string) {
     throw new NotFoundException('Project not found');
   }
 
-  const existingPac = await this.projectPacRepository.findOne({
+  const existingPac = await this.pacRepository.findOne({
     where: { id: pacId },
   });
 
