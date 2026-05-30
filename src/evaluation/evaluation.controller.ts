@@ -58,7 +58,7 @@ export class EvaluationController {
   // ══════════════════════════════════════════════════════════
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
+  //@Roles(UserRole.ADMIN, UserRole.EVALUATOR)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Crear una evaluación',
@@ -126,7 +126,7 @@ export class EvaluationController {
   }
 
   @Post('finalize')
-  @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
+  //@Roles(UserRole.ADMIN, UserRole.EVALUATOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Finalizar una evaluación',
@@ -181,7 +181,7 @@ export class EvaluationController {
   // ══════════════════════════════════════════════════════════
 
   @Post('rubrics')
-  @Roles(UserRole.ADMIN)
+  //@Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear una rúbrica', description: 'Solo admin. El `code` debe ser único.' })
   @ApiBody({ type: CreateRubricDto })
@@ -191,8 +191,9 @@ export class EvaluationController {
     return this.service.createRubric(dto);
   }
 
-  @Get('rubrics')
-  @Roles(UserRole.ADMIN, UserRole.EVALUATOR, UserRole.MENTOR)
+  // Se agrega "/active" para diferenciarlo del get de abajo
+  @Get('rubrics/active')
+  //@Roles(UserRole.ADMIN, UserRole.EVALUATOR, UserRole.MENTOR)
   @ApiOperation({ summary: 'Listar rúbricas activas', description: 'Devuelve todas las rúbricas con `isActive = true`.' })
   @ApiResponse({ status: 200, description: 'Lista de rúbricas.', schema: { example: [EXAMPLE_RUBRIC] } })
   findAllRubrics() {

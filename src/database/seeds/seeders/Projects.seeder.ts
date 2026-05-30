@@ -159,7 +159,9 @@ export async function seedProjects(
   const projectRepo = dataSource.getRepository(Project);
   const projectPacRepo = dataSource.getRepository(ProjectPac);
 
-  const entrepreneurs = users.filter((user) => user.role === UserRole.ENTREPRENEUR);
+  const entrepreneurs = users.filter(
+    (user) => user.role === UserRole.ENTREPRENEUR && user.email !== 'ana@colibri.com',
+  );
 
   // Índices rápidos para no iterar en cada loop
   const tramoByCode = new Map(tramos.map((t) => [t.code, t]));
@@ -183,7 +185,13 @@ export async function seedProjects(
     const data = PROJECT_DATA[i];
     const tramo = tramoByCode.get(data.tramoCode);
     const firstPac = firstPacByTramo.get(data.tramoCode);
-    const owner = entrepreneurs[i % entrepreneurs.length];
+    let owner: User | undefined;
+    if(data.projectName === 'FlujoClave'){
+      owner = users.find((e) => e.email === 'ana@colibri.com');
+    }
+    else {
+      owner = entrepreneurs[i % entrepreneurs.length];
+    }
 
     if (!tramo) throw new Error(`Tramo ${data.tramoCode} no encontrado en seed`);
     if (!firstPac) throw new Error(`No hay PAC activo para el tramo ${data.tramoCode}`);
@@ -198,7 +206,7 @@ export async function seedProjects(
       industry: data.industry,
       tagline: data.tagline,
       shortDescription: data.shortDescription,
-      ownerUserId: owner.id,
+      ownerUserId: owner ? owner.id : users[0].id,
       currentTramoId: tramo.id,
       currentPacId: firstPac.id,
       openedAt: new Date(),
