@@ -18,8 +18,6 @@ export class ProjectsService {
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
     @InjectRepository(ProjectPac) private readonly projectPacRepository: Repository<ProjectPac>,
-    @InjectRepository(Pac)
-    private readonly pacRepository: Repository<Pac>,
     private readonly tramosService: TramosService,
     private readonly cloudinaryService: CloudinaryService,
   ) { }
