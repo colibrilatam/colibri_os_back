@@ -64,6 +64,7 @@ export class EvidenceService {
 
     const validInstanceStatuses: MicroActionInstanceStatus[] = [
       MicroActionInstanceStatus.STARTED,
+      MicroActionInstanceStatus.PENDING,
       MicroActionInstanceStatus.IN_PROGRESS,
       MicroActionInstanceStatus.REOPENED,
     ];
