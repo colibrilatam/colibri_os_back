@@ -124,7 +124,6 @@ async createProjectPac(projectId: string, pacId: string) {
       'This PAC is already assigned to the project',
     );
   }
-
   const newProjectPacRelation = this.projectPacRepository.create({
     projectId,
     pacId,
