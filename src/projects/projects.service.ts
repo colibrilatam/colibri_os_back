@@ -8,11 +8,13 @@ import { TramosService } from '../tramos/tramos.service';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import type { Express } from 'express';
 import { ProjectPac, ProjectPacStatus } from './entities/project.pac.entity';
-import { Pac } from '../pacs/entities/pac.entity'
+import { Pac } from 'src/pacs/entities/pac.entity';
 
 @Injectable()
 export class ProjectsService {
   constructor(
+    @InjectRepository(Pac)
+    private readonly pacRepository: Repository<Pac>,
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
     @InjectRepository(ProjectPac) private readonly projectPacRepository: Repository<ProjectPac>,
