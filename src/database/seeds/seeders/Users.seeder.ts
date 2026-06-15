@@ -67,6 +67,16 @@ export async function seedUsers(dataSource: DataSource) {
             status: UserStatus.ACTIVE,
             provider: AuthProvider.LOCAL,
         },
+        // Evaluador
+        {
+            email: 'evaluator@colibri.com',
+            password,
+            fullName: 'María Evaluadora',
+            role: UserRole.EVALUATOR,
+            gender: Gender.FEMALE,
+            status: UserStatus.ACTIVE,
+            provider: AuthProvider.LOCAL,
+        }
     ]);
 
     const saved = await repo.save(users);
