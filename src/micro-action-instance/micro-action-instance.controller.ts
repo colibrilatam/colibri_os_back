@@ -86,7 +86,7 @@ export class MicroActionInstanceController {
   // ─── GET /micro-action-instances/project/:projectId ──────────────────────
 
   @Get('project/:projectId')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  //@Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Listar todas las instancias de un proyecto',
     description: 'Devuelve todas las microacciones instanciadas para el proyecto indicado.',
