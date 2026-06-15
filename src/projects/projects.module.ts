@@ -5,10 +5,12 @@ import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
 import { TramosModule } from '../tramos/tramos.module';
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
+import { Pac } from 'src/pacs/entities/pac.entity';
+import { ProjectPac } from './entities/project.pac.entity';
 
 @Module({
   imports: [ CloudinaryModule,
-    TypeOrmModule.forFeature([Project]),
+    TypeOrmModule.forFeature([Project, Pac, ProjectPac]),
     TramosModule,   // expone TramosService para inyectarlo en ProjectsService
   ],
   controllers: [ProjectsController],
