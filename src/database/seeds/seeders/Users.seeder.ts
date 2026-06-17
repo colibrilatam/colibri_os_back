@@ -56,6 +56,15 @@ export async function seedUsers(dataSource: DataSource) {
             status: UserStatus.ACTIVE,
             provider: AuthProvider.LOCAL,
         },
+        {
+            email: 'BancoDV@colibri.com',
+            password,
+            fullName: 'Banco De Venezuela',
+            role: UserRole.MECENAS_SEMILLA,
+            gender: Gender.MALE,
+            status: UserStatus.ACTIVE,
+            provider: AuthProvider.LOCAL,
+        },
 
         // Mentor
         {
