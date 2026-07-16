@@ -21,10 +21,16 @@ export class Rubric {
   code: string;
 
   @Column()
-  name: string;
+  name_es: string;
+
+  @Column()
+  name_en: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description_es: string;
+
+  @Column({ type: 'text', nullable: true })
+  description_en: string;
 
   @Column({
     name: 'target_entity',

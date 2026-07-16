@@ -9,11 +9,19 @@ export class CreateRubricDto {
 
   @ApiProperty({ description: 'Nombre descriptivo de la rúbrica', example: 'Rúbrica de entrevistas de descubrimiento' })
   @IsString()
-  name: string;
+  name_es: string;
+
+  @ApiProperty({ description: 'Nombre descriptivo de la rúbrica', example: 'Rúbrica de entrevistas de descubrimiento' })
+  @IsString()
+  name_en: string;
 
   @ApiPropertyOptional({ description: 'Descripción del propósito de la rúbrica', example: 'Evalúa la calidad y profundidad de las entrevistas realizadas.' })
   @IsOptional() @IsString()
-  description?: string;
+  description_es?: string;
+
+  @ApiPropertyOptional({ description: 'Descripción del propósito de la rúbrica', example: 'Evaluates the quality and depth of the conducted interviews.' })
+  @IsOptional() @IsString()
+  description_en?: string;
 
   @ApiProperty({ description: 'Entidad objetivo que evalúa esta rúbrica', enum: RubricTargetEntity, example: RubricTargetEntity.EVIDENCE })
   @IsEnum(RubricTargetEntity)

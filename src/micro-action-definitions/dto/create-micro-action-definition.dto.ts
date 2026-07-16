@@ -44,9 +44,14 @@ export class CreateMicroActionDefinitionDto {
     description: 'Instrucción que el emprendedor debe seguir para ejecutar la microacción',
     example: 'Realizá al menos 5 entrevistas de descubrimiento con potenciales usuarios y documentá los hallazgos clave.',
   })
+
   @IsString()
   @IsNotEmpty()
-  instruction: string;
+  instruction_es: string;
+
+  @IsString()
+  @IsNotEmpty()
+  instruction_en: string;
 
   @ApiProperty({
     description: 'Orden de aparición dentro del PAC (1, 2, 3...)',

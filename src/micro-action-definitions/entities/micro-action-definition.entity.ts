@@ -46,7 +46,10 @@ export class MicroActionDefinition {
   code: string;
 
   @Column({ type: 'text' })
-  instruction: string;
+  instruction_es: string;
+
+  @Column({ type: 'text' })
+  instruction_en: string;
 
   @Column({ name: 'sort_order' })
   sortOrder: number;

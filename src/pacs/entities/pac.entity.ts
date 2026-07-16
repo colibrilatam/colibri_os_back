@@ -24,10 +24,16 @@ export class Pac {
   code: string;
 
   @Column()
-  title: string;
+  title_es: string;
 
-  @Column({ name: 'objective_line', type: 'text', nullable: true })
-  objectiveLine: string;
+  @Column()
+  title_en: string;
+
+  @Column({ name: 'objective_line_es', type: 'text', nullable: true })
+  objectiveLine_es: string;
+
+  @Column({ name: 'objective_line_en', type: 'text', nullable: true })
+  objectiveLine_en: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;

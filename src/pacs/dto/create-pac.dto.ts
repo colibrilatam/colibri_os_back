@@ -15,11 +15,19 @@ export class CreatePacDto {
 
   @ApiProperty({ description: 'Título del PAC', example: 'Descubrimiento de usuario' })
   @IsString() @IsNotEmpty()
-  title: string;
+  title_es: string;
+
+  @ApiProperty({ description: 'Título del PAC', example: 'User Discovery' })
+  @IsString() @IsNotEmpty()
+  title_en: string;
 
   @ApiPropertyOptional({ description: 'Línea objetiva del PAC', example: 'Validar la existencia del problema con usuarios reales.' })
   @IsString() @IsOptional()
-  objectiveLine?: string;
+  objectiveLine_es?: string;
+
+  @ApiPropertyOptional({ description: 'Línea objetiva del PAC', example: 'Validate the existence of the problem with real users.' })
+  @IsString() @IsOptional()
+  objectiveLine_en?: string;
 
   @ApiPropertyOptional({ description: 'Descripción detallada del PAC', example: 'El emprendedor debe realizar entrevistas y documentar hallazgos.' })
   @IsString() @IsOptional()

@@ -27,7 +27,11 @@ export class CreateTramoDto {
   })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name_es: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name_en: string;
 
   @ApiPropertyOptional({
     description: 'Descripción detallada del propósito y alcance del tramo',
@@ -35,7 +39,15 @@ export class CreateTramoDto {
   })
   @IsString()
   @IsOptional()
-  description?: string;
+  description_es?: string;
+
+  @ApiPropertyOptional({
+    description: 'Descripción detallada del propósito y alcance del tramo',
+    example: 'Primer tramo del recorrido Colibrí. El emprendedor valida su problema y define su propuesta de valor.',
+  })
+  @IsString()
+  @IsOptional()
+  description_en?: string;
 
   @ApiProperty({
     description: 'Orden de visualización del tramo en la Ruta de Vuelo (ascendente)',
@@ -84,7 +96,15 @@ export class CreateTramoDto {
   })
   @IsString()
   @IsOptional()
-  eligibilityRule?: string;
+  eligibilityRule_es?: string;
+
+  @ApiPropertyOptional({
+    description: 'Regla de elegibilidad en formato texto o expresión evaluable que determina si un proyecto puede ingresar al tramo',
+    example: 'ic >= 0.6 AND evidencias_aprobadas >= 7',
+  })
+  @IsString()
+  @IsOptional()
+  eligibilityRule_en?: string;
 
   @ApiPropertyOptional({
     description: 'Umbral de IC a partir del cual el proyecto es visible públicamente en el ecosistema',

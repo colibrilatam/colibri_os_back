@@ -33,9 +33,14 @@ export class CreateCategoryDto {
     description: 'Nombre descriptivo de la categoría',
     example: 'Validación de Problema',
   })
+
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name_es: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name_en: string;
 
   @ApiPropertyOptional({
     description: 'Descripción detallada del propósito y alcance de la categoría',
@@ -43,7 +48,11 @@ export class CreateCategoryDto {
   })
   @IsString()
   @IsOptional()
-  description?: string;
+  description_es?: string;
+
+  @IsString()
+  @IsOptional()
+  description_en?: string;
 
   @ApiProperty({
     description: 'Orden de visualización de la categoría dentro del tramo (ascendente)',

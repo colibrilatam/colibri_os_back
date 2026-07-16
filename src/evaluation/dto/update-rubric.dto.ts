@@ -4,11 +4,19 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 export class UpdateRubricDto {
   @ApiPropertyOptional({ description: 'Nuevo nombre de la rúbrica', example: 'Rúbrica de entrevistas v2' })
   @IsOptional() @IsString()
-  name?: string;
+  name_es?: string;
+
+  @ApiPropertyOptional({ description: 'Nuevo nombre de la rúbrica', example: 'Rúbrica de entrevistas v2' })
+  @IsOptional() @IsString()
+  name_en?: string;
 
   @ApiPropertyOptional({ description: 'Nueva descripción', example: 'Versión actualizada con criterios ampliados.' })
   @IsOptional() @IsString()
-  description?: string;
+  description_es?: string;
+
+  @ApiPropertyOptional({ description: 'Nueva descripción', example: 'Updated version with expanded criteria.' })
+  @IsOptional() @IsString()
+  description_en?: string;
 
   @ApiPropertyOptional({ description: 'Nueva versión', example: 'v2.0' })
   @IsOptional() @IsString()
