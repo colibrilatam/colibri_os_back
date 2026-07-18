@@ -62,8 +62,8 @@ export class HierarchyService {
     return {
       id: tramo.id,
       code: tramo.code,
-      name: tramo.name,
-      description: tramo.description ?? null,
+      name: tramo.name_es,
+      description: tramo.description_es ?? null,
       sortOrder: tramo.sortOrder,
       executionWindowDays: tramo.executionWindowDays ?? null,
       uncertaintyType: tramo.uncertaintyType ?? null,
@@ -79,8 +79,8 @@ export class HierarchyService {
     return {
       id: category.id,
       code: category.code,
-      name: category.name,
-      description: category.description ?? null,
+      name: category.name_es,
+      description: category.description_es ?? null,
       sortOrder: category.sortOrder,
       executionWindowDays: category.executionWindowDays ?? null,
       uncertaintyType: category.uncertaintyType ?? null,
@@ -93,8 +93,8 @@ export class HierarchyService {
     return {
       id: pac.id,
       code: pac.code,
-      title: pac.title,
-      objectiveLine: pac.objectiveLine ?? null,
+      title: pac.title_es,
+      objectiveLine: pac.objectiveLine_es ?? null,
       sortOrder: pac.sortOrder,
       executionWindowDays: pac.executionWindowDays ?? null,
       minimumCompletionThreshold: pac.minimumCompletionThreshold ?? null,
@@ -117,7 +117,7 @@ export class HierarchyService {
     return {
       id: mad.id,
       code: mad.code,
-      instruction: mad.instruction,
+      instruction: mad.instruction_es,
       sortOrder: mad.sortOrder,
       microActionType: mad.microActionType,
       isRequired: mad.isRequired,

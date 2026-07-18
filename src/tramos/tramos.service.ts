@@ -145,7 +145,7 @@ export class TramosService {
     // Evitar asignar el mismo tramo que ya tiene
     if (project.currentTramoId === dto.newTramoId) {
       throw new BadRequestException(
-        `El proyecto ya se encuentra en el tramo "${newTramo.name}"`,
+        `El proyecto ya se encuentra en el tramo "${newTramo.name_es}"`,
       );
     }
 

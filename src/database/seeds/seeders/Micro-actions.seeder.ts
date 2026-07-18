@@ -21,7 +21,8 @@ export async function seedMicroActions(dataSource: DataSource, pacs: Pac[]) {
         {
             pacId: pac1.id,
             code: 'MAD_1_1_1_1',
-            instruction: 'Realizar 5 entrevistas con usuarios potenciales',
+            instruction_es: 'Realizar 5 entrevistas con usuarios potenciales',
+            instruction_en: 'Conduct 5 interviews with potential users',
             sortOrder: 1,
             executionWindowDays: 5,
             microActionType: MicroActionType.INTERVIEW,
@@ -34,7 +35,8 @@ export async function seedMicroActions(dataSource: DataSource, pacs: Pac[]) {
         {
             pacId: pac1.id,
             code: 'MAD_1_1_1_2',
-            instruction: 'Documentar patrones comunes encontrados en entrevistas',
+            instruction_es: 'Documentar patrones comunes encontrados en entrevistas',
+            instruction_en: 'Document common patterns found in interviews',
             sortOrder: 2,
             executionWindowDays: 3,
             microActionType: MicroActionType.DOCUMENTATION,
@@ -48,7 +50,8 @@ export async function seedMicroActions(dataSource: DataSource, pacs: Pac[]) {
         {
             pacId: pac2.id,
             code: 'MAD_1_1_2_1',
-            instruction: 'Definir hipótesis principal del problema',
+            instruction_es: 'Definir hipótesis principal del problema',
+            instruction_en: 'Define the main problem hypothesis',
             sortOrder: 1,
             executionWindowDays: 2,
             microActionType: MicroActionType.RESEARCH,
@@ -62,7 +65,8 @@ export async function seedMicroActions(dataSource: DataSource, pacs: Pac[]) {
         {
             pacId: pac3.id,
             code: 'MAD_1_2_1_1',
-            instruction: 'Escribir propuesta de valor inicial en una sola frase',
+            instruction_es: 'Escribir propuesta de valor inicial en una sola frase',
+            instruction_en: 'Write the initial value proposition in a single sentence',
             sortOrder: 1,
             executionWindowDays: 2,
             microActionType: MicroActionType.DOCUMENTATION,
@@ -76,7 +80,8 @@ export async function seedMicroActions(dataSource: DataSource, pacs: Pac[]) {
         {
             pacId: pac4.id,
             code: 'MAD_2_1_1_1',
-            instruction: 'Diseñar wireframe base del MVP',
+            instruction_es: 'Diseñar wireframe base del MVP',
+            instruction_en: 'Design the MVP base wireframe',
             sortOrder: 1,
             executionWindowDays: 7,
             microActionType: MicroActionType.PROTOTYPE,
@@ -89,7 +94,8 @@ export async function seedMicroActions(dataSource: DataSource, pacs: Pac[]) {
         {
             pacId: pac4.id,
             code: 'MAD_2_1_1_2',
-            instruction: 'Validar arquitectura propuesta con un mentor técnico',
+            instruction_es: 'Validar arquitectura propuesta con un mentor técnico',
+            instruction_en: 'Validate the proposed architecture with a technical mentor',
             sortOrder: 2,
             executionWindowDays: 4,
             microActionType: MicroActionType.VALIDATION,
@@ -103,7 +109,8 @@ export async function seedMicroActions(dataSource: DataSource, pacs: Pac[]) {
         {
             pacId: pac5.id,
             code: 'MAD_2_2_1_1',
-            instruction: 'Definir criterios de escalabilidad esperados',
+            instruction_es: 'Definir criterios de escalabilidad esperados',
+            instruction_en: 'Define the expected scalability criteria',
             sortOrder: 1,
             executionWindowDays: 3,
             microActionType: MicroActionType.OTHER,
