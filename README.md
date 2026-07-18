@@ -1,98 +1,104 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Colibrí OS — Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API REST de Colibrí OS, la plataforma que acompaña el recorrido de proyectos, registra su ejecución y evidencias, y produce señales reputacionales y analíticas.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Está construida con NestJS, TypeScript, PostgreSQL y TypeORM. La API se publica bajo el prefijo `/api/v1` y su especificación Swagger puede habilitarse en `/api/v1/docs`.
 
-## Description
+## Inicio rápido
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+### Requisitos
 
-## Project setup
+- Node.js 22 (la versión usada por CI).
+- npm 10 o compatible con el `package-lock.json`.
+- PostgreSQL accesible desde el equipo local.
 
-```bash
-$ npm install
+### Configuración local
+
+1. Instalar las dependencias:
+
+   ```powershell
+   npm ci
+   ```
+
+2. Crear el archivo de entorno y completar los valores locales:
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+   Como mínimo, configure una base de datos en `DATABASE_URL`, un `JWT_SECRET` propio y `FRONTEND_URL`. No suba `.env` ni secretos al repositorio.
+
+3. Iniciar la API en modo desarrollo:
+
+   ```powershell
+   npm run start:dev
+   ```
+
+4. Abrir la documentación interactiva en [http://localhost:3000/api/v1/docs](http://localhost:3000/api/v1/docs), si `SWAGGER_ENABLED=true`.
+
+## Variables de entorno
+
+| Variable | Uso |
+| --- | --- |
+| `NODE_ENV`, `PORT` | Entorno y puerto de la aplicación. |
+| `DATABASE_URL` | Conexión PostgreSQL para la aplicación, scripts y migraciones. |
+| `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | Referencia de conexión local; `DATABASE_URL` es la variable utilizada por TypeORM. |
+| `JWT_SECRET`, `JWT_EXPIRES_IN` | Firma y vencimiento de los tokens de sesión. |
+| `FRONTEND_URL` | Origen permitido por CORS y destino posterior al login con Google. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` | OAuth de Google. Necesarias cuando se habilita ese método de acceso. |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Firma, carga y gestión de archivos de evidencia en Cloudinary. |
+| `SWAGGER_ENABLED` | Habilita la UI Swagger cuando vale `true`. |
+
+Use valores diferentes por ambiente y cárguelos desde el gestor de secretos de la plataforma de despliegue. Las credenciales de Cloudinary, Google, JWT y PostgreSQL no deben exponerse en tickets, logs ni código cliente.
+
+## Datos locales
+
+Los comandos disponibles para administrar el esquema son:
+
+```powershell
+# Crear una migración a partir de cambios de entidades
+npm run migration:generate -- src/database/migrations/NombreDescriptivo
+
+# Aplicar las migraciones pendientes
+npm run migration:run
+
+# Revertir la última migración aplicada
+npm run migration:revert
 ```
 
-## Compile and run the project
+Para cargar datos de demostración:
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```powershell
+npm run seed
 ```
 
-## Run tests
+> **Atención:** `npm run seed` vacía y vuelve a cargar tablas de negocio. Úselo solo contra una base de datos local o de pruebas autorizada, nunca como paso rutinario de producción.
 
-```bash
-# unit tests
-$ npm run test
+## Ejecución y verificación
 
-# e2e tests
-$ npm run test:e2e
+```powershell
+# Compilar
+npm run build
 
-# test coverage
-$ npm run test:cov
+# Iniciar el artefacto compilado
+npm run start:prod
+
+# Pruebas unitarias y de cobertura
+npm run test
+npm run test:cov
+
+# Pruebas e2e (requieren variables de entorno y PostgreSQL disponibles)
+npm run test:e2e
 ```
 
-## Deployment
+## Arquitectura, seguridad y operación
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+- [Arquitectura de Colibrí OS](docs/architecture.md): capas funcionales, módulos, entidades e integraciones.
+- [Matriz de permisos](docs/security/permissions-matrix.md): acceso efectivo por ruta y rol.
+- [Runbook de despliegue](docs/runbooks/deployment.md): preparación, liberación y verificación en Render.
+- [Runbook de rollback](docs/runbooks/rollback.md): restauración de una versión anterior y comprobaciones posteriores.
+- [Runbook de incidentes](docs/runbooks/incidents.md): respuesta, comunicación y cierre de incidentes.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Licencia
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Este repositorio es privado y no concede permiso de uso, redistribución ni modificación fuera de lo autorizado por Colibrí Latam. Su condición es `UNLICENSED`, coherente con `package.json`.

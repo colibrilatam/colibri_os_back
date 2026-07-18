@@ -87,8 +87,8 @@ export async function seedEvidences(
             privacyLevel: PrivacyLevel.PRIVATE,
             publicSignalEnabled: !isPending,
             description: isPending
-                ? `Evidencia pendiente para ${mad.instruction}`
-                : `Evidencia completada para ${mad.instruction}`,
+                ? `Evidencia pendiente para ${mad.instruction_es}`
+                : `Evidencia completada para ${mad.instruction_es}`,
             canonicalUri: isPending
                 ? undefined
                 : `https://storage.colibri.app/evidences/flujoclave/t${tramoIndex}_c${catIndex}_v1`,
