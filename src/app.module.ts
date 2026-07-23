@@ -39,7 +39,7 @@ import { TramoClosureModule } from './tramo-closure/tramo-closure.module';
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true,
+        synchronize: false,
         logging: false,
         autoLoadEntities: true,
         extra: { family: 4 }
