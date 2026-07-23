@@ -42,6 +42,7 @@ import { TramoClosureModule } from './tramo-closure/tramo-closure.module';
         synchronize: true,
         logging: false,
         autoLoadEntities: true,
+        extra: { family: 4 }
         //dropSchema: true,
       }),
     }),
