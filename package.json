@@ -24,6 +24,13 @@
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts"
   },
+  "overrides": {
+    "qs": "^6.15.3",
+    "body-parser": "^2.3.0",
+    "@nestjs/swagger": {
+      "js-yaml": "^5.2.2"
+    }
+  },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
