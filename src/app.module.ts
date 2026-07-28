@@ -1,5 +1,3 @@
-// src/app.module.ts
-
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -42,7 +40,7 @@ import { TramoClosureModule } from './tramo-closure/tramo-closure.module';
         synchronize: false,
         logging: false,
         autoLoadEntities: true,
-        extra: { family: 4 }
+        extra: { family: 4 },
         //dropSchema: true,
       }),
     }),
