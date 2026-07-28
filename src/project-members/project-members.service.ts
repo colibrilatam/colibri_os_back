@@ -50,7 +50,11 @@ export class ProjectMemberService {
     return member;
   }
 
-  async update(projectId: string, memberId: string, dto: UpdateProjectMemberDto): Promise<ProjectMember> {
+  async update(
+    projectId: string,
+    memberId: string,
+    dto: UpdateProjectMemberDto,
+  ): Promise<ProjectMember> {
     const member = await this.findOne(projectId, memberId);
     Object.assign(member, dto);
     return this.memberRepository.save(member);

@@ -1,17 +1,18 @@
 // src/reputation/reputation.service.ts
 import { Repository, DataSource, IsNull } from 'typeorm';
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IcAlgorithmVersion } from './entities/ic-algorithm-version.entity';
-import { ReputationIndexSnapshot, EligibilityStatus } from './entities/reputation-index-snapshot.entity';
+import {
+  ReputationIndexSnapshot,
+  EligibilityStatus,
+} from './entities/reputation-index-snapshot.entity';
 import { ReputationIndexExplanation } from './entities/reputation-index-explanation.entity';
 import { Evidence, EvidenceStatus } from '../evidence/entities/evidence.entity';
-import { MicroActionInstance, MicroActionInstanceStatus } from '../micro-action-instance/entities/micro-action-instance.entity';
+import {
+  MicroActionInstance,
+  MicroActionInstanceStatus,
+} from '../micro-action-instance/entities/micro-action-instance.entity';
 import { Project } from '../projects/entities/project.entity';
 import { CreateAlgorithmVersionDto } from './dto/create-algorithm-version.dto';
 import { CalculateSnapshotDto } from './dto/calculate-snapshot.dto';
@@ -44,9 +45,7 @@ export class ReputationService {
 
   // ─── ALGORITMO ────────────────────────────────────────────────────────────────
 
-  async createAlgorithmVersion(
-    dto: CreateAlgorithmVersionDto,
-  ): Promise<IcAlgorithmVersion> {
+  async createAlgorithmVersion(dto: CreateAlgorithmVersionDto): Promise<IcAlgorithmVersion> {
     const existing = await this.algorithmRepo.findOne({
       where: { code: dto.code },
     });
@@ -78,9 +77,7 @@ export class ReputationService {
     });
 
     if (!version) {
-      throw new NotFoundException(
-        'No hay una versión activa del algoritmo del IC',
-      );
+      throw new NotFoundException('No hay una versión activa del algoritmo del IC');
     }
 
     return version;
@@ -104,9 +101,7 @@ export class ReputationService {
 
   // ─── MOTOR DE CÁLCULO DEL IC ──────────────────────────────────────────────────
 
-  async calculateSnapshot(
-    dto: CalculateSnapshotDto,
-  ): Promise<ReputationIndexSnapshot> {
+  async calculateSnapshot(dto: CalculateSnapshotDto): Promise<ReputationIndexSnapshot> {
     const project = await this.projectRepo.findOne({
       where: { id: dto.projectId },
     });
@@ -133,9 +128,7 @@ export class ReputationService {
       ].includes(i.status),
     );
 
-    const onTimeInstances = completedInstances.filter(
-      (i) => i.isOnTime === true,
-    );
+    const onTimeInstances = completedInstances.filter((i) => i.isOnTime === true);
 
     const allEvidences = await this.evidenceRepo.find({
       where: { projectId: dto.projectId },
@@ -145,22 +138,16 @@ export class ReputationService {
       (e) => e.status === EvidenceStatus.APPROVED && e.isValidForIc,
     );
 
-    const rejectedEvidences = allEvidences.filter(
-      (e) => e.status === EvidenceStatus.REJECTED,
-    );
+    const rejectedEvidences = allEvidences.filter((e) => e.status === EvidenceStatus.REJECTED);
 
     // ── Cálculo de dimensiones ───────────────────────────────────────────────
 
     // Acción: % de microacciones completadas sobre el total
     const actionScore =
-      allInstances.length > 0
-        ? (completedInstances.length / allInstances.length) * 100
-        : 0;
+      allInstances.length > 0 ? (completedInstances.length / allInstances.length) * 100 : 0;
 
     // Evidencia: % de evidencias aprobadas sobre las enviadas
-    const submittedEvidences = allEvidences.filter(
-      (e) => e.status !== EvidenceStatus.DRAFT,
-    );
+    const submittedEvidences = allEvidences.filter((e) => e.status !== EvidenceStatus.DRAFT);
     const evidenceScore =
       submittedEvidences.length > 0
         ? (approvedEvidences.length / submittedEvidences.length) * 100
@@ -180,30 +167,28 @@ export class ReputationService {
     // ── IC bruto ponderado ───────────────────────────────────────────────────
 
     const icRaw =
-      actionScore * Number(algorithm.weightAction) / 100 +
-      evidenceScore * Number(algorithm.weightEvidence) / 100 +
-      consistencyScore * Number(algorithm.weightConsistency) / 100 +
-      collaborationScore * Number(algorithm.weightCollaboration) / 100 +
-      sustainabilityScore * Number(algorithm.weightSustainability) / 100;
+      (actionScore * Number(algorithm.weightAction)) / 100 +
+      (evidenceScore * Number(algorithm.weightEvidence)) / 100 +
+      (consistencyScore * Number(algorithm.weightConsistency)) / 100 +
+      (collaborationScore * Number(algorithm.weightCollaboration)) / 100 +
+      (sustainabilityScore * Number(algorithm.weightSustainability)) / 100;
 
     const icPublic = Math.min(Math.round(icRaw * 100) / 100, 100);
 
     // ── Elegibilidad ─────────────────────────────────────────────────────────
 
     const eligibilityStatus =
-      icPublic >= 60
-        ? EligibilityStatus.ELIGIBLE
-        : EligibilityStatus.NOT_ELIGIBLE;
+      icPublic >= 60 ? EligibilityStatus.ELIGIBLE : EligibilityStatus.NOT_ELIGIBLE;
 
     // ── Persistencia en transacción ──────────────────────────────────────────
 
-    const snapshot = await this.dataSource.transaction(async (manager) => {
+    await this.dataSource.transaction(async (manager) => {
       // Cerrar snapshot anterior del proyecto
-    await manager.update(
-      ReputationIndexSnapshot,
-      { projectId: dto.projectId, validTo: IsNull() },   // ← corregido
-      { validTo: now },
-    );
+      await manager.update(
+        ReputationIndexSnapshot,
+        { projectId: dto.projectId, validTo: IsNull() },
+        { validTo: now },
+      );
 
       const newSnapshot = manager.create(ReputationIndexSnapshot, {
         projectId: dto.projectId,
@@ -270,7 +255,7 @@ export class ReputationService {
 
   async findLatestSnapshot(projectId: string): Promise<ReputationIndexSnapshot> {
     const snapshot = await this.snapshotRepo.findOne({
-      where: { projectId, validTo: IsNull() },          // ← corregido
+      where: { projectId, validTo: IsNull() }, // ← corregido
       relations: ['algorithmVersion', 'explanations', 'tramo'],
       order: { calculatedAt: 'DESC' },
     });
@@ -292,9 +277,7 @@ export class ReputationService {
     });
   }
 
-  async findSnapshotWithExplanations(
-    snapshotId: string,
-  ): Promise<ReputationIndexSnapshot> {
+  async findSnapshotWithExplanations(snapshotId: string): Promise<ReputationIndexSnapshot> {
     const snapshot = await this.snapshotRepo.findOne({
       where: { id: snapshotId },
       relations: ['algorithmVersion', 'explanations', 'tramo', 'project'],

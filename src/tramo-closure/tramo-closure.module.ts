@@ -12,8 +12,9 @@ import { Project } from '../projects/entities/project.entity';
 import { TramoClosureService } from './tramo-closure.service';
 import { TramoClosureController } from './tramo-closure.controller';
 import { ReputationModule } from '../reputation/reputation.module';
-import { NftsModule } from '../nfts/nfts.module'; 
+import { NftsModule } from '../nfts/nfts.module';
 import { TramosModule } from '../tramos/tramos.module';
+import { ProjectsModule } from '../projects/projects.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { TramosModule } from '../tramos/tramos.module';
     ReputationModule,
     NftsModule,
     TramosModule,
+    ProjectsModule,
   ],
   controllers: [TramoClosureController],
   providers: [TramoClosureService],

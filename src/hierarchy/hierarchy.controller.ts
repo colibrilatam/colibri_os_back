@@ -1,12 +1,12 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query } from "@nestjs/common";
-import { HierarchyService } from "./hierarchy.service";
-import { QueryHierarchyDto } from "./dto/queryHierarchy.dto";
-import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Controller, Get, Query } from '@nestjs/common';
+import { HierarchyService } from './hierarchy.service';
+import { QueryHierarchyDto } from './dto/queryHierarchy.dto';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Hierarchy')
 @Controller('hierarchy')
 export class HierarchyController {
-  constructor(private readonly hierarchyService: HierarchyService) { }
+  constructor(private readonly hierarchyService: HierarchyService) {}
 
   @Get()
   @ApiOperation({
@@ -18,10 +18,10 @@ export class HierarchyController {
 
   @Get('shallow')
   @ApiOperation({
-    summary: 'Obtener la jerarquía simplificada (tramos, categorías y PACs) sin micro acciones ni recursos',
+    summary:
+      'Obtener la jerarquía simplificada (tramos, categorías y PACs) sin micro acciones ni recursos',
   })
   async getShallowHierarchy() {
     return this.hierarchyService.getShallowHierarchy();
   }
-
 }

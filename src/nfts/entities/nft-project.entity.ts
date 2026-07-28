@@ -19,7 +19,7 @@ export class NftProject {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'project_id' , nullable: true})
+  @Column({ name: 'project_id', type: 'varchar', nullable: true })
   projectId: string | null;
 
   @Column({ name: 'chain_id' })
@@ -43,7 +43,7 @@ export class NftProject {
   @Column({ name: 'represented_tramo_id', nullable: true })
   representedTramoId: string;
 
-  @Column({ name: 'current_holder_user_id', nullable: true })
+  @Column({ name: 'current_holder_user_id', type: 'varchar', nullable: true })
   currentHolderUserId: string | null;
 
   @Column({ name: 'minted_at', nullable: true })

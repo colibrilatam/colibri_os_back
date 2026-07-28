@@ -18,11 +18,11 @@ export enum UserRole {
   ENTREPRENEUR = 'entrepreneur',
   MENTOR = 'mentor',
   EVALUATOR = 'evaluator',
-  MECENAS_SEMILLA = 'mecenas_semilla',       // ← era MECENAS genérico
+  MECENAS_SEMILLA = 'mecenas_semilla', // ← era MECENAS genérico
   MECENAS_FUNDACIONAL = 'mecenas_fundacional', // nuevo
-  MECENAS_CAMBIO = 'mecenas_cambio',          // nuevo
+  MECENAS_CAMBIO = 'mecenas_cambio', // nuevo
   ADMIN = 'admin', // ← el rol sin nombre definido aún
-  GUEST = "guest"
+  GUEST = 'guest',
 }
 
 export enum Gender {
@@ -66,9 +66,9 @@ export class User {
   status: UserStatus;
 
   @Column({
-  type: 'enum',
-  enum: AuthProvider,
-  default: AuthProvider.LOCAL,
+    type: 'enum',
+    enum: AuthProvider,
+    default: AuthProvider.LOCAL,
   })
   provider: AuthProvider;
 
@@ -94,10 +94,10 @@ export class User {
   avatar: string;
 
   @Column({
-  type: 'enum',
-  enum: Gender,
-  nullable: true,           // nunca obligatorio
-  default: null,
+    type: 'enum',
+    enum: Gender,
+    nullable: true, // nunca obligatorio
+    default: null,
   })
   gender: Gender | null;
 

@@ -1,25 +1,24 @@
 // src/tramo-closure/tramo-closure.controller.ts
 
-import {
-  Controller, Get, Post, Body,
-  UseGuards, HttpCode, HttpStatus,
-} from '@nestjs/common';
-import {
-  ApiTags, ApiOperation, ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TramoClosureService } from './tramo-closure.service';
 import { EvaluateClosureDto } from './dto/evaluate-closure.dto';
 import { CloseTramoDto } from './dto/close-tramo.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { ProjectAccessService } from '../projects/project-access.service';
 
 @ApiTags('Tramo Closure')
 @Controller('tramo-closure')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class TramoClosureController {
-  constructor(private readonly service: TramoClosureService) {}
+  constructor(
+    private readonly service: TramoClosureService,
+    private readonly projectAccess: ProjectAccessService,
+  ) {}
 
   @Post('evaluate')
   @HttpCode(HttpStatus.OK)
@@ -49,7 +48,14 @@ Devuelve:
       },
     },
   })
-  evaluateCompletion(@Body() dto: EvaluateClosureDto) {
+  async evaluateCompletion(
+    @Body() dto: EvaluateClosureDto,
+    @CurrentUser() principal: { sub: string; role: UserRole },
+  ) {
+    await this.projectAccess.assertCanAccessProject(
+      { userId: principal.sub, role: principal.role },
+      dto.projectId,
+    );
     return this.service.evaluateCompletion(dto);
   }
 
@@ -82,7 +88,14 @@ Falla si las 7 evidencias no están aprobadas o si el tramo no es el actual del 
     status: 400,
     description: 'El tramo no puede cerrarse porque faltan evidencias aprobadas.',
   })
-  closeTramo(@Body() dto: CloseTramoDto) {
+  async closeTramo(
+    @Body() dto: CloseTramoDto,
+    @CurrentUser() principal: { sub: string; role: UserRole },
+  ) {
+    await this.projectAccess.assertCanManageProject(
+      { userId: principal.sub, role: principal.role },
+      dto.projectId,
+    );
     return this.service.closeTramo(dto);
   }
 }

@@ -9,11 +9,7 @@ const daysAgo = (num: number) => {
   return dia;
 };
 
-export async function seedProjectPacs(
-  dataSource: DataSource,
-  projects: Project[],
-  pacs: Pac[],
-) {
+export async function seedProjectPacs(dataSource: DataSource, projects: Project[], pacs: Pac[]) {
   const projectPacRepo = dataSource.getRepository(ProjectPac);
 
   const flujoClave = projects.find((p) => p.projectName === 'FlujoClave');
@@ -105,14 +101,16 @@ export async function seedProjectPacs(
   // ── T3: PAC 7 → crear como in_progress (pendiente) ───────────────────────
   const pac37 = pacsT3[6]; // PAC_3_7_1
   await projectPacRepo.save({
-      projectId: flujoClave.id,
-      pacId: pac37.id,
-      status: ProjectPacStatus.IN_PROGRESS,
-      progress: 20,
-      startedAt: daysAgo(5),
-      completedAt: undefined,
+    projectId: flujoClave.id,
+    pacId: pac37.id,
+    status: ProjectPacStatus.IN_PROGRESS,
+    progress: 20,
+    startedAt: daysAgo(5),
+    completedAt: undefined,
   } as unknown as ProjectPac);
   createdCount++;
 
-  console.log(`✅ ProjectPacs FlujoClave — creados: ${createdCount}, actualizados: ${updatedCount}`);
+  console.log(
+    `✅ ProjectPacs FlujoClave — creados: ${createdCount}, actualizados: ${updatedCount}`,
+  );
 }

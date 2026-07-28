@@ -1,10 +1,23 @@
 import {
-  Controller, Get, Post, Patch, Delete,
-  Param, Body, UseGuards, ParseUUIDPipe, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
-  ApiTags, ApiOperation, ApiResponse, ApiParam,
-  ApiBearerAuth, ApiBody,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { EvidenceService } from './evidence.service';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
@@ -50,10 +63,15 @@ export class EvidenceController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Crear una evidencia',
-    description: 'Crea el registro de evidencia en estado `draft`. Para evidencias de tipo FILE/IMAGE/VIDEO, usar luego `request-upload-signature` y `confirm-upload`. Para TEXT o LINK, se puede pasar `canonicalUri` directamente.',
+    description:
+      'Crea el registro de evidencia en estado `draft`. Para evidencias de tipo FILE/IMAGE/VIDEO, usar luego `request-upload-signature` y `confirm-upload`. Para TEXT o LINK, se puede pasar `canonicalUri` directamente.',
   })
   @ApiBody({ type: CreateEvidenceDto })
-  @ApiResponse({ status: 201, description: 'Evidencia creada en estado `draft`.', schema: { example: EXAMPLE_EVIDENCE } })
+  @ApiResponse({
+    status: 201,
+    description: 'Evidencia creada en estado `draft`.',
+    schema: { example: EXAMPLE_EVIDENCE },
+  })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
   create(@CurrentUser('id') userId: string, @Body() dto: CreateEvidenceDto) {
     return this.service.create(userId, dto);
@@ -101,7 +119,8 @@ export class EvidenceController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Paso 2 — Confirmar que el archivo fue subido a Cloudinary',
-    description: 'El frontend avisa que el upload a Cloudinary completó. El backend verifica, registra la URL en la evidencia y crea una `EvidenceVersion`.',
+    description:
+      'El frontend avisa que el upload a Cloudinary completó. El backend verifica, registra la URL en la evidencia y crea una `EvidenceVersion`.',
   })
   @ApiBody({ type: ConfirmUploadDto })
   @ApiResponse({
@@ -125,78 +144,137 @@ export class EvidenceController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Enviar evidencia a revisión',
-    description: 'Mueve la evidencia de `draft` a `submitted`. Después de esto ya no se puede editar hasta recibir el resultado de la evaluación.',
+    description:
+      'Mueve la evidencia de `draft` a `submitted`. Después de esto ya no se puede editar hasta recibir el resultado de la evaluación.',
   })
   @ApiParam({ name: 'id', description: 'UUID de la evidencia a enviar', example: 'ev-uuid-0001' })
   @ApiResponse({
     status: 200,
     description: 'Evidencia enviada a revisión. Estado resultante: `submitted`.',
-    schema: { example: { ...EXAMPLE_EVIDENCE, status: 'submitted', submittedAt: '2024-04-03T14:30:00.000Z' } },
+    schema: {
+      example: {
+        ...EXAMPLE_EVIDENCE,
+        status: 'submitted',
+        submittedAt: '2024-04-03T14:30:00.000Z',
+      },
+    },
   })
   @ApiResponse({ status: 400, description: 'La evidencia no está en estado `draft`.' })
   @ApiResponse({ status: 403, description: 'No sos el autor de esta evidencia.' })
-  submit(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('id') userId: string,
-  ) {
+  submit(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.service.submit(id, userId);
   }
 
   // ─── GET /evidence/project/:projectId ────────────────────────────────────
 
   @Get('project/:projectId')
-  @ApiOperation({ summary: 'Listar evidencias de un proyecto', description: 'Devuelve todas las evidencias asociadas al proyecto.' })
+  @ApiOperation({
+    summary: 'Listar evidencias de un proyecto',
+    description: 'Devuelve todas las evidencias asociadas al proyecto.',
+  })
   @ApiParam({ name: 'projectId', description: 'UUID del proyecto', example: 'proj-uuid-0001' })
-  @ApiResponse({ status: 200, description: 'Lista de evidencias del proyecto.', schema: { example: [EXAMPLE_EVIDENCE] } })
-  findAllByProject(@Param('projectId', ParseUUIDPipe) projectId: string) {
-    return this.service.findAllByProject(projectId);
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de evidencias del proyecto.',
+    schema: { example: [EXAMPLE_EVIDENCE] },
+  })
+  findAllByProject(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    return this.service.findAllByProject(projectId, { userId, role });
   }
 
   // ─── GET /evidence/micro-action-instance/:instanceId ─────────────────────
 
   @Get('micro-action-instance/:instanceId')
-  @ApiOperation({ summary: 'Listar evidencias de una instancia de microacción', description: 'Devuelve todas las evidencias vinculadas a una microacción instanciada específica.' })
-  @ApiParam({ name: 'instanceId', description: 'UUID de la instancia de microacción', example: 'mai-uuid-0001' })
-  @ApiResponse({ status: 200, description: 'Lista de evidencias de la instancia.', schema: { example: [EXAMPLE_EVIDENCE] } })
-  findAllByMicroActionInstance(@Param('instanceId', ParseUUIDPipe) instanceId: string) {
-    return this.service.findAllByMicroActionInstance(instanceId);
+  @ApiOperation({
+    summary: 'Listar evidencias de una instancia de microacción',
+    description:
+      'Devuelve todas las evidencias vinculadas a una microacción instanciada específica.',
+  })
+  @ApiParam({
+    name: 'instanceId',
+    description: 'UUID de la instancia de microacción',
+    example: 'mai-uuid-0001',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de evidencias de la instancia.',
+    schema: { example: [EXAMPLE_EVIDENCE] },
+  })
+  findAllByMicroActionInstance(
+    @Param('instanceId', ParseUUIDPipe) instanceId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    return this.service.findAllByMicroActionInstance(instanceId, { userId, role });
   }
 
   // ─── GET /evidence/:id/versions ──────────────────────────────────────────
 
   @Get(':id/versions')
-  @ApiOperation({ summary: 'Historial de versiones de una evidencia', description: 'Devuelve todas las versiones de archivo de una evidencia, ordenadas cronológicamente.' })
+  @ApiOperation({
+    summary: 'Historial de versiones de una evidencia',
+    description:
+      'Devuelve todas las versiones de archivo de una evidencia, ordenadas cronológicamente.',
+  })
   @ApiParam({ name: 'id', description: 'UUID de la evidencia', example: 'ev-uuid-0001' })
   @ApiResponse({
     status: 200,
     description: 'Versiones de la evidencia.',
     schema: {
-      example: [{
-        id: 'ev-ver-uuid-001', versionNumber: 1,
-        storageUri: 'https://res.cloudinary.com/colibri/raw/upload/v1/evidences/archivo.pdf',
-        isMaterialChange: false, changeSummary: null, createdAt: '2024-04-01T10:00:00.000Z',
-      }],
+      example: [
+        {
+          id: 'ev-ver-uuid-001',
+          versionNumber: 1,
+          storageUri: 'https://res.cloudinary.com/colibri/raw/upload/v1/evidences/archivo.pdf',
+          isMaterialChange: false,
+          changeSummary: null,
+          createdAt: '2024-04-01T10:00:00.000Z',
+        },
+      ],
     },
   })
-  findVersions(@Param('id', ParseUUIDPipe) id: string) {
-    return this.service.findVersions(id);
+  findVersions(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    return this.service.findVersions(id, { userId, role });
   }
 
   // ─── GET /evidence/:id ───────────────────────────────────────────────────
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener una evidencia por ID', description: 'Devuelve el detalle completo de la evidencia con sus versiones y evaluaciones.' })
+  @ApiOperation({
+    summary: 'Obtener una evidencia por ID',
+    description: 'Devuelve el detalle completo de la evidencia con sus versiones y evaluaciones.',
+  })
   @ApiParam({ name: 'id', description: 'UUID de la evidencia', example: 'ev-uuid-0001' })
-  @ApiResponse({ status: 200, description: 'Detalle de la evidencia.', schema: { example: EXAMPLE_EVIDENCE } })
+  @ApiResponse({
+    status: 200,
+    description: 'Detalle de la evidencia.',
+    schema: { example: EXAMPLE_EVIDENCE },
+  })
   @ApiResponse({ status: 404, description: 'Evidencia no encontrada.' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.service.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    return this.service.findOneAuthorized(id, { userId, role });
   }
 
   // ─── PATCH /evidence/:id ─────────────────────────────────────────────────
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar una evidencia', description: 'Permite actualizar descripción, privacidad y señal pública. Solo disponible cuando la evidencia está en `draft`.' })
+  @ApiOperation({
+    summary: 'Actualizar una evidencia',
+    description:
+      'Permite actualizar descripción, privacidad y señal pública. Solo disponible cuando la evidencia está en `draft`.',
+  })
   @ApiParam({ name: 'id', description: 'UUID de la evidencia', example: 'ev-uuid-0001' })
   @ApiBody({ type: UpdateEvidenceDto })
   @ApiResponse({ status: 200, description: 'Evidencia actualizada.' })
@@ -213,14 +291,38 @@ export class EvidenceController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar una evidencia', description: 'Solo disponible en estado `draft`. Una vez enviada no se puede eliminar.' })
+  @ApiOperation({
+    summary: 'Eliminar una evidencia',
+    description: 'Solo disponible en estado `draft`. Una vez enviada no se puede eliminar.',
+  })
   @ApiParam({ name: 'id', description: 'UUID de la evidencia', example: 'ev-uuid-0001' })
   @ApiResponse({ status: 204, description: 'Evidencia eliminada.' })
-  @ApiResponse({ status: 400, description: 'No se puede eliminar una evidencia en estado no-draft.' })
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('id') userId: string,
-  ) {
+  @ApiResponse({
+    status: 400,
+    description: 'No se puede eliminar una evidencia en estado no-draft.',
+  })
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.service.remove(id, userId);
+  }
+
+  // ─── POST /evidence/:id/retry-deletion (solo ADMIN) ───────────────────────
+  // Uso operativo/QA: fuerza el reintento de borrado de una evidencia que
+  // quedó en DELETION_PENDING (ver QA-DATA-005). Útil para retest de fallos
+  // de Cloudinary, timeouts, etc.
+
+  @Post(':id/retry-deletion')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reintentar borrado pendiente (ADMIN)',
+    description:
+      'Fuerza el procesamiento inmediato de una entrada del outbox de borrado para una evidencia en estado deletion_pending.',
+  })
+  @ApiParam({ name: 'id', description: 'UUID de la evidencia', example: 'ev-uuid-0001' })
+  @ApiResponse({ status: 200, description: 'Estado actualizado del intento de borrado.' })
+  @ApiResponse({ status: 404, description: 'No hay un borrado pendiente para esa evidencia.' })
+  retryDeletion(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.retryDeletion(id);
   }
 }

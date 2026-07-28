@@ -19,19 +19,17 @@ export class LearningResourceRepository {
     return await this.repo.save(entity);
   }
 
-  async findAll(
-    query: QueryLearningResourceDto,
-  ): Promise<PaginatedResult<LearningResource>> {
+  async findAll(query: QueryLearningResourceDto): Promise<PaginatedResult<LearningResource>> {
     const { page = 1, limit = 20, ...filters } = query;
     const skip = (page - 1) * limit;
 
     const where: FindOptionsWhere<LearningResource> = {};
 
     if (filters.pacId !== undefined) where.pacId = filters.pacId;
-    if (filters.resourceType !== undefined)where.resourceType = filters.resourceType;
+    if (filters.resourceType !== undefined) where.resourceType = filters.resourceType;
     if (filters.isActive !== undefined) where.isActive = filters.isActive;
-    if (filters.isRequired !== undefined)where.isRequired = filters.isRequired;
-   
+    if (filters.isRequired !== undefined) where.isRequired = filters.isRequired;
+
     if (filters.microActionDefinitionId !== undefined) {
       where.microActionDefinitionId = filters.microActionDefinitionId;
     }
@@ -68,31 +66,25 @@ export class LearningResourceRepository {
     });
   }
 
-  async findByMicroActionId(
-    microActionDefinitionId: string,
-  ): Promise<LearningResource[]> {
+  async findByMicroActionId(microActionDefinitionId: string): Promise<LearningResource[]> {
     return await this.repo.find({
       where: { microActionDefinitionId },
       order: { sortOrder: 'ASC' },
     });
   }
 
-  async update(
-    id: string,
-    dto: IUpdateLearningResource,
-  ) {
+  async update(id: string, dto: IUpdateLearningResource) {
     const updatePayload: Partial<LearningResource> = {};
 
     if (dto.pacId !== undefined) updatePayload.pacId = dto.pacId;
     if (dto.title !== undefined) updatePayload.title = dto.title;
-    if (dto.resourceType !== undefined)updatePayload.resourceType = dto.resourceType;
+    if (dto.resourceType !== undefined) updatePayload.resourceType = dto.resourceType;
     if (dto.url !== undefined) updatePayload.url = dto.url;
-    if (dto.description !== undefined)updatePayload.description = dto.description;
+    if (dto.description !== undefined) updatePayload.description = dto.description;
     if (dto.sortOrder !== undefined) updatePayload.sortOrder = dto.sortOrder;
-    if (dto.isRequired !== undefined)updatePayload.isRequired = dto.isRequired;
+    if (dto.isRequired !== undefined) updatePayload.isRequired = dto.isRequired;
     if ('microActionDefinitionId' in dto) {
-      updatePayload.microActionDefinitionId =
-        dto.microActionDefinitionId ?? undefined;
+      updatePayload.microActionDefinitionId = dto.microActionDefinitionId ?? undefined;
     }
 
     await this.repo.update(id, updatePayload);
@@ -108,5 +100,4 @@ export class LearningResourceRepository {
     const result = await this.repo.delete(id);
     return (result.affected ?? 0) > 0;
   }
-
 }

@@ -4,7 +4,7 @@ export enum UncertaintyType {
   OPERATIONAL = 'Incertidumbre técnica y operativa',
   SCALABILITY = 'Incertidumbre de escalabilidad',
   ORGANIZATIONAL = 'Incertidumbre organizacional y estratégica',
-  MACRO_SYSTEMIC = 'Incertidumbre macro y sistémica'
+  MACRO_SYSTEMIC = 'Incertidumbre macro y sistémica',
 }
 
 export enum RiskType {

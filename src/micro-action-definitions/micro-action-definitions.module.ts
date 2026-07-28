@@ -8,10 +8,7 @@ import { PacsModule } from '../pacs/pacs.module';
 import { Rubric } from '../evaluation/entities/rubric.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([MicroActionDefinition, Rubric]),
-    PacsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([MicroActionDefinition, Rubric]), PacsModule],
   controllers: [MicroActionDefinitionsController],
   providers: [MicroActionDefinitionsService],
   exports: [MicroActionDefinitionsService],

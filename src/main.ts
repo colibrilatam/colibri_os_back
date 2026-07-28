@@ -5,7 +5,20 @@ import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
-  app.enableCors({ origin: process.env.FRONTEND_URL })
+  const allowedOrigins = parseAllowedOrigins(process.env.FRONTEND_URL);
+  app.enableCors({
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error('Origen no autorizado por CORS'));
+    },
+    credentials: true,
+  });
 
   // Prefijo global
   app.setGlobalPrefix('api/v1');
@@ -19,9 +32,7 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  app.useGlobalInterceptors(
-    new ClassSerializerInterceptor(app.get(Reflector)),
-  );
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   // Swagger
   if (process.env.SWAGGER_ENABLED === 'true') {
@@ -43,4 +54,18 @@ async function bootstrap(): Promise<void> {
   console.log(`🚀 Servidor corriendo en el puerto: ${port}`);
 }
 
-bootstrap();
+void bootstrap();
+
+function parseAllowedOrigins(value: string | undefined): string[] {
+  if (!value) {
+    throw new Error('FRONTEND_URL es obligatoria y debe contener al menos un origen permitido');
+  }
+
+  return value.split(',').map((origin) => {
+    try {
+      return new URL(origin.trim()).origin;
+    } catch {
+      throw new Error(`Origen inválido en FRONTEND_URL: ${origin}`);
+    }
+  });
+}

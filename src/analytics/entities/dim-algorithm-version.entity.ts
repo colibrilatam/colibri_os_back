@@ -1,10 +1,4 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  OneToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { IcAlgorithmVersion } from '../../reputation/entities/ic-algorithm-version.entity';
 
 @Entity('dim_algorithm_versions')

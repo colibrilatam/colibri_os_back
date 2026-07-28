@@ -4,7 +4,7 @@ import { UpdateAnalyticsDto } from './dto/update-analytics.dto';
 
 @Injectable()
 export class AnalyticsService {
-  create(createAnalyticsDto: CreateAnalyticsDto) {
+  create(_createAnalyticsDto: CreateAnalyticsDto) {
     return 'This action adds a new analytics';
   }
 
@@ -16,7 +16,7 @@ export class AnalyticsService {
     return `This action returns a #${id} analytics`;
   }
 
-  update(id: number, updateAnalyticsDto: UpdateAnalyticsDto) {
+  update(id: number, _updateAnalyticsDto: UpdateAnalyticsDto) {
     return `This action updates a #${id} analytics`;
   }
 

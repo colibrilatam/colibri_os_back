@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,6 +24,10 @@ import {
 import { MicroActionDefinitionsService } from './micro-action-definitions.service';
 import { CreateMicroActionDefinitionDto } from './dto/create-micro-action-definition.dto';
 import { UpdateMicroActionDefinitionDto } from './dto/update-micro-action-definition.dto';
+import { JwtAuthGuard } from '../auth/guards/auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 const EXAMPLE_MAD = {
   id: 'd1e2f3a4-aaaa-4bbb-8ccc-000011112222',
@@ -55,13 +60,13 @@ const EXAMPLE_MAD = {
 @ApiBearerAuth()
 @Controller('micro-action-definitions')
 export class MicroActionDefinitionsController {
-  constructor(
-    private readonly madService: MicroActionDefinitionsService,
-  ) {}
+  constructor(private readonly madService: MicroActionDefinitionsService) {}
 
   // ─── POST /micro-action-definitions ────────────────────────────────────────
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Crear una definición de microacción',
     description:
@@ -150,6 +155,8 @@ export class MicroActionDefinitionsController {
   // ─── PATCH /micro-action-definitions/:id ───────────────────────────────────
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Actualizar una microacción',
     description:
@@ -169,16 +176,15 @@ export class MicroActionDefinitionsController {
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
   @ApiResponse({ status: 404, description: 'Microacción, PAC o Rúbrica no encontrada.' })
   @ApiResponse({ status: 409, description: 'El nuevo código ya está en uso.' })
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateMicroActionDefinitionDto,
-  ) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateMicroActionDefinitionDto) {
     return this.madService.update(id, dto);
   }
 
   // ─── DELETE /micro-action-definitions/:id ──────────────────────────────────
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Eliminar una microacción',

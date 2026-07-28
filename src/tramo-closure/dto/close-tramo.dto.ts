@@ -7,5 +7,7 @@ export class CloseTramoDto {
   @ApiProperty() @IsUUID() projectId: string;
   @ApiProperty() @IsUUID() tramoId: string;
   @ApiPropertyOptional({ description: 'Versión visual nueva del NFT, ej: v2' })
-  @IsString() @IsOptional() newVisualVersion?: string;
+  @IsString()
+  @IsOptional()
+  newVisualVersion?: string;
 }

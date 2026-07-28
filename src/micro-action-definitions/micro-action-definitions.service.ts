@@ -1,9 +1,5 @@
 // src/micro-action-definitions/micro-action-definitions.service.ts
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MicroActionDefinition } from './entities/micro-action-definition.entity';
@@ -42,9 +38,7 @@ export class MicroActionDefinitionsService {
       where: { code: dto.code },
     });
     if (existing) {
-      throw new ConflictException(
-        `Ya existe una microacción con el código "${dto.code}"`,
-      );
+      throw new ConflictException(`Ya existe una microacción con el código "${dto.code}"`);
     }
 
     const mad = this.madRepository.create(dto);
@@ -73,43 +67,36 @@ export class MicroActionDefinitionsService {
       relations: ['pac', 'pac.category', 'rubric'],
     });
     if (!mad) {
-      throw new NotFoundException(
-        `MicroActionDefinition con id "${id}" no encontrada`,
-      );
+      throw new NotFoundException(`MicroActionDefinition con id "${id}" no encontrada`);
     }
     return mad;
   }
 
-  async update(
-  id: string,
-  dto: UpdateMicroActionDefinitionDto,
-): Promise<MicroActionDefinition> {
-  const mad = await this.findOne(id);
+  async update(id: string, dto: UpdateMicroActionDefinitionDto): Promise<MicroActionDefinition> {
+    const mad = await this.findOne(id);
 
-  const { pacId, rubricId, code } = dto as Partial<CreateMicroActionDefinitionDto>;
+    const { pacId, rubricId, code } = dto as Partial<CreateMicroActionDefinitionDto>;
 
-  if (pacId && pacId !== mad.pacId) {
-    await this.pacsService.findOne(pacId);
-  }
-
-  if (rubricId && rubricId !== mad.rubricId) {
-    await this.validateRubric(rubricId);
-  }
-
-  if (code && code !== mad.code) {
-    const existing = await this.madRepository.findOne({
-      where: { code },
-    });
-    if (existing) {
-      throw new ConflictException(
-        `Ya existe una microacción con el código "${code}"`,
-      );
+    if (pacId && pacId !== mad.pacId) {
+      await this.pacsService.findOne(pacId);
     }
-  }
 
-  Object.assign(mad, dto);
-  return this.madRepository.save(mad);
-}
+    if (rubricId && rubricId !== mad.rubricId) {
+      await this.validateRubric(rubricId);
+    }
+
+    if (code && code !== mad.code) {
+      const existing = await this.madRepository.findOne({
+        where: { code },
+      });
+      if (existing) {
+        throw new ConflictException(`Ya existe una microacción con el código "${code}"`);
+      }
+    }
+
+    Object.assign(mad, dto);
+    return this.madRepository.save(mad);
+  }
 
   async remove(id: string): Promise<void> {
     const mad = await this.findOne(id);

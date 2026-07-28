@@ -1,5 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
-import { ApiOperation, ApiTags, ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { ApiOperation, ApiTags, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -7,11 +18,17 @@ import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Express } from 'express';
 import { ProjectPacStatus } from './entities/project.pac.entity';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { UserRole } from '../users/entities/user.entity';
+import { ProjectAccessService } from './project-access.service';
 
 @ApiTags('Projects')
 @Controller('projects')
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) { }
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly projectAccessService: ProjectAccessService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -19,11 +36,10 @@ export class ProjectsController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image'))
   create(
-    @Req() req: any,
+    @CurrentUser('id') ownerUserId: string,
     @Body() dto: CreateProjectDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    const ownerUserId = req.user.sub;
     return this.projectsService.create(ownerUserId, dto, file);
   }
 
@@ -43,7 +59,13 @@ export class ProjectsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar un proyecto' })
-  update(@Param('id') id: string, @Body() dto: UpdateProjectDto) {
+  async update(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+    @Body() dto: UpdateProjectDto,
+  ) {
+    await this.projectAccessService.assertCanManageProject({ userId, role }, id);
     return this.projectsService.update(id, dto);
   }
 
@@ -51,7 +73,12 @@ export class ProjectsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Eliminar un proyecto' })
-  remove(@Param('id') id: string) {
+  async remove(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    await this.projectAccessService.assertCanManageProject({ userId, role }, id);
     return this.projectsService.remove(id);
   }
 
@@ -61,8 +88,12 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Actualizar el estado de un PAC de un proyecto' })
   async updateProjectPac(
     @Param('id') projectPacId: string,
-    @Body('status') status: ProjectPacStatus
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+    @Body('status') status: ProjectPacStatus,
   ) {
+    const projectPac = await this.projectsService.findProjectPac(projectPacId);
+    await this.projectAccessService.assertCanManageProject({ userId, role }, projectPac.projectId);
     return await this.projectsService.updateProjectPac(projectPacId, status);
   }
 
@@ -73,7 +104,10 @@ export class ProjectsController {
   async createProjectPac(
     @Param('projectId') projectId: string,
     @Param('pacId') pacId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
   ) {
+    await this.projectAccessService.assertCanManageProject({ userId, role }, projectId);
     return await this.projectsService.createProjectPac(projectId, pacId);
   }
 }

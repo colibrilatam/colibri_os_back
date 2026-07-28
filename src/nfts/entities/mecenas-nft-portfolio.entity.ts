@@ -28,7 +28,7 @@ export class MecenasNftPortfolio {
   @Column({ name: 'nft_project_id' })
   nftProjectId: string;
 
-  @Column({ name: 'target_project_id', nullable: true })
+  @Column({ name: 'target_project_id', type: 'varchar', nullable: true })
   targetProjectId: string | null;
 
   @Column({

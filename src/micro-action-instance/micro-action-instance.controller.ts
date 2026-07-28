@@ -77,16 +77,16 @@ export class MicroActionInstanceController {
   @ApiResponse({ status: 401, description: 'No autenticado.' })
   @ApiResponse({ status: 403, description: 'Sin permisos.' })
   create(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() principal: { sub: string; role: UserRole },
     @Body() dto: CreateMicroActionInstanceDto,
   ) {
-    return this.service.create(userId, dto);
+    return this.service.create({ userId: principal.sub, role: principal.role }, dto);
   }
 
   // ─── GET /micro-action-instances/project/:projectId ──────────────────────
 
   @Get('project/:projectId')
-  //@Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Listar todas las instancias de un proyecto',
     description: 'Devuelve todas las microacciones instanciadas para el proyecto indicado.',
@@ -128,8 +128,12 @@ export class MicroActionInstanceController {
   @ApiResponse({ status: 404, description: 'Proyecto no encontrado.' })
   findAllByProject(
     @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUser() principal: { sub: string; role: UserRole },
   ) {
-    return this.service.findAllByProject(projectId);
+    return this.service.findAllByProject(projectId, {
+      userId: principal.sub,
+      role: principal.role,
+    });
   }
 
   // ─── GET /micro-action-instances/me ──────────────────────────────────────
@@ -165,7 +169,8 @@ export class MicroActionInstanceController {
   @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Obtener una instancia por ID',
-    description: 'Devuelve el detalle completo de una instancia, incluyendo evidencias y relaciones.',
+    description:
+      'Devuelve el detalle completo de una instancia, incluyendo evidencias y relaciones.',
   })
   @ApiParam({
     name: 'id',
@@ -201,8 +206,11 @@ export class MicroActionInstanceController {
     },
   })
   @ApiResponse({ status: 404, description: 'Instancia no encontrada.' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.service.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() principal: { sub: string; role: UserRole },
+  ) {
+    return this.service.findOneAuthorized(id, { userId: principal.sub, role: principal.role });
   }
 
   // ─── PATCH /micro-action-instances/:id ───────────────────────────────────
@@ -236,10 +244,10 @@ export class MicroActionInstanceController {
   @ApiResponse({ status: 404, description: 'Instancia no encontrada.' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() principal: { sub: string; role: UserRole },
     @Body() dto: UpdateMicroActionInstanceDto,
   ) {
-    return this.service.update(id, userId, dto);
+    return this.service.update(id, { userId: principal.sub, role: principal.role }, dto);
   }
 
   // ─── POST /micro-action-instances/:id/submit ─────────────────────────────
@@ -272,9 +280,9 @@ export class MicroActionInstanceController {
   @ApiResponse({ status: 403, description: 'No sos el dueño de esta instancia.' })
   submit(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() principal: { sub: string; role: UserRole },
   ) {
-    return this.service.submit(id, userId);
+    return this.service.submit(id, { userId: principal.sub, role: principal.role });
   }
 
   // ─── POST /micro-action-instances/:id/reopen ─────────────────────────────
@@ -308,9 +316,9 @@ export class MicroActionInstanceController {
   @ApiResponse({ status: 403, description: 'No sos el dueño de esta instancia.' })
   reopen(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() principal: { sub: string; role: UserRole },
   ) {
-    return this.service.reopen(id, userId);
+    return this.service.reopen(id, { userId: principal.sub, role: principal.role });
   }
 
   // ─── DELETE /micro-action-instances/:id ──────────────────────────────────
@@ -336,8 +344,8 @@ export class MicroActionInstanceController {
   @ApiResponse({ status: 403, description: 'No sos el dueño de esta instancia.' })
   remove(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() principal: { sub: string; role: UserRole },
   ) {
-    return this.service.remove(id, userId);
+    return this.service.remove(id, { userId: principal.sub, role: principal.role });
   }
 }

@@ -7,14 +7,17 @@ import { TramosModule } from '../tramos/tramos.module';
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
 import { Pac } from 'src/pacs/entities/pac.entity';
 import { ProjectPac } from './entities/project.pac.entity';
+import { ProjectMember } from '../project-members/entities/project-member.entity';
+import { ProjectAccessService } from './project-access.service';
 
 @Module({
-  imports: [ CloudinaryModule,
-    TypeOrmModule.forFeature([Project, Pac, ProjectPac]),
-    TramosModule,   // expone TramosService para inyectarlo en ProjectsService
+  imports: [
+    CloudinaryModule,
+    TypeOrmModule.forFeature([Project, Pac, ProjectPac, ProjectMember]),
+    TramosModule, // expone TramosService para inyectarlo en ProjectsService
   ],
   controllers: [ProjectsController],
-  providers: [ProjectsService],
-  exports: [ProjectsService],
+  providers: [ProjectsService, ProjectAccessService],
+  exports: [ProjectsService, ProjectAccessService],
 })
 export class ProjectsModule {}

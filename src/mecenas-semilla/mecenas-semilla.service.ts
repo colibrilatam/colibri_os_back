@@ -21,22 +21,23 @@ export class MecenasSemillaService {
     private readonly nftActorService: NftActorService,
     private readonly nftProjectService: NftProjectService,
     private readonly portfolioService: MecenasNftPortfolioService,
-  ) { }
+  ) {}
 
-  async activateMecenas(userId: string) {
+  async activateMecenas(userId: string, changedByUserId: string) {
     const user = await this.usersService.findOneById(userId);
     if (user.role === UserRole.MECENAS_SEMILLA) {
       throw new ConflictException('El usuario ya está activado como Mecenas Aliado Semilla');
     }
 
-    const existingNftActor = await this.nftActorService
-      .findByUserId(userId)
-      .catch(() => null);
+    const existingNftActor = await this.nftActorService.findByUserId(userId).catch(() => null);
 
     if (existingNftActor) {
       throw new ConflictException('El usuario ya tiene un NFT de acreditación emitido');
     }
-    await this.mecenasRepository.updateUserRole(userId);
+    await this.usersService.changeRole(userId, changedByUserId, {
+      role: UserRole.MECENAS_SEMILLA,
+      reason: 'ActivaciÃ³n de Mecenas Aliado Semilla',
+    });
 
     // Emitir NFT intransferible de acreditación (simulado en MVP)
     await this.nftActorService.createNftActor({
@@ -51,25 +52,24 @@ export class MecenasSemillaService {
   }
 
   async getDashboard(mecenasUserId: string) {
-  await this.usersService.findOneById(mecenasUserId);
+    await this.usersService.findOneById(mecenasUserId);
 
-  const [summary, allPortfolios] = await Promise.all([
-    this.mecenasRepository.getPortfolioSummary(mecenasUserId),
-    this.portfolioService.findByMecenasId(mecenasUserId).catch((): MecenasNftPortfolio[] => []),  // ← tipado explícito
-  ]);
+    const [summary, allPortfolios] = await Promise.all([
+      this.mecenasRepository.getPortfolioSummary(mecenasUserId),
+      this.portfolioService.findByMecenasId(mecenasUserId).catch((): MecenasNftPortfolio[] => []), // ← tipado explícito
+    ]);
 
-  const sponsoredProjects = allPortfolios
-    .filter((p) => p.targetProjectId !== null)
-    .map((p) => p.targetProject);
+    const sponsoredProjects = allPortfolios
+      .filter((p) => p.targetProjectId !== null)
+      .map((p) => p.targetProject);
 
-  return {
-    totalNfts: summary.total,
-    assignedNfts: summary.assigned,
-    availableNfts: summary.available,
-    sponsoredProjects,
-  };
-}
-
+    return {
+      totalNfts: summary.total,
+      assignedNfts: summary.assigned,
+      availableNfts: summary.available,
+      sponsoredProjects,
+    };
+  }
 
   async buyNfts(mecenasUserId: string, quantity: number) {
     if (quantity < 1) {
@@ -101,11 +101,10 @@ export class MecenasSemillaService {
 
   // ─── PASO 4: Exploración de proyectos ───────────────────────────────────────
 
-  
   async getProjects(mecenasUserId: string) {
     const [eligible, sponsored] = await Promise.all([
       this.mecenasRepository.findEligibleProjects(),
-      this.portfolioService.findByMecenasId(mecenasUserId).catch((): MecenasNftPortfolio[] => []),  // ← tipado explícito
+      this.portfolioService.findByMecenasId(mecenasUserId).catch((): MecenasNftPortfolio[] => []), // ← tipado explícito
     ]);
 
     return {
@@ -117,9 +116,7 @@ export class MecenasSemillaService {
   }
 
   async assignNft(mecenasUserId: string, portfolioId: string, projectId: string) {
-    const portfolio = await this.portfolioService
-      .findById(portfolioId)
-      .catch(() => null);
+    const portfolio = await this.portfolioService.findById(portfolioId).catch(() => null);
 
     if (!portfolio) throw new NotFoundException('NFT de portafolio no encontrado');
     if (portfolio.mecenasUserId !== mecenasUserId) {
@@ -129,9 +126,7 @@ export class MecenasSemillaService {
       throw new ConflictException('Este NFT ya fue asignado a un proyecto');
     }
 
-    const nftProject = await this.nftProjectService
-      .findByProject(projectId)
-      .catch(() => null);
+    const nftProject = await this.nftProjectService.findByProject(projectId).catch(() => null);
 
     if (!nftProject) {
       throw new NotFoundException('El proyecto no tiene NFT Colibrí asociado');

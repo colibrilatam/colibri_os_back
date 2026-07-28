@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,6 +27,10 @@ import {
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { JwtAuthGuard } from '../auth/guards/auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Categories')
 @Controller('categories')
@@ -33,6 +38,8 @@ export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Crear una nueva categoría',
     description:
@@ -80,8 +87,7 @@ export class CategoriesController {
   @Get(':id')
   @ApiOperation({
     summary: 'Obtener una categoría por ID',
-    description:
-      'Retorna una categoría específica con las relaciones `tramo` y `pacs` incluidas.',
+    description: 'Retorna una categoría específica con las relaciones `tramo` y `pacs` incluidas.',
   })
   @ApiParam({
     name: 'id',
@@ -100,6 +106,8 @@ export class CategoriesController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Actualizar una categoría',
     description:
@@ -115,19 +123,19 @@ export class CategoriesController {
     description: 'Categoría actualizada exitosamente.',
   })
   @ApiNotFoundResponse({
-    description: 'No existe una categoría con el `id` proporcionado, o el nuevo `tramoId` no existe.',
+    description:
+      'No existe una categoría con el `id` proporcionado, o el nuevo `tramoId` no existe.',
   })
   @ApiConflictResponse({
     description: 'El nuevo `code` ya está en uso por otra categoría.',
   })
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateCategoryDto,
-  ) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCategoryDto) {
     return this.categoriesService.update(id, dto);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Eliminar una categoría',

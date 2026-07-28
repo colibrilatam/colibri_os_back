@@ -13,10 +13,7 @@ import { Evaluation } from './entities/evaluation.entity';
 import { EvaluationAiResult } from './entities/evaluation-ai-result.entity';
 import { EvaluationHumanReview } from './entities/evaluation-human-review.entity';
 import { Rubric } from './entities/rubric.entity';
-import {
-  EvaluationType,
-  EvaluationResult,
-} from './entities/evaluation.enums';
+import { EvaluationType, EvaluationResult } from './entities/evaluation.enums';
 import { Evidence, EvidenceStatus, ValidationStatus } from '../evidence/entities/evidence.entity';
 import { CreateEvaluationDto } from './dto/create-evaluation.dto';
 import { SubmitAiResultDto } from './dto/submit-ai-result.dto';
@@ -26,6 +23,7 @@ import { CreateRubricDto } from './dto/create-rubric.dto';
 import { UpdateRubricDto } from './dto/update-rubric.dto';
 import { UserRole } from '../users/entities/user.entity';
 import { DigitalCredentialsService } from '../digital-credentials/digital-credentials.service';
+import { ProjectAccessService, ProjectPrincipal } from '../projects/project-access.service';
 
 @Injectable()
 export class EvaluationService {
@@ -49,21 +47,26 @@ export class EvaluationService {
 
     private readonly digitalCredentialsService: DigitalCredentialsService,
 
+    private readonly projectAccessService: ProjectAccessService,
+
     private readonly dataSource: DataSource,
   ) {}
 
   // ─── EVALUACIONES ─────────────────────────────────────────────────────────────
 
-  async createEvaluation(dto: CreateEvaluationDto): Promise<Evaluation> {
+  async createEvaluation(
+    principal: ProjectPrincipal,
+    dto: CreateEvaluationDto,
+  ): Promise<Evaluation> {
     const evidence = await this.evidenceRepo.findOne({
       where: { id: dto.evidenceId },
     });
 
     if (!evidence) {
-      throw new NotFoundException(
-        `Evidence ${dto.evidenceId} no encontrada`,
-      );
+      throw new NotFoundException(`Evidence ${dto.evidenceId} no encontrada`);
     }
+
+    await this.projectAccessService.assertCanAccessProject(principal, evidence.projectId);
 
     if (evidence.status !== EvidenceStatus.SUBMITTED) {
       throw new BadRequestException(
@@ -76,9 +79,7 @@ export class EvaluationService {
     });
 
     if (!rubric) {
-      throw new NotFoundException(
-        `Rúbrica ${dto.rubricId} no encontrada o inactiva`,
-      );
+      throw new NotFoundException(`Rúbrica ${dto.rubricId} no encontrada o inactiva`);
     }
 
     const existingEval = await this.evaluationRepo.findOne({
@@ -94,7 +95,8 @@ export class EvaluationService {
     const evaluation = this.evaluationRepo.create({
       evidenceId: dto.evidenceId,
       rubricId: dto.rubricId,
-      rubricVersion: dto.rubricVersion,
+      rubricVersion: rubric.version,
+      createdByUserId: principal.userId,
       evaluationType: dto.evaluationType ?? EvaluationType.HYBRID,
       evaluationSourceWeight: dto.evaluationSourceWeight ?? 0.5,
       isFinal: false,
@@ -115,13 +117,14 @@ export class EvaluationService {
     return this.findOneEvaluation(evaluation.id);
   }
 
-  async submitAiResult(dto: SubmitAiResultDto): Promise<EvaluationAiResult> {
+  async submitAiResult(
+    principal: ProjectPrincipal,
+    dto: SubmitAiResultDto,
+  ): Promise<EvaluationAiResult> {
     const evaluation = await this.findOneEvaluation(dto.evaluationId);
 
     if (evaluation.isFinal) {
-      throw new BadRequestException(
-        'No se puede modificar una evaluación finalizada',
-      );
+      throw new BadRequestException('No se puede modificar una evaluación finalizada');
     }
 
     const existing = await this.aiResultRepo.findOne({
@@ -162,7 +165,7 @@ export class EvaluationService {
     const saved = await this.aiResultRepo.save(aiResult);
 
     if (evaluation.evaluationType === EvaluationType.AUTOMATIC) {
-      await this.autoFinalize(evaluation, dto.aiResult, dto.aiScore);
+      await this.autoFinalize(principal, evaluation, dto.aiResult, dto.aiScore);
     }
 
     this.logger.log(
@@ -181,10 +184,13 @@ export class EvaluationService {
 
     const evaluation = await this.findOneEvaluation(dto.evaluationId);
 
+    await this.projectAccessService.assertCanAccessProject(
+      { userId: reviewerUserId, role: reviewerRole },
+      evaluation.evidence.projectId,
+    );
+
     if (evaluation.isFinal) {
-      throw new BadRequestException(
-        'No se puede modificar una evaluación finalizada',
-      );
+      throw new BadRequestException('No se puede modificar una evaluación finalizada');
     }
 
     const existing = await this.humanReviewRepo.findOne({
@@ -227,8 +233,16 @@ export class EvaluationService {
     return saved;
   }
 
-  async finalizeEvaluation(dto: FinalizeEvaluationDto): Promise<Evaluation> {
+  async finalizeEvaluation(
+    principal: ProjectPrincipal,
+    dto: FinalizeEvaluationDto,
+  ): Promise<Evaluation> {
     const evaluation = await this.findOneEvaluation(dto.evaluationId);
+
+    await this.projectAccessService.assertCanAccessProject(
+      principal,
+      evaluation.evidence.projectId,
+    );
 
     if (evaluation.isFinal) {
       throw new BadRequestException('La evaluación ya está finalizada');
@@ -239,38 +253,60 @@ export class EvaluationService {
     });
 
     if (!evidence) {
-      throw new NotFoundException(
-        `Evidence ${evaluation.evidenceId} no encontrada`,
-      );
+      throw new NotFoundException(`Evidence ${evaluation.evidenceId} no encontrada`);
     }
 
-    const { evidenceStatus, validationStatus } = this.mapResultToStatuses(
-      dto.evaluationResult,
-    );
+    const { evidenceStatus, validationStatus } = this.mapResultToStatuses(dto.evaluationResult);
 
     const now = new Date();
 
     await this.dataSource.transaction(async (manager) => {
-      evaluation.evaluationResult = dto.evaluationResult;
-      evaluation.score = dto.score ?? null;
-      evaluation.dimensionScoresJson = dto.dimensionScoresJson ?? null;
-      evaluation.comment = dto.comment ?? null;
-      evaluation.isFinal = true;
-      evaluation.evaluatedAt = now;
-      await manager.save(Evaluation, evaluation);
+      const lockedEvaluation = await manager
+        .getRepository(Evaluation)
+        .createQueryBuilder('evaluation')
+        .setLock('pessimistic_write')
+        .where('evaluation.id = :id', { id: evaluation.id })
+        .getOne();
 
-      evidence.status = evidenceStatus;
-      evidence.validationStatus = validationStatus;
-      evidence.validatedByUserId = null;
-
-      if (evidenceStatus === EvidenceStatus.APPROVED) {
-        evidence.approvedAt = now;
-        evidence.isValidForIc = true;
-      } else if (evidenceStatus === EvidenceStatus.REJECTED) {
-        evidence.rejectedAt = now;
+      if (!lockedEvaluation) {
+        throw new NotFoundException(`Evaluation ${dto.evaluationId} no encontrada`);
+      }
+      if (lockedEvaluation.isFinal) {
+        throw new BadRequestException('La evaluación ya está finalizada');
       }
 
-      await manager.save(Evidence, evidence);
+      const lockedEvidence = await manager
+        .getRepository(Evidence)
+        .createQueryBuilder('evidence')
+        .setLock('pessimistic_write')
+        .where('evidence.id = :id', { id: lockedEvaluation.evidenceId })
+        .getOne();
+
+      if (!lockedEvidence) {
+        throw new NotFoundException(`Evidence ${lockedEvaluation.evidenceId} no encontrada`);
+      }
+
+      lockedEvaluation.evaluationResult = dto.evaluationResult;
+      lockedEvaluation.score = dto.score ?? null;
+      lockedEvaluation.dimensionScoresJson = dto.dimensionScoresJson ?? null;
+      lockedEvaluation.comment = dto.comment ?? null;
+      lockedEvaluation.isFinal = true;
+      lockedEvaluation.evaluatedAt = now;
+      lockedEvaluation.finalizedByUserId = principal.userId;
+      await manager.save(Evaluation, lockedEvaluation);
+
+      lockedEvidence.status = evidenceStatus;
+      lockedEvidence.validationStatus = validationStatus;
+      lockedEvidence.validatedByUserId = principal.userId;
+
+      if (evidenceStatus === EvidenceStatus.APPROVED) {
+        lockedEvidence.approvedAt = now;
+        lockedEvidence.isValidForIc = true;
+      } else if (evidenceStatus === EvidenceStatus.REJECTED) {
+        lockedEvidence.rejectedAt = now;
+      }
+
+      await manager.save(Evidence, lockedEvidence);
     });
 
     // Emisión automática de credencial digital al aprobar
@@ -305,7 +341,21 @@ export class EvaluationService {
     return evaluation;
   }
 
-  async findAllByEvidence(evidenceId: string): Promise<Evaluation[]> {
+  async findOneEvaluationAuthorized(id: string, principal: ProjectPrincipal): Promise<Evaluation> {
+    const evaluation = await this.findOneEvaluation(id);
+    await this.projectAccessService.assertCanAccessProject(
+      principal,
+      evaluation.evidence.projectId,
+    );
+    return evaluation;
+  }
+
+  async findAllByEvidence(evidenceId: string, principal: ProjectPrincipal): Promise<Evaluation[]> {
+    const evidence = await this.evidenceRepo.findOne({ where: { id: evidenceId } });
+    if (!evidence) {
+      throw new NotFoundException(`Evidence ${evidenceId} no encontrada`);
+    }
+    await this.projectAccessService.assertCanAccessProject(principal, evidence.projectId);
     return this.evaluationRepo.find({
       where: { evidenceId },
       relations: ['rubric', 'aiResult', 'humanReview'],
@@ -337,9 +387,7 @@ export class EvaluationService {
     });
 
     if (existing) {
-      throw new BadRequestException(
-        `Ya existe una rúbrica con el código "${dto.code}"`,
-      );
+      throw new BadRequestException(`Ya existe una rúbrica con el código "${dto.code}"`);
     }
 
     const rubric = this.rubricRepo.create({
@@ -372,6 +420,15 @@ export class EvaluationService {
   async updateRubric(id: string, dto: UpdateRubricDto): Promise<Rubric> {
     const rubric = await this.findOneRubric(id);
 
+    const evaluationsUsingRubric = await this.evaluationRepo.count({
+      where: { rubricId: id },
+    });
+    if (evaluationsUsingRubric > 0) {
+      throw new BadRequestException(
+        'Una rúbrica utilizada es inmutable. Creá una nueva rúbrica con un código y versión nuevos.',
+      );
+    }
+
     Object.assign(rubric, {
       ...dto,
       validFrom: dto.validFrom ? new Date(dto.validFrom) : rubric.validFrom,
@@ -384,11 +441,7 @@ export class EvaluationService {
   // ─── Helpers privados ─────────────────────────────────────────────────────────
 
   private assertReviewerRole(role: UserRole): void {
-    const allowedRoles: UserRole[] = [
-      UserRole.EVALUATOR,
-      UserRole.MENTOR,
-      UserRole.ADMIN,
-    ];
+    const allowedRoles: UserRole[] = [UserRole.EVALUATOR, UserRole.MENTOR, UserRole.ADMIN];
 
     if (!allowedRoles.includes(role)) {
       throw new ForbiddenException(
@@ -421,11 +474,12 @@ export class EvaluationService {
   }
 
   private async autoFinalize(
+    principal: ProjectPrincipal,
     evaluation: Evaluation,
     aiResult: EvaluationResult,
     aiScore?: number,
   ): Promise<void> {
-    await this.finalizeEvaluation({
+    await this.finalizeEvaluation(principal, {
       evaluationId: evaluation.id,
       evaluationResult: aiResult,
       score: aiScore,

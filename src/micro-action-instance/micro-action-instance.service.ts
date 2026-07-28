@@ -14,36 +14,21 @@ import {
 } from './entities/micro-action-instance.entity';
 import { CreateMicroActionInstanceDto } from './dto/create-micro-action-instance.dto';
 import { UpdateMicroActionInstanceDto } from './dto/update-micro-action-instance.dto';
+import { ProjectAccessService, ProjectPrincipal } from '../projects/project-access.service';
+import { UserRole } from '../users/entities/user.entity';
 
 function getAllowedTransitions(): {
   [key in MicroActionInstanceStatus]: MicroActionInstanceStatus[];
 } {
   return {
-    pending: [
-      MicroActionInstanceStatus.STARTED,
-    ],
-    started: [
-      MicroActionInstanceStatus.IN_PROGRESS,
-      MicroActionInstanceStatus.SUBMITTED,
-    ],
-    in_progress: [
-      MicroActionInstanceStatus.SUBMITTED,
-    ],
-    submitted: [
-      MicroActionInstanceStatus.VALIDATED,
-      MicroActionInstanceStatus.REOPENED,
-    ],
-    validated: [
-      MicroActionInstanceStatus.COMPLETED,
-    ],
-    completed: [
-      MicroActionInstanceStatus.CLOSED,
-    ],
+    pending: [MicroActionInstanceStatus.STARTED],
+    started: [MicroActionInstanceStatus.IN_PROGRESS, MicroActionInstanceStatus.SUBMITTED],
+    in_progress: [MicroActionInstanceStatus.SUBMITTED],
+    submitted: [MicroActionInstanceStatus.VALIDATED, MicroActionInstanceStatus.REOPENED],
+    validated: [MicroActionInstanceStatus.COMPLETED],
+    completed: [MicroActionInstanceStatus.CLOSED],
     closed: [],
-    reopened: [
-      MicroActionInstanceStatus.IN_PROGRESS,
-      MicroActionInstanceStatus.SUBMITTED,
-    ],
+    reopened: [MicroActionInstanceStatus.IN_PROGRESS, MicroActionInstanceStatus.SUBMITTED],
   };
 }
 
@@ -52,14 +37,17 @@ export class MicroActionInstanceService {
   constructor(
     @InjectRepository(MicroActionInstance)
     private readonly repo: Repository<MicroActionInstance>,
+    private readonly projectAccess: ProjectAccessService,
   ) {}
 
   async create(
-    actorUserId: string,
+    principal: ProjectPrincipal,
     dto: CreateMicroActionInstanceDto,
   ): Promise<MicroActionInstance> {
+    await this.projectAccess.assertCanAccessProject(principal, dto.projectId);
+
     const instance = new MicroActionInstance();
-    instance.actorUserId = actorUserId;
+    instance.actorUserId = principal.userId;
     instance.projectId = dto.projectId;
     instance.microActionDefinitionId = dto.microActionDefinitionId;
     instance.executionWindowDaysSnapshot = dto.executionWindowDaysSnapshot ?? null;
@@ -72,7 +60,11 @@ export class MicroActionInstanceService {
     return this.repo.save(instance);
   }
 
-  async findAllByProject(projectId: string): Promise<MicroActionInstance[]> {
+  async findAllByProject(
+    projectId: string,
+    principal: ProjectPrincipal,
+  ): Promise<MicroActionInstance[]> {
+    await this.projectAccess.assertCanAccessProject(principal, projectId);
     return this.repo.find({
       where: { projectId },
       relations: ['microActionDefinition', 'evidences'],
@@ -101,14 +93,20 @@ export class MicroActionInstanceService {
     return instance;
   }
 
+  async findOneAuthorized(id: string, principal: ProjectPrincipal): Promise<MicroActionInstance> {
+    const instance = await this.findOne(id);
+    await this.projectAccess.assertCanAccessProject(principal, instance.projectId);
+    return instance;
+  }
+
   async update(
     id: string,
-    actorUserId: string,
+    principal: ProjectPrincipal,
     dto: UpdateMicroActionInstanceDto,
   ): Promise<MicroActionInstance> {
-    const instance = await this.findOne(id);
+    const instance = await this.findOneAuthorized(id, principal);
 
-    this.assertOwnership(instance, actorUserId);
+    this.assertOwnership(instance, principal);
 
     if (dto.status) {
       this.validateTransition(instance.status, dto.status);
@@ -123,17 +121,11 @@ export class MicroActionInstanceService {
     return this.repo.save(instance);
   }
 
-  async submit(
-    id: string,
-    actorUserId: string,
-  ): Promise<MicroActionInstance> {
-    const instance = await this.findOne(id);
+  async submit(id: string, principal: ProjectPrincipal): Promise<MicroActionInstance> {
+    const instance = await this.findOneAuthorized(id, principal);
 
-    this.assertOwnership(instance, actorUserId);
-    this.validateTransition(
-      instance.status,
-      MicroActionInstanceStatus.SUBMITTED,
-    );
+    this.assertOwnership(instance, principal);
+    this.validateTransition(instance.status, MicroActionInstanceStatus.SUBMITTED);
 
     instance.status = MicroActionInstanceStatus.SUBMITTED;
     instance.submittedAt = new Date();
@@ -141,17 +133,11 @@ export class MicroActionInstanceService {
     return this.repo.save(instance);
   }
 
-  async reopen(
-    id: string,
-    actorUserId: string,
-  ): Promise<MicroActionInstance> {
-    const instance = await this.findOne(id);
+  async reopen(id: string, principal: ProjectPrincipal): Promise<MicroActionInstance> {
+    const instance = await this.findOneAuthorized(id, principal);
 
-    this.assertOwnership(instance, actorUserId);
-    this.validateTransition(
-      instance.status,
-      MicroActionInstanceStatus.REOPENED,
-    );
+    this.assertOwnership(instance, principal);
+    this.validateTransition(instance.status, MicroActionInstanceStatus.REOPENED);
 
     instance.status = MicroActionInstanceStatus.REOPENED;
     instance.reopenedCount += 1;
@@ -160,10 +146,10 @@ export class MicroActionInstanceService {
     return this.repo.save(instance);
   }
 
-  async remove(id: string, actorUserId: string): Promise<void> {
-    const instance = await this.findOne(id);
+  async remove(id: string, principal: ProjectPrincipal): Promise<void> {
+    const instance = await this.findOneAuthorized(id, principal);
 
-    this.assertOwnership(instance, actorUserId);
+    this.assertOwnership(instance, principal);
 
     const deletableStatuses: MicroActionInstanceStatus[] = [
       MicroActionInstanceStatus.STARTED,
@@ -181,14 +167,9 @@ export class MicroActionInstanceService {
 
   // ─── Helpers privados ────────────────────────────────────────────────────────
 
-  private assertOwnership(
-    instance: MicroActionInstance,
-    actorUserId: string,
-  ): void {
-    if (instance.actorUserId !== actorUserId) {
-      throw new ForbiddenException(
-        'No tenés permiso para modificar esta instancia',
-      );
+  private assertOwnership(instance: MicroActionInstance, principal: ProjectPrincipal): void {
+    if (principal.role !== UserRole.ADMIN && instance.actorUserId !== principal.userId) {
+      throw new ForbiddenException('No tenés permiso para modificar esta instancia');
     }
   }
 

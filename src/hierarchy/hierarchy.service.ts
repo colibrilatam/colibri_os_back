@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { HierarchyRepository } from './hierarchy.repository';
 import { IQueryHierarchy } from './interface/queryHierarchy.interface';
 import { Tramo } from 'src/tramos/entities/tramo.entity';
@@ -14,51 +10,46 @@ import { LearningResource } from 'src/learning-resource/entities/learning-resour
 @Injectable()
 export class HierarchyService {
   constructor(private readonly hierarchyRepository: HierarchyRepository) {}
- 
+
   async getFullHierarchy(query: IQueryHierarchy) {
     try {
       const tramos = await this.hierarchyRepository.findFullHierarchy(query);
- 
+
       if (query.tramoId && tramos.length === 0) {
-        throw new NotFoundException(
-          `Tramo with id "${query.tramoId}" not found or is inactive`,
-        );
+        throw new NotFoundException(`Tramo with id "${query.tramoId}" not found or is inactive`);
       }
- 
-      const mapped = tramos.map((t) =>
-        this.mapTramo(t, query.includeResources ?? true),
-      );
- 
+
+      const mapped = tramos.map((t) => this.mapTramo(t, query.includeResources ?? true));
+
       return {
         totalTramos: mapped.length,
         tramos: mapped,
       };
-    } catch (error) {
-      if (error instanceof NotFoundException) throw error;
+    } catch {
       throw new InternalServerErrorException(
         'An unexpected error occurred while building the hierarchy',
       );
     }
   }
- 
+
   async getShallowHierarchy(onlyActive = true) {
     try {
       const tramos = await this.hierarchyRepository.findShallowHierarchy(onlyActive);
- 
+
       const mapped = tramos.map((t) => this.mapTramo(t, false));
- 
+
       return {
         totalTramos: mapped.length,
         tramos: mapped,
       };
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException(
         'An unexpected error occurred while building the shallow hierarchy',
       );
     }
   }
- 
-  private mapTramo(tramo: Tramo, includeResources: boolean){
+
+  private mapTramo(tramo: Tramo, includeResources: boolean) {
     return {
       id: tramo.id,
       code: tramo.code,
@@ -69,13 +60,11 @@ export class HierarchyService {
       uncertaintyType: tramo.uncertaintyType ?? null,
       primaryRiskType: tramo.primaryRiskType ?? null,
       icFloor: tramo.icFloor ?? null,
-      categories: (tramo.categories ?? []).map((c) =>
-        this.mapCategory(c, includeResources),
-      ),
+      categories: (tramo.categories ?? []).map((c) => this.mapCategory(c, includeResources)),
     };
   }
- 
-  private mapCategory(category: Category, includeResources: boolean){
+
+  private mapCategory(category: Category, includeResources: boolean) {
     return {
       id: category.id,
       code: category.code,
@@ -88,7 +77,7 @@ export class HierarchyService {
       pacs: (category.pacs ?? []).map((p) => this.mapPac(p, includeResources)),
     };
   }
- 
+
   private mapPac(pac: Pac, includeResources: boolean) {
     return {
       id: pac.id,
@@ -99,7 +88,7 @@ export class HierarchyService {
       executionWindowDays: pac.executionWindowDays ?? null,
       minimumCompletionThreshold: pac.minimumCompletionThreshold ?? null,
       icWeight: pac.icWeight ?? null,
-      microActions: (pac.microActionDefinitions?? []).map((ma) =>
+      microActions: (pac.microActionDefinitions ?? []).map((ma) =>
         this.mapMicroAction(ma, includeResources),
       ),
       learningResources: includeResources
@@ -109,11 +98,8 @@ export class HierarchyService {
         : [],
     };
   }
- 
-  private mapMicroAction(
-    mad: MicroActionDefinition,
-    includeResources: boolean,
-  ) {
+
+  private mapMicroAction(mad: MicroActionDefinition, includeResources: boolean) {
     return {
       id: mad.id,
       code: mad.code,
@@ -128,8 +114,8 @@ export class HierarchyService {
         : [],
     };
   }
- 
-  private mapLearningResource(lr: LearningResource){
+
+  private mapLearningResource(lr: LearningResource) {
     return {
       id: lr.id,
       title: lr.title,

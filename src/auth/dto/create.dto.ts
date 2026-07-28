@@ -1,17 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEmail,
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsStrongPassword,
-  Length,
-} from 'class-validator';
-import { UserRole } from 'src/users/entities/user.entity';
+import { IsEmail, IsNotEmpty, IsString, IsStrongPassword, Length } from 'class-validator';
 
 export class CreateUserDto {
-
   @ApiProperty({
     description: 'Correo electrónico del usuario (único)',
     example: 'juanperez@mail.com',
@@ -39,19 +29,11 @@ export class CreateUserDto {
   @IsNotEmpty()
   confirmPassword: string;
 
-  @ApiProperty({ 
-    description: 'Nombre completo del usuario', 
-    example: 'Juan Perez' })
+  @ApiProperty({
+    description: 'Nombre completo del usuario',
+    example: 'Juan Perez',
+  })
   @IsString()
   @IsNotEmpty()
-   fullName: string;
-
-  @ApiProperty({
-    description: 'Rol del usuario',
-    example: 'entrepreneur',
-    enum: UserRole,
-  })
-   @IsOptional()
-   @IsEnum(UserRole)
-   role?: UserRole;
+  fullName: string;
 }

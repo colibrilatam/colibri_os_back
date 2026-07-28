@@ -11,6 +11,7 @@ import { EvaluationController } from './evaluation.controller';
 import { EvidenceModule } from '../evidence/evidence.module';
 import { Evidence } from '../evidence/entities/evidence.entity';
 import { DigitalCredentialsModule } from 'src/digital-credentials/digital-credentials.module';
+import { ProjectsModule } from '../projects/projects.module';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { DigitalCredentialsModule } from 'src/digital-credentials/digital-creden
       Evidence,
     ]),
     EvidenceModule,
-    DigitalCredentialsModule
+    DigitalCredentialsModule,
+    ProjectsModule,
   ],
   controllers: [EvaluationController],
   providers: [EvaluationService],

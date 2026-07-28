@@ -1,11 +1,6 @@
 // src/tramo-closure/tramo-closure.service.ts
 
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Evidence, EvidenceStatus } from '../evidence/entities/evidence.entity';
@@ -69,9 +64,7 @@ export class TramoClosureService {
   // ─── VERIFICACIÓN DE COMPLETITUD ──────────────────────────────────────────────
   // Traversal: evidence → microActionInstance → microActionDefinition → pac → category → tramo
 
-  async evaluateCompletion(
-    dto: EvaluateClosureDto,
-  ): Promise<TramoCompletionStatus> {
+  async evaluateCompletion(dto: EvaluateClosureDto): Promise<TramoCompletionStatus> {
     const tramo = await this.tramoRepo.findOne({
       where: { id: dto.tramoId },
     });
@@ -88,10 +81,7 @@ export class TramoClosureService {
       throw new NotFoundException(`Proyecto ${dto.projectId} no encontrado`);
     }
 
-    const approvedCount = await this.countApprovedEvidencesForTramo(
-      dto.projectId,
-      dto.tramoId,
-    );
+    const approvedCount = await this.countApprovedEvidencesForTramo(dto.projectId, dto.tramoId);
 
     const isComplete = approvedCount >= REQUIRED_APPROVED_EVIDENCES;
 
@@ -135,9 +125,7 @@ export class TramoClosureService {
     }
 
     if (!status.canClose) {
-      throw new BadRequestException(
-        `El tramo ${dto.tramoId} no es el tramo actual del proyecto`,
-      );
+      throw new BadRequestException(`El tramo ${dto.tramoId} no es el tramo actual del proyecto`);
     }
 
     const currentTramo = await this.tramoRepo.findOne({
@@ -170,9 +158,7 @@ export class TramoClosureService {
     const newVisualVersion = dto.newVisualVersion ?? `v${currentTramo.sortOrder + 1}`;
 
     try {
-      const nftStatus = await this.nftProjectService.checkNftStatus(
-        dto.projectId,
-      );
+      const nftStatus = await this.nftProjectService.checkNftStatus(dto.projectId);
 
       if (nftStatus.hasNft) {
         await this.nftProjectService.evolveVisual(
@@ -202,15 +188,13 @@ export class TramoClosureService {
     let nextTramoId: string | null = null;
 
     if (nextTramo) {
-      await this.tramosService.changeTramo(
-        dto.projectId,
-        { newTramoId: nextTramo.id, changeReason: `Cierre de ${currentTramo.code}` },
-      );
+      await this.tramosService.changeTramo(dto.projectId, {
+        newTramoId: nextTramo.id,
+        changeReason: `Cierre de ${currentTramo.code}`,
+      });
       nextTramoId = nextTramo.id;
 
-      this.logger.log(
-        `[Cierre T${currentTramo.code}] Proyecto avanzó a ${nextTramo.code}`,
-      );
+      this.logger.log(`[Cierre T${currentTramo.code}] Proyecto avanzó a ${nextTramo.code}`);
     } else {
       this.logger.log(
         `[Cierre T${currentTramo.code}] No hay tramo siguiente — fin de la ruta de vuelo`,

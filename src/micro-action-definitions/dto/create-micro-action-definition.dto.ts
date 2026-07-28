@@ -10,10 +10,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  MicroActionType,
-  EvidenceType,
-} from '../entities/micro-action-definition.entity';
+import { MicroActionType, EvidenceType } from '../entities/micro-action-definition.entity';
 
 export class CreateMicroActionDefinitionDto {
   @ApiProperty({
@@ -42,9 +39,9 @@ export class CreateMicroActionDefinitionDto {
 
   @ApiProperty({
     description: 'Instrucción que el emprendedor debe seguir para ejecutar la microacción',
-    example: 'Realizá al menos 5 entrevistas de descubrimiento con potenciales usuarios y documentá los hallazgos clave.',
+    example:
+      'Realizá al menos 5 entrevistas de descubrimiento con potenciales usuarios y documentá los hallazgos clave.',
   })
-
   @IsString()
   @IsNotEmpty()
   instruction_es: string;
@@ -130,7 +127,8 @@ export class CreateMicroActionDefinitionDto {
   collaborationWeight?: number;
 
   @ApiPropertyOptional({
-    description: 'Peso de esta microacción en la dimensión de sostenibilidad del IC (0.00 a 100.00)',
+    description:
+      'Peso de esta microacción en la dimensión de sostenibilidad del IC (0.00 a 100.00)',
     example: 0.34,
   })
   @IsNumber()

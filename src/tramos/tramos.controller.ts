@@ -17,13 +17,11 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
-  ApiBearerAuth,
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiConflictResponse,
   ApiForbiddenResponse,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { TramosService } from './tramos.service';
 import { CreateTramoDto } from './dto/create-tramo.dto';
@@ -37,12 +35,14 @@ import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Tramos')
 @Controller('tramos')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class TramosController {
   constructor(private readonly tramosService: TramosService) {}
 
   // ─── CRUD base ────────────────────────────────────────────────────────────
 
   @Post()
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Crear un nuevo tramo',
     description:
@@ -86,7 +86,8 @@ export class TramosController {
   @Get(':id')
   @ApiOperation({
     summary: 'Obtener un tramo por ID',
-    description: 'Retorna un tramo específico con sus categorías y configuración curricular completa.',
+    description:
+      'Retorna un tramo específico con sus categorías y configuración curricular completa.',
   })
   @ApiParam({
     name: 'id',
@@ -100,6 +101,7 @@ export class TramosController {
   }
 
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Actualizar un tramo',
     description:
@@ -114,10 +116,7 @@ export class TramosController {
   @ApiNotFoundResponse({ description: 'No existe un tramo con el `id` proporcionado.' })
   @ApiConflictResponse({ description: 'El nuevo `code` ya está en uso por otro tramo.' })
   @ApiForbiddenResponse({ description: 'Se requiere rol ADMIN.' })
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateTramoDto,
-  ) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateTramoDto) {
     return this.tramosService.update(id, dto);
   }
 
@@ -144,6 +143,7 @@ export class TramosController {
   // ─── Historial de tramos ──────────────────────────────────────────────────
 
   @Post('project/:projectId/change')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Cambiar el tramo activo de un proyecto',
     description:
@@ -154,7 +154,9 @@ export class TramosController {
     description: 'UUID del proyecto al que se le cambiará el tramo',
     example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   })
-  @ApiCreatedResponse({ description: 'Tramo cambiado y registro de historial creado exitosamente.' })
+  @ApiCreatedResponse({
+    description: 'Tramo cambiado y registro de historial creado exitosamente.',
+  })
   @ApiNotFoundResponse({ description: 'El proyecto o el nuevo tramo no existen.' })
   @ApiForbiddenResponse({ description: 'Se requiere rol ADMIN.' })
   changeTramo(

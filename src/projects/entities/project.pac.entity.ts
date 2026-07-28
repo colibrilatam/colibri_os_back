@@ -1,6 +1,14 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { Project } from "./project.entity";
-import { Pac } from "src/pacs/entities/pac.entity";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Project } from './project.entity';
+import { Pac } from 'src/pacs/entities/pac.entity';
 
 export enum ProjectPacStatus {
   PENDING = 'pending',

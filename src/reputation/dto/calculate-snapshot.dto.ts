@@ -8,7 +8,9 @@ export class CalculateSnapshotDto {
   @IsUUID()
   projectId: string;
 
-  @ApiPropertyOptional({ description: 'Usuario específico. Si se omite se usa el owner del proyecto.' })
+  @ApiPropertyOptional({
+    description: 'Usuario específico. Si se omite se usa el owner del proyecto.',
+  })
   @IsUUID()
   @IsOptional()
   userId?: string;

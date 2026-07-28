@@ -1,13 +1,17 @@
 // src/reputation/reputation.controller.ts
 
 import {
-  Controller, Get, Post, Body, Param,
-  UseGuards, ParseUUIDPipe, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
-import {
-  ApiTags, ApiOperation, ApiResponse, ApiParam,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { ReputationService } from './reputation.service';
 import { CreateAlgorithmVersionDto } from './dto/create-algorithm-version.dto';
 import { CalculateSnapshotDto } from './dto/calculate-snapshot.dto';
@@ -68,7 +72,7 @@ export class ReputationController {
   // ─── MOTOR DE CÁLCULO ─────────────────────────────────────────────────────────
 
   @Post('calculate')
-  //@Roles(UserRole.ADMIN, UserRole.EVALUATOR)
+  @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Calcular el Índice Colibrí de un proyecto',
@@ -92,10 +96,19 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   // ─── SNAPSHOTS ────────────────────────────────────────────────────────────────
 
   @Get('projects/:projectId/latest')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN, UserRole.MECENAS_SEMILLA, UserRole.MECENAS_FUNDACIONAL, UserRole.MECENAS_CAMBIO)
+  @Roles(
+    UserRole.ENTREPRENEUR,
+    UserRole.MENTOR,
+    UserRole.EVALUATOR,
+    UserRole.ADMIN,
+    UserRole.MECENAS_SEMILLA,
+    UserRole.MECENAS_FUNDACIONAL,
+    UserRole.MECENAS_CAMBIO,
+  )
   @ApiOperation({
     summary: 'Obtener el snapshot reputacional vigente de un proyecto',
-    description: 'Devuelve el snapshot con `validTo = null`, es decir el estado reputacional actual del proyecto. Es el dato que alimenta el panel del R-Lab.',
+    description:
+      'Devuelve el snapshot con `validTo = null`, es decir el estado reputacional actual del proyecto. Es el dato que alimenta el panel del R-Lab.',
   })
   @ApiParam({ name: 'projectId', example: 'proj-uuid-0001' })
   @ApiResponse({ status: 200, description: 'Snapshot vigente con explicaciones.' })
@@ -105,10 +118,19 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   }
 
   @Get('projects/:projectId/history')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN, UserRole.MECENAS_SEMILLA, UserRole.MECENAS_FUNDACIONAL, UserRole.MECENAS_CAMBIO)
+  @Roles(
+    UserRole.ENTREPRENEUR,
+    UserRole.MENTOR,
+    UserRole.EVALUATOR,
+    UserRole.ADMIN,
+    UserRole.MECENAS_SEMILLA,
+    UserRole.MECENAS_FUNDACIONAL,
+    UserRole.MECENAS_CAMBIO,
+  )
   @ApiOperation({
     summary: 'Historial de snapshots de un proyecto',
-    description: 'Devuelve todos los snapshots calculados para el proyecto, ordenados del más reciente al más antiguo. Útil para ver la evolución del IC en el tiempo.',
+    description:
+      'Devuelve todos los snapshots calculados para el proyecto, ordenados del más reciente al más antiguo. Útil para ver la evolución del IC en el tiempo.',
   })
   @ApiParam({ name: 'projectId', example: 'proj-uuid-0001' })
   @ApiResponse({ status: 200, description: 'Historial de snapshots.' })
@@ -117,10 +139,19 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   }
 
   @Get('snapshots/:id')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN, UserRole.MECENAS_SEMILLA, UserRole.MECENAS_FUNDACIONAL, UserRole.MECENAS_CAMBIO)
+  @Roles(
+    UserRole.ENTREPRENEUR,
+    UserRole.MENTOR,
+    UserRole.EVALUATOR,
+    UserRole.ADMIN,
+    UserRole.MECENAS_SEMILLA,
+    UserRole.MECENAS_FUNDACIONAL,
+    UserRole.MECENAS_CAMBIO,
+  )
   @ApiOperation({
     summary: 'Obtener un snapshot con todas sus explicaciones',
-    description: 'Devuelve el snapshot completo con el desglose granular de qué contribuyó al resultado. Es la vista de auditoría del IC.',
+    description:
+      'Devuelve el snapshot completo con el desglose granular de qué contribuyó al resultado. Es la vista de auditoría del IC.',
   })
   @ApiParam({ name: 'id', example: 'snap-uuid-001' })
   @ApiResponse({ status: 200, description: 'Snapshot con explicaciones granulares.' })
