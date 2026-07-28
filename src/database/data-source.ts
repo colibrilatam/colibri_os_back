@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
 import { join } from 'path';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
 
