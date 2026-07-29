@@ -20,18 +20,13 @@ export class ProjectsService {
     @InjectRepository(ProjectPac) private readonly projectPacRepository: Repository<ProjectPac>,
     private readonly tramosService: TramosService,
     private readonly cloudinaryService: CloudinaryService,
-  ) { }
+  ) {}
 
-  async create(
-    ownerUserId: string,
-    dto: CreateProjectDto,
-    file?: Express.Multer.File,
-  ) {
+  async create(ownerUserId: string, dto: CreateProjectDto, file?: Express.Multer.File) {
     let imageUrl: string | null = null;
 
     if (file) {
-      const uploadResult: any =
-        await this.cloudinaryService.uploadImage(file);
+      const uploadResult = await this.cloudinaryService.uploadImage(file);
 
       imageUrl = uploadResult.secure_url;
     }
@@ -47,11 +42,7 @@ export class ProjectsService {
 
     // Si el proyecto ya nace con un tramo asignado, iniciamos el historial
     if (saved.currentTramoId) {
-      await this.tramosService.initTramoHistory(
-        saved.id,
-        saved.currentTramoId,
-        ownerUserId,
-      );
+      await this.tramosService.initTramoHistory(saved.id, saved.currentTramoId, ownerUserId);
     }
 
     return saved;
@@ -85,56 +76,56 @@ export class ProjectsService {
     await this.projectRepository.remove(project);
   }
 
-  async updateProjectPac(projectPacId: string, status: ProjectPacStatus){
-    const projectPac = await this.projectPacRepository.findOneBy({id: projectPacId});
-    if (!projectPac) {
-      throw new NotFoundException(`ProjectPac con id ${projectPacId} no encontrado`);
-    }
+  async updateProjectPac(projectPacId: string, status: ProjectPacStatus) {
+    const projectPac = await this.findProjectPac(projectPacId);
     projectPac.status = status;
     await this.projectPacRepository.save(projectPac);
   }
 
-async createProjectPac(projectId: string, pacId: string) {
-
-  const existingProject = await this.projectRepository.findOne({
-    where: { id: projectId },
-  });
-
-  if (!existingProject) {
-    throw new NotFoundException('Project not found');
+  async findProjectPac(projectPacId: string): Promise<ProjectPac> {
+    const projectPac = await this.projectPacRepository.findOneBy({ id: projectPacId });
+    if (!projectPac) {
+      throw new NotFoundException(`ProjectPac con id ${projectPacId} no encontrado`);
+    }
+    return projectPac;
   }
 
-  const existingPac = await this.pacRepository.findOne({
-    where: { id: pacId },
-  });
+  async createProjectPac(projectId: string, pacId: string) {
+    const existingProject = await this.projectRepository.findOne({
+      where: { id: projectId },
+    });
 
-  if (!existingPac) {
-    throw new NotFoundException('Pac not found');
-  }
+    if (!existingProject) {
+      throw new NotFoundException('Project not found');
+    }
 
-  const existingProjectPacRelation = await this.projectPacRepository.findOne({
-    where: {
+    const existingPac = await this.pacRepository.findOne({
+      where: { id: pacId },
+    });
+
+    if (!existingPac) {
+      throw new NotFoundException('Pac not found');
+    }
+
+    const existingProjectPacRelation = await this.projectPacRepository.findOne({
+      where: {
+        projectId,
+        pacId,
+      },
+    });
+
+    if (existingProjectPacRelation) {
+      throw new BadRequestException('This PAC is already assigned to the project');
+    }
+    const newProjectPacRelation = this.projectPacRepository.create({
       projectId,
       pacId,
-    },
-  });
+      status: ProjectPacStatus.PENDING,
+      progress: 0,
+    });
 
-  if (existingProjectPacRelation) {
-    throw new BadRequestException(
-      'This PAC is already assigned to the project',
-    );
+    const savedProjectPacRelation = await this.projectPacRepository.save(newProjectPacRelation);
+
+    return savedProjectPacRelation;
   }
-  const newProjectPacRelation = this.projectPacRepository.create({
-    projectId,
-    pacId,
-    status: ProjectPacStatus.PENDING,
-    progress: 0
-  });
-
-  const savedProjectPacRelation = await this.projectPacRepository.save(
-    newProjectPacRelation,
-  );
-
-  return savedProjectPacRelation;
-}
 }

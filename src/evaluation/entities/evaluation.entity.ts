@@ -30,6 +30,12 @@ export class Evaluation {
   @Column({ name: 'rubric_version' })
   rubricVersion: string;
 
+  @Column({ name: 'created_by_user_id', type: 'varchar', nullable: true })
+  createdByUserId: string | null;
+
+  @Column({ name: 'finalized_by_user_id', type: 'varchar', nullable: true })
+  finalizedByUserId: string | null;
+
   @Column({
     name: 'evaluation_type',
     type: 'enum',

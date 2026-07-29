@@ -35,7 +35,8 @@ export class CreateTramoDto {
 
   @ApiPropertyOptional({
     description: 'Descripción detallada del propósito y alcance del tramo',
-    example: 'Primer tramo del recorrido Colibrí. El emprendedor valida su problema y define su propuesta de valor.',
+    example:
+      'Primer tramo del recorrido Colibrí. El emprendedor valida su problema y define su propuesta de valor.',
   })
   @IsString()
   @IsOptional()
@@ -43,7 +44,8 @@ export class CreateTramoDto {
 
   @ApiPropertyOptional({
     description: 'Descripción detallada del propósito y alcance del tramo',
-    example: 'Primer tramo del recorrido Colibrí. El emprendedor valida su problema y define su propuesta de valor.',
+    example:
+      'Primer tramo del recorrido Colibrí. El emprendedor valida su problema y define su propuesta de valor.',
   })
   @IsString()
   @IsOptional()
@@ -91,7 +93,8 @@ export class CreateTramoDto {
   icFloor?: number;
 
   @ApiPropertyOptional({
-    description: 'Regla de elegibilidad en formato texto o expresión evaluable que determina si un proyecto puede ingresar al tramo',
+    description:
+      'Regla de elegibilidad en formato texto o expresión evaluable que determina si un proyecto puede ingresar al tramo',
     example: 'ic >= 0.6 AND evidencias_aprobadas >= 7',
   })
   @IsString()
@@ -99,7 +102,8 @@ export class CreateTramoDto {
   eligibilityRule_es?: string;
 
   @ApiPropertyOptional({
-    description: 'Regla de elegibilidad en formato texto o expresión evaluable que determina si un proyecto puede ingresar al tramo',
+    description:
+      'Regla de elegibilidad en formato texto o expresión evaluable que determina si un proyecto puede ingresar al tramo',
     example: 'ic >= 0.6 AND evidencias_aprobadas >= 7',
   })
   @IsString()
@@ -107,7 +111,8 @@ export class CreateTramoDto {
   eligibilityRule_en?: string;
 
   @ApiPropertyOptional({
-    description: 'Umbral de IC a partir del cual el proyecto es visible públicamente en el ecosistema',
+    description:
+      'Umbral de IC a partir del cual el proyecto es visible públicamente en el ecosistema',
     example: 0.75,
   })
   @IsNumber()
@@ -115,7 +120,8 @@ export class CreateTramoDto {
   publicThreshold?: number;
 
   @ApiPropertyOptional({
-    description: 'Indica si el tramo está activo y disponible en la Ruta de Vuelo. Por defecto: true',
+    description:
+      'Indica si el tramo está activo y disponible en la Ruta de Vuelo. Por defecto: true',
     example: true,
     default: true,
   })

@@ -33,7 +33,6 @@ export class CreateCategoryDto {
     description: 'Nombre descriptivo de la categoría',
     example: 'Validación de Problema',
   })
-
   @IsString()
   @IsNotEmpty()
   name_es: string;
@@ -44,7 +43,8 @@ export class CreateCategoryDto {
 
   @ApiPropertyOptional({
     description: 'Descripción detallada del propósito y alcance de la categoría',
-    example: 'Categoría orientada a validar hipótesis iniciales del problema que resuelve el proyecto.',
+    example:
+      'Categoría orientada a validar hipótesis iniciales del problema que resuelve el proyecto.',
   })
   @IsString()
   @IsOptional()
@@ -112,7 +112,8 @@ export class CreateCategoryDto {
   skillsKey?: string;
 
   @ApiPropertyOptional({
-    description: 'Indica si la categoría está activa y disponible para los emprendedores. Por defecto: true',
+    description:
+      'Indica si la categoría está activa y disponible para los emprendedores. Por defecto: true',
     example: true,
     default: true,
   })

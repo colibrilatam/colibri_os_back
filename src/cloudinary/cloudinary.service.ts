@@ -1,14 +1,7 @@
-// src/cloudinary/cloudinary.service.ts
-
-import {
-  Injectable,
-  Logger,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
+import { v2 as cloudinary } from 'cloudinary';
 import * as crypto from 'crypto';
-import type { Express } from 'express';
 
 export interface CloudinarySignature {
   signature: string;
@@ -26,6 +19,8 @@ export interface CloudinaryFileMetadata {
   resourceType: string;
   bytes: number;
   originalFilename: string;
+  version: string | null;
+  providerChecksum: string | null;
 }
 
 // Tipos de recursos que acepta Cloudinary según el tipo de archivo
@@ -105,9 +100,7 @@ export class CloudinaryService {
       .update(paramsToSign + apiSecret)
       .digest('hex');
 
-    this.logger.log(
-      `Firma de upload generada para evidence ${evidenceId}`,
-    );
+    this.logger.log(`Firma de upload generada para evidence ${evidenceId}`);
 
     return {
       signature,
@@ -126,9 +119,18 @@ export class CloudinaryService {
     resourceType: 'image' | 'video' | 'raw' = 'raw',
   ): Promise<CloudinaryFileMetadata> {
     try {
-      const result = await cloudinary.api.resource(publicId, {
+      const result = (await cloudinary.api.resource(publicId, {
         resource_type: resourceType,
-      });
+      })) as {
+        public_id: string;
+        secure_url: string;
+        format: string;
+        resource_type: string;
+        bytes: number;
+        original_filename?: string;
+        version?: number;
+        etag?: string;
+      };
 
       return {
         publicId: result.public_id,
@@ -137,15 +139,12 @@ export class CloudinaryService {
         resourceType: result.resource_type,
         bytes: result.bytes,
         originalFilename: result.original_filename ?? publicId,
+        version: result.version ? String(result.version) : null,
+        providerChecksum: result.etag ?? null,
       };
     } catch (error) {
-      this.logger.error(
-        `Error obteniendo metadata del archivo ${publicId}`,
-        error,
-      );
-      throw new InternalServerErrorException(
-        'No se pudo verificar el archivo en Cloudinary',
-      );
+      this.logger.error(`Error obteniendo metadata del archivo ${publicId}`, error);
+      throw new InternalServerErrorException('No se pudo verificar el archivo en Cloudinary');
     }
   }
 
@@ -161,13 +160,8 @@ export class CloudinaryService {
       });
       this.logger.log(`Archivo ${publicId} eliminado de Cloudinary`);
     } catch (error) {
-      this.logger.error(
-        `Error eliminando archivo ${publicId} de Cloudinary`,
-        error,
-      );
-      throw new InternalServerErrorException(
-        'No se pudo eliminar el archivo de Cloudinary',
-      );
+      this.logger.error(`Error eliminando archivo ${publicId} de Cloudinary`, error);
+      throw new InternalServerErrorException('No se pudo eliminar el archivo de Cloudinary');
     }
   }
 
@@ -183,7 +177,7 @@ export class CloudinaryService {
     if (!RESOURCE_TYPE_MAP[mimeType]) {
       throw new InternalServerErrorException(
         `Tipo de archivo no permitido: ${mimeType}. ` +
-        `Tipos aceptados: ${Object.keys(RESOURCE_TYPE_MAP).join(', ')}`,
+          `Tipos aceptados: ${Object.keys(RESOURCE_TYPE_MAP).join(', ')}`,
       );
     }
   }
@@ -191,22 +185,27 @@ export class CloudinaryService {
   private getRequiredConfig(key: string): string {
     const value = this.configService.get<string>(key);
     if (!value) {
-      throw new InternalServerErrorException(
-        `Falta variable de configuración requerida: ${key}`,
-      );
+      throw new InternalServerErrorException(`Falta variable de configuración requerida: ${key}`);
     }
     return value;
   }
 
-  async uploadImage(file: Express.Multer.File) {
+  async uploadImage(file: Express.Multer.File): Promise<{ secure_url: string }> {
     return new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        { folder: 'colibri/projects' },
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result);
-        },
-      ).end(file.buffer);
+      cloudinary.uploader
+        .upload_stream({ folder: 'colibri/projects' }, (error, result) => {
+          if (error) {
+            const rawMessage = (error as { message?: unknown }).message;
+            const message =
+              typeof rawMessage === 'string'
+                ? rawMessage
+                : 'Error desconocido al subir el archivo a Cloudinary';
+            reject(new Error(message));
+            return;
+          }
+          resolve(result as { secure_url: string });
+        })
+        .end(file.buffer);
     });
   }
 }

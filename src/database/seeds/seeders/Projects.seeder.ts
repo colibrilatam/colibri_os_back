@@ -6,26 +6,41 @@ import { Tramo } from 'src/tramos/entities/tramo.entity';
 import { Pac } from 'src/pacs/entities/pac.entity';
 
 const LOGOS = {
-  aulapuente: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794391/1_AulaPuente_Edtech_Venezuela_a3lya8.jpg',
-  nexocaja: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794385/2_NexoCaja_Fintech_Argentina_l1nqog.jpg',
-  saludnexo: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794379/3_SaludNexo_Healthtech_Panama_t18hjp.jpg',
-  rutanomina: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794274/4_RutaNomina_Saas_Colombia_vokvzd.jpg',
-  trayectoclaro: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794269/5_TrayectoClaro_Edtech_Chile_opy2ld.jpg',
-  flujoclave: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776793995/6_FlujoClave_Fintech_Colombia_uhepfb.jpg',
-  riegopulso: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776793901/7_RiegoPulso_Agrotech_Bolivia_l7iwf9.jpg',
-  turnobase: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776793664/8_TurnoBase_Hrtech_Chile_gubmbg.jpg',
+  aulapuente:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794391/1_AulaPuente_Edtech_Venezuela_a3lya8.jpg',
+  nexocaja:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794385/2_NexoCaja_Fintech_Argentina_l1nqog.jpg',
+  saludnexo:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794379/3_SaludNexo_Healthtech_Panama_t18hjp.jpg',
+  rutanomina:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794274/4_RutaNomina_Saas_Colombia_vokvzd.jpg',
+  trayectoclaro:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794269/5_TrayectoClaro_Edtech_Chile_opy2ld.jpg',
+  flujoclave:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776793995/6_FlujoClave_Fintech_Colombia_uhepfb.jpg',
+  riegopulso:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776793901/7_RiegoPulso_Agrotech_Bolivia_l7iwf9.jpg',
+  turnobase:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776793664/8_TurnoBase_Hrtech_Chile_gubmbg.jpg',
 };
 
 const NFT_IMAGES = {
-  aulapuente: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794482/proj_aulapuente_ve_nft_t1_pdyydg.jpg',
-  nexocaja: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794499/proj_nexocaja_ar_nft_t1_evaucn.jpg',
-  saludnexo: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794508/proj_saludnexo_pa_nft_t2_gmnnga.jpg',
-  rutanomina: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794520/4_proj_rutanomina_co_nft_t2_m7usju.jpg',
-  trayectoclaro: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794539/5_proj_trayectoclaro_cl_nft_t3_addy8w.jpg',
-  flujoclave: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794555/6_proj_flujoclave_co_nft_t3_rlbafx.jpg',
-  riegopulso: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794574/proj_riegopulso_bo_nft_t4_id265s.jpg',
-  turnobase: 'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794581/proj_turnobase_cl_nft_t4_fqtwth.jpg',
-
+  aulapuente:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794482/proj_aulapuente_ve_nft_t1_pdyydg.jpg',
+  nexocaja:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794499/proj_nexocaja_ar_nft_t1_evaucn.jpg',
+  saludnexo:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794508/proj_saludnexo_pa_nft_t2_gmnnga.jpg',
+  rutanomina:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794520/4_proj_rutanomina_co_nft_t2_m7usju.jpg',
+  trayectoclaro:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794539/5_proj_trayectoclaro_cl_nft_t3_addy8w.jpg',
+  flujoclave:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794555/6_proj_flujoclave_co_nft_t3_rlbafx.jpg',
+  riegopulso:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794574/proj_riegopulso_bo_nft_t4_id265s.jpg',
+  turnobase:
+    'https://res.cloudinary.com/doplwvnnj/image/upload/v1776794581/proj_turnobase_cl_nft_t4_fqtwth.jpg',
 };
 
 // ─── Datos de proyectos ───────────────────────────────────────────────────────
@@ -186,10 +201,9 @@ export async function seedProjects(
     const tramo = tramoByCode.get(data.tramoCode);
     const firstPac = firstPacByTramo.get(data.tramoCode);
     let owner: User | undefined;
-    if(data.projectName === 'FlujoClave'){
+    if (data.projectName === 'FlujoClave') {
       owner = users.find((e) => e.email === 'ana@colibri.com');
-    }
-    else {
+    } else {
       owner = entrepreneurs[i % entrepreneurs.length];
     }
 

@@ -1,14 +1,33 @@
 import {
-  Controller, Get, Post, Body, Patch,
-  Param, Delete, ParseUUIDPipe, HttpCode, HttpStatus, Query,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags, ApiOperation, ApiResponse, ApiParam,
-  ApiQuery, ApiBearerAuth, ApiBody,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+  ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { PacsService } from './pacs.service';
 import { CreatePacDto } from './dto/create-pac.dto';
 import { UpdatePacDto } from './dto/update-pac.dto';
+import { JwtAuthGuard } from '../auth/guards/auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 const EXAMPLE_PAC = {
   id: 'pac-uuid-0001',
@@ -38,9 +57,12 @@ export class PacsController {
   constructor(private readonly pacsService: PacsService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Crear un PAC',
-    description: 'Crea un nuevo PAC dentro de una categoría. El `code` debe ser único en el sistema.',
+    description:
+      'Crea un nuevo PAC dentro de una categoría. El `code` debe ser único en el sistema.',
   })
   @ApiBody({ type: CreatePacDto })
   @ApiResponse({ status: 201, description: 'PAC creado.', schema: { example: EXAMPLE_PAC } })
@@ -53,9 +75,15 @@ export class PacsController {
   @Get()
   @ApiOperation({
     summary: 'Listar PACs',
-    description: 'Devuelve todos los PACs ordenados por `sortOrder`. Si se pasa `categoryId`, filtra por esa categoría.',
+    description:
+      'Devuelve todos los PACs ordenados por `sortOrder`. Si se pasa `categoryId`, filtra por esa categoría.',
   })
-  @ApiQuery({ name: 'categoryId', required: false, description: 'UUID de la categoría para filtrar', example: 'cat-uuid-0001' })
+  @ApiQuery({
+    name: 'categoryId',
+    required: false,
+    description: 'UUID de la categoría para filtrar',
+    example: 'cat-uuid-0001',
+  })
   @ApiResponse({ status: 200, description: 'Lista de PACs.', schema: { example: [EXAMPLE_PAC] } })
   @ApiResponse({ status: 404, description: 'Categoría no encontrada (si se pasó categoryId).' })
   findAll(@Query('categoryId') categoryId?: string) {
@@ -92,9 +120,12 @@ export class PacsController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Actualizar un PAC',
-    description: 'Actualiza parcialmente un PAC. Si se cambia `code` o `categoryId`, se validan contra duplicados y existencia.',
+    description:
+      'Actualiza parcialmente un PAC. Si se cambia `code` o `categoryId`, se validan contra duplicados y existencia.',
   })
   @ApiParam({ name: 'id', description: 'UUID del PAC a actualizar', example: 'pac-uuid-0001' })
   @ApiBody({ type: UpdatePacDto })
@@ -106,10 +137,13 @@ export class PacsController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Eliminar un PAC',
-    description: '⚠️ Elimina el PAC permanentemente. Fallará si tiene microacciones asociadas por FK.',
+    description:
+      '⚠️ Elimina el PAC permanentemente. Fallará si tiene microacciones asociadas por FK.',
   })
   @ApiParam({ name: 'id', description: 'UUID del PAC a eliminar', example: 'pac-uuid-0001' })
   @ApiResponse({ status: 204, description: 'PAC eliminado.' })

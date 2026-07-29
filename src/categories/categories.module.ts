@@ -7,10 +7,7 @@ import { CategoriesController } from './categories.controller';
 import { TramosModule } from '../tramos/tramos.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Category]),
-    TramosModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Category]), TramosModule],
   controllers: [CategoriesController],
   providers: [CategoriesService],
   exports: [CategoriesService],

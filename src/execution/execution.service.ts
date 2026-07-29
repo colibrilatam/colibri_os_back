@@ -4,7 +4,7 @@ import { UpdateExecutionDto } from './dto/update-execution.dto';
 
 @Injectable()
 export class ExecutionService {
-  create(createExecutionDto: CreateExecutionDto) {
+  create(_createExecutionDto: CreateExecutionDto) {
     return 'This action adds a new execution';
   }
 
@@ -16,7 +16,7 @@ export class ExecutionService {
     return `This action returns a #${id} execution`;
   }
 
-  update(id: number, updateExecutionDto: UpdateExecutionDto) {
+  update(id: number, _updateExecutionDto: UpdateExecutionDto) {
     return `This action updates a #${id} execution`;
   }
 

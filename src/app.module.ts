@@ -42,7 +42,7 @@ import { TramoClosureModule } from './tramo-closure/tramo-closure.module';
         synchronize: false,
         logging: false,
         autoLoadEntities: true,
-        extra: { family: 4 }
+        extra: { family: 4 },
         //dropSchema: true,
       }),
     }),
@@ -64,7 +64,7 @@ import { TramoClosureModule } from './tramo-closure/tramo-closure.module';
     HierarchyModule,
     MecenasSemillaModule,
     DigitalCredentialsModule,
-    TramoClosureModule
+    TramoClosureModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}

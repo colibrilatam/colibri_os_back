@@ -6,7 +6,8 @@ import { MicroActionInstanceStatus } from '../entities/micro-action-instance.ent
 
 export class UpdateMicroActionInstanceDto {
   @ApiPropertyOptional({
-    description: 'Nuevo estado de la instancia. Las transiciones válidas son: started → in_progress | submitted; in_progress → submitted; reopened → in_progress | submitted.',
+    description:
+      'Nuevo estado de la instancia. Las transiciones válidas son: started → in_progress | submitted; in_progress → submitted; reopened → in_progress | submitted.',
     enum: MicroActionInstanceStatus,
     example: MicroActionInstanceStatus.IN_PROGRESS,
   })

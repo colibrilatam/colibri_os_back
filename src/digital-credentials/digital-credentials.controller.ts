@@ -1,12 +1,23 @@
 // src/digital-credentials/digital-credentials.controller.ts
 
 import {
-  Controller, Get, Post, Param, Body,
-  UseGuards, ParseUUIDPipe, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  UseGuards,
+  ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
-  ApiTags, ApiOperation, ApiResponse, ApiParam,
-  ApiBearerAuth, ApiBody,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { DigitalCredentialsService } from './digital-credentials.service';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
@@ -52,15 +63,15 @@ export class DigitalCredentialsController {
   @Post(':id/revoke')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Revocar una credencial', description: 'Solo ADMIN. Requiere motivo de revocación.' })
+  @ApiOperation({
+    summary: 'Revocar una credencial',
+    description: 'Solo ADMIN. Requiere motivo de revocación.',
+  })
   @ApiParam({ name: 'id', example: 'cred-uuid-001' })
   @ApiBody({ schema: { example: { reason: 'Evidencia invalidada por revisión posterior.' } } })
   @ApiResponse({ status: 200, description: 'Credencial revocada.' })
   @ApiResponse({ status: 400, description: 'La credencial ya estaba revocada.' })
-  revoke(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body('reason') reason: string,
-  ) {
+  revoke(@Param('id', ParseUUIDPipe) id: string, @Body('reason') reason: string) {
     return this.service.revoke(id, reason);
   }
 }

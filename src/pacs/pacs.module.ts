@@ -7,10 +7,7 @@ import { PacsController } from './pacs.controller';
 import { CategoriesModule } from '../categories/categories.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Pac]),
-    CategoriesModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Pac]), CategoriesModule],
   controllers: [PacsController],
   providers: [PacsService],
   exports: [PacsService],

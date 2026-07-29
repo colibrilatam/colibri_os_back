@@ -4,7 +4,7 @@ import { UpdateCurriculumDto } from './dto/update-curriculum.dto';
 
 @Injectable()
 export class CurriculumService {
-  create(createCurriculumDto: CreateCurriculumDto) {
+  create(_createCurriculumDto: CreateCurriculumDto) {
     return 'This action adds a new curriculum';
   }
 
@@ -16,7 +16,7 @@ export class CurriculumService {
     return `This action returns a #${id} curriculum`;
   }
 
-  update(id: number, updateCurriculumDto: UpdateCurriculumDto) {
+  update(id: number, _updateCurriculumDto: UpdateCurriculumDto) {
     return `This action updates a #${id} curriculum`;
   }
 

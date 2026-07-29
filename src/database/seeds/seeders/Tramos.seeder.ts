@@ -19,15 +19,11 @@ export async function seedTramos(dataSource: DataSource) {
       isActive: true,
       uncertaintyType: UncertaintyType.IDENTITARY_FORMULATION,
       primaryRiskType: RiskType.HUMANO,
-      associatedRisks: [
-        'Riesgo Humano',
-        'Riesgo de irrelevancia',
-        'Riesgo narrativo',
-      ],
-      icFloor: 0.00,
+      associatedRisks: ['Riesgo Humano', 'Riesgo de irrelevancia', 'Riesgo narrativo'],
+      icFloor: 0.0,
       eligibilityRule_es: 'El proyecto debe tener al menos una hipótesis de problema documentada.',
       eligibilityRule_en: 'The project must have at least one documented problem hypothesis.',
-      publicThreshold: 30.00,
+      publicThreshold: 30.0,
     },
     {
       code: 'T2',
@@ -47,10 +43,12 @@ export async function seedTramos(dataSource: DataSource) {
         'Riesgo de sesgo de confirmación',
         'Riesgo de modelo débil',
       ],
-      icFloor: 20.00,
-      eligibilityRule_es: 'El proyecto debe haber completado al menos 5 entrevistas de descubrimiento documentadas.',
-      eligibilityRule_en: 'The project must have completed at least 5 documented discovery interviews.',
-      publicThreshold: 45.00,
+      icFloor: 20.0,
+      eligibilityRule_es:
+        'El proyecto debe haber completado al menos 5 entrevistas de descubrimiento documentadas.',
+      eligibilityRule_en:
+        'The project must have completed at least 5 documented discovery interviews.',
+      publicThreshold: 45.0,
     },
     {
       code: 'T3',
@@ -65,15 +63,13 @@ export async function seedTramos(dataSource: DataSource) {
       isActive: true,
       uncertaintyType: UncertaintyType.OPERATIONAL,
       primaryRiskType: RiskType.OPERATIVO,
-      associatedRisks: [
-        'Riesgo técnico',
-        'Riesgo de ejecución',
-        'Riesgo de sobreconstrucción',
-      ],
-      icFloor: 35.00,
-      eligibilityRule_es: 'El proyecto debe contar con una propuesta de valor validada y un prototipo navegable.',
-      eligibilityRule_en: 'The project must have a validated value proposition and a navigable prototype.',
-      publicThreshold: 55.00,
+      associatedRisks: ['Riesgo técnico', 'Riesgo de ejecución', 'Riesgo de sobreconstrucción'],
+      icFloor: 35.0,
+      eligibilityRule_es:
+        'El proyecto debe contar con una propuesta de valor validada y un prototipo navegable.',
+      eligibilityRule_en:
+        'The project must have a validated value proposition and a navigable prototype.',
+      publicThreshold: 55.0,
     },
     {
       code: 'T4',
@@ -93,10 +89,12 @@ export async function seedTramos(dataSource: DataSource) {
         'Riesgo de monetización insuficiente',
         'Riesgo de retención baja',
       ],
-      icFloor: 50.00,
-      eligibilityRule_es: 'El proyecto debe demostrar uso recurrente por al menos 10 usuarios activos.',
-      eligibilityRule_en: 'The project must demonstrate recurring usage by at least 10 active users.',
-      publicThreshold: 65.00,
+      icFloor: 50.0,
+      eligibilityRule_es:
+        'El proyecto debe demostrar uso recurrente por al menos 10 usuarios activos.',
+      eligibilityRule_en:
+        'The project must demonstrate recurring usage by at least 10 active users.',
+      publicThreshold: 65.0,
     },
     {
       code: 'T5',
@@ -111,15 +109,13 @@ export async function seedTramos(dataSource: DataSource) {
       isActive: true,
       uncertaintyType: UncertaintyType.ORGANIZATIONAL,
       primaryRiskType: RiskType.OPERATIVO,
-      associatedRisks: [
-        'Riesgo operativo',
-        'Riesgo financiero estructural',
-        'Riesgo estratégico',
-      ],
-      icFloor: 65.00,
-      eligibilityRule_es: 'El proyecto debe tener ingresos recurrentes y equipo operativo consolidado.',
-      eligibilityRule_en: 'The project must have recurring revenue and a consolidated operating team.',
-      publicThreshold: 75.00,
+      associatedRisks: ['Riesgo operativo', 'Riesgo financiero estructural', 'Riesgo estratégico'],
+      icFloor: 65.0,
+      eligibilityRule_es:
+        'El proyecto debe tener ingresos recurrentes y equipo operativo consolidado.',
+      eligibilityRule_en:
+        'The project must have recurring revenue and a consolidated operating team.',
+      publicThreshold: 75.0,
     },
     {
       code: 'T6',
@@ -140,10 +136,12 @@ export async function seedTramos(dataSource: DataSource) {
         'Riesgo competitivo avanzado',
         'Riesgo reputacional',
       ],
-      icFloor: 80.00,
-      eligibilityRule_es: 'El proyecto debe demostrar impacto verificable y presencia activa en el ecosistema.',
-      eligibilityRule_en: 'The project must demonstrate verifiable impact and active presence in the ecosystem.',
-      publicThreshold: 90.00,
+      icFloor: 80.0,
+      eligibilityRule_es:
+        'El proyecto debe demostrar impacto verificable y presencia activa en el ecosistema.',
+      eligibilityRule_en:
+        'The project must demonstrate verifiable impact and active presence in the ecosystem.',
+      publicThreshold: 90.0,
     },
   ];
 

@@ -24,11 +24,9 @@ export class TramosService {
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
 
-
     @InjectRepository(ProjectTramoHistory)
     private readonly historyRepository: Repository<ProjectTramoHistory>,
   ) {}
-
 
   // ─── CRUD básico ────────────────────────────────────────────────────────────
 
@@ -37,9 +35,7 @@ export class TramosService {
       where: { code: dto.code },
     });
     if (existing) {
-      throw new ConflictException(
-        `Ya existe un tramo con el código "${dto.code}"`,
-      );
+      throw new ConflictException(`Ya existe un tramo con el código "${dto.code}"`);
     }
     const tramo = this.tramoRepository.create(dto);
     return this.tramoRepository.save(tramo);
@@ -57,13 +53,13 @@ export class TramosService {
     const project = await this.projectRepository.findOne({
       where: { id: projectId },
     });
-    
+
     if (!project) {
       throw new NotFoundException(`Proyecto ${projectId} no encontrado`);
     }
 
     if (!project.currentTramoId) return [];
-    
+
     const tramos = await this.tramoRepository.find({
       order: { sortOrder: 'ASC' },
       relations: ['categories'],
@@ -98,9 +94,7 @@ export class TramosService {
         where: { code: dto.code },
       });
       if (existing) {
-        throw new ConflictException(
-          `Ya existe un tramo con el código "${dto.code}"`,
-        );
+        throw new ConflictException(`Ya existe un tramo con el código "${dto.code}"`);
       }
     }
 

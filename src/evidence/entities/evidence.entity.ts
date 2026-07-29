@@ -21,6 +21,7 @@ export enum EvidenceStatus {
   UNDER_REVIEW = 'under_review',
   APPROVED = 'approved',
   REJECTED = 'rejected',
+  DELETION_PENDING = 'deletion_pending',
 }
 
 export enum ValidationStatus {
@@ -107,7 +108,7 @@ export class Evidence {
   @Column({ name: 'content_hash', nullable: true })
   contentHash: string;
 
-  @Column({ name: 'validated_by_user_id', nullable: true })
+  @Column({ name: 'validated_by_user_id', type: 'varchar', nullable: true })
   validatedByUserId: string | null;
 
   @Column({ name: 'validation_notes', type: 'text', nullable: true })

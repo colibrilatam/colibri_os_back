@@ -7,16 +7,10 @@ import { LearningResourceController } from './learning-resource.controller';
 import { LearningResourceRepository } from './learning-resource.repository';
 import { LearningResourceService } from './learning-resource.service';
 
-
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([LearningResource, Pac, MicroActionDefinition]),
-  ],
+  imports: [TypeOrmModule.forFeature([LearningResource, Pac, MicroActionDefinition])],
   controllers: [LearningResourceController],
-  providers: [
-    LearningResourceRepository,
-    LearningResourceService,
-  ],
-  exports: [LearningResourceService,],
+  providers: [LearningResourceRepository, LearningResourceService],
+  exports: [LearningResourceService],
 })
 export class LearningResourceModule {}

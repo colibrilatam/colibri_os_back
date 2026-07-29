@@ -1,5 +1,5 @@
 export interface IUpdateNftActor {
-        mintedAt?: Date;
-        metadataUri?: string;
-        nftHash?: string;
+  mintedAt?: Date;
+  metadataUri?: string;
+  nftHash?: string;
 }

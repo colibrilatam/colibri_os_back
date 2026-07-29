@@ -1,6 +1,5 @@
 import {
   Injectable,
-  Logger,
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
@@ -21,7 +20,8 @@ export class LearningResourceService {
   constructor(
     private readonly learningResourceRepository: LearningResourceRepository,
     @InjectRepository(Pac) private readonly pacRepository: Repository<Pac>,
-    @InjectRepository(MicroActionDefinition) private readonly microActionDefinitionRepository: Repository<MicroActionDefinition>,
+    @InjectRepository(MicroActionDefinition)
+    private readonly microActionDefinitionRepository: Repository<MicroActionDefinition>,
   ) {}
 
   async create(dto: ICreateLearningResource): Promise<LearningResource> {
@@ -32,7 +32,9 @@ export class LearningResourceService {
       }
 
       if (dto.microActionDefinitionId) {
-        const microAction = await this.microActionDefinitionRepository.findOneBy({ id: dto.microActionDefinitionId });
+        const microAction = await this.microActionDefinitionRepository.findOneBy({
+          id: dto.microActionDefinitionId,
+        });
         if (!microAction) {
           throw new NotFoundException(
             `MicroActionDefinition con id "${dto.microActionDefinitionId}" no encontrado`,
@@ -56,12 +58,10 @@ export class LearningResourceService {
     }
   }
 
-  async findAll(
-    query: QueryLearningResourceDto,
-  ): Promise<PaginatedResult<LearningResource>> {
+  async findAll(query: QueryLearningResourceDto): Promise<PaginatedResult<LearningResource>> {
     try {
       return await this.learningResourceRepository.findAll(query);
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException(
         'Ocurrió un error inesperado al recuperar los recursos de aprendizaje',
       );
@@ -72,9 +72,7 @@ export class LearningResourceService {
     try {
       const resource = await this.learningResourceRepository.findById(id);
       if (!resource) {
-        throw new NotFoundException(
-          `LearningResource con id "${id}" no encontrado`,
-        );
+        throw new NotFoundException(`LearningResource con id "${id}" no encontrado`);
       }
       return resource;
     } catch (error) {
@@ -85,16 +83,11 @@ export class LearningResourceService {
     }
   }
 
-  async update(
-    id: string,
-    dto: IUpdateLearningResource,
-  ){
+  async update(id: string, dto: IUpdateLearningResource) {
     try {
       const resource = await this.learningResourceRepository.findById(id);
       if (!resource) {
-        throw new NotFoundException(
-          `LearningResource con id "${id}" no encontrado`,
-        );
+        throw new NotFoundException(`LearningResource con id "${id}" no encontrado`);
       }
       const targetPacId = dto.pacId ?? resource.pacId;
       if (dto.pacId !== resource.pacId) {
@@ -105,7 +98,9 @@ export class LearningResourceService {
       }
       if (dto.microActionDefinitionId !== undefined) {
         if (dto.microActionDefinitionId !== null) {
-          const microAction = await this.microActionDefinitionRepository.findOneBy({ id: dto.microActionDefinitionId });
+          const microAction = await this.microActionDefinitionRepository.findOneBy({
+            id: dto.microActionDefinitionId,
+          });
           if (!microAction) {
             throw new NotFoundException(
               `MicroActionDefinition con id "${dto.microActionDefinitionId}" no encontrado`,
@@ -119,7 +114,7 @@ export class LearningResourceService {
         }
       }
 
-      const updated = await this.learningResourceRepository.update(id, dto);
+      await this.learningResourceRepository.update(id, dto);
       return `Recurso de aprendizaje "${dto.title}" actualizado exitosamente`;
     } catch (error) {
       if (
@@ -139,24 +134,17 @@ export class LearningResourceService {
     try {
       const exists = await this.learningResourceRepository.findById(id);
       if (!exists) {
-        throw new NotFoundException(
-          `LearningResource con el id "${id}" no encontrado`,
-        );
+        throw new NotFoundException(`LearningResource con el id "${id}" no encontrado`);
       }
 
       const success = await this.learningResourceRepository.softDelete(id);
       if (!success) {
-        throw new InternalServerErrorException(
-          'No se pudo desactivar el recurso de aprendizaje',
-        );
+        throw new InternalServerErrorException('No se pudo desactivar el recurso de aprendizaje');
       }
 
       return { message: `LearningResource "${id}" desactivado exitosamente` };
     } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof InternalServerErrorException
-      ) {
+      if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
         throw error;
       }
       throw new InternalServerErrorException(
@@ -169,9 +157,7 @@ export class LearningResourceService {
     try {
       const exists = await this.learningResourceRepository.findById(id);
       if (!exists) {
-        throw new NotFoundException(
-          `LearningResource con el id "${id}" no encontrado`,
-        );
+        throw new NotFoundException(`LearningResource con el id "${id}" no encontrado`);
       }
 
       const success = await this.learningResourceRepository.hardDelete(id);
@@ -185,10 +171,7 @@ export class LearningResourceService {
         message: `LearningResource "${id}" eliminado permanentemente`,
       };
     } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof InternalServerErrorException
-      ) {
+      if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
         throw error;
       }
       throw new InternalServerErrorException(

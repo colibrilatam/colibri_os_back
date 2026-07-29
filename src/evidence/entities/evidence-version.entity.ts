@@ -5,11 +5,13 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { Evidence } from './evidence.entity';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('evidence_versions')
+@Unique(['evidenceId', 'versionNumber'])
 export class EvidenceVersion {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -25,6 +27,24 @@ export class EvidenceVersion {
 
   @Column({ name: 'content_hash', nullable: true })
   contentHash: string;
+
+  @Column({ name: 'hash_algorithm', type: 'varchar', nullable: true })
+  hashAlgorithm: string | null;
+
+  @Column({ name: 'cloudinary_public_id', type: 'varchar', nullable: true })
+  cloudinaryPublicId: string | null;
+
+  @Column({ name: 'asset_version', type: 'varchar', nullable: true })
+  assetVersion: string | null;
+
+  @Column({ name: 'provider_checksum', type: 'varchar', nullable: true })
+  providerChecksum: string | null;
+
+  @Column({ name: 'mime_type', type: 'varchar', nullable: true })
+  mimeType: string | null;
+
+  @Column({ name: 'byte_size', type: 'int', nullable: true })
+  byteSize: number | null;
 
   @Column({ name: 'change_summary', type: 'text', nullable: true })
   changeSummary: string;

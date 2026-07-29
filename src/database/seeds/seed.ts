@@ -15,12 +15,12 @@ import { seedEvidences } from './seeders/evidence.seeder';
 import { seedProjectPacs } from './seeders/ProjectPac.seeder';
 
 async function seed() {
-    await AppDataSource.initialize();
-    console.log('📦 Conectado a la DB');
+  await AppDataSource.initialize();
+  console.log('📦 Conectado a la DB');
 
-    try {
-        await AppDataSource.query(
-            `TRUNCATE TABLE
+  try {
+    await AppDataSource.query(
+      `TRUNCATE TABLE
         "learning_resources",
         "evidence_versions",
         "evidences",
@@ -40,42 +40,43 @@ async function seed() {
         "rubrics",
         "ic_algorithm_versions"
         RESTART IDENTITY CASCADE;
-    `);
+    `,
+    );
 
-        const users = await seedUsers(AppDataSource);
-        const tramos = await seedTramos(AppDataSource);
-        const categories = await seedCategories(AppDataSource, tramos);
-        const pacs = await seedPacs(AppDataSource, categories);
+    const users = await seedUsers(AppDataSource);
+    const tramos = await seedTramos(AppDataSource);
+    const categories = await seedCategories(AppDataSource, tramos);
+    const pacs = await seedPacs(AppDataSource, categories);
 
-        // seedProjects ahora recibe pacs para asignar currentPacId y crear ProjectPacs
-        const projects = await seedProjects(AppDataSource, users, tramos, pacs);
-        const projectPacs = await seedProjectPacs(AppDataSource, projects, pacs);
+    // seedProjects ahora recibe pacs para asignar currentPacId y crear ProjectPacs
+    const projects = await seedProjects(AppDataSource, users, tramos, pacs);
+    const projectPacs = await seedProjectPacs(AppDataSource, projects, pacs);
 
-        await seedNfts(AppDataSource, users, projects);
-        await seedProjectMembers(AppDataSource, users, projects);
+    await seedNfts(AppDataSource, users, projects);
+    await seedProjectMembers(AppDataSource, users, projects);
 
-        const rubrics = await seedRubrics(AppDataSource);
-        const microActionDefs = await seedMicroActionDefinitions(AppDataSource, pacs, rubrics);
-        const microActionInstances = await seedMicroActionInstances(
-            AppDataSource,
-            users,
-            projects,
-            microActionDefs,
-        );
+    const rubrics = await seedRubrics(AppDataSource);
+    const microActionDefs = await seedMicroActionDefinitions(AppDataSource, pacs, rubrics);
+    const microActionInstances = await seedMicroActionInstances(
+      AppDataSource,
+      users,
+      projects,
+      microActionDefs,
+    );
 
-        await seedEvidences(AppDataSource, users, projects, microActionDefs, microActionInstances);
+    await seedEvidences(AppDataSource, users, projects, microActionDefs, microActionInstances);
 
-        await seedLearningResources(AppDataSource, pacs, microActionDefs);
+    await seedLearningResources(AppDataSource, pacs, microActionDefs);
 
-        await seedAlgorithmVersions(AppDataSource);
+    await seedAlgorithmVersions(AppDataSource);
 
-        console.log('\n🌱 Seed completado exitosamente');
-    } catch (error) {
-        console.error('❌ Error en seed:', error);
-        process.exit(1);
-    } finally {
-        await AppDataSource.destroy();
-    }
+    console.log('\n🌱 Seed completado exitosamente');
+  } catch (error) {
+    console.error('❌ Error en seed:', error);
+    process.exit(1);
+  } finally {
+    await AppDataSource.destroy();
+  }
 }
 
 seed();

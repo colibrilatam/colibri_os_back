@@ -13,11 +13,11 @@ import { TramosService } from './tramos.service';
     TypeOrmModule.forFeature([
       Tramo,
       ProjectTramoHistory,
-      Project,           // necesario para leer/actualizar currentTramoId
+      Project, // necesario para leer/actualizar currentTramoId
     ]),
   ],
   controllers: [TramosController],
   providers: [TramosService],
-  exports: [TramosService],  // exportado para que ProjectsService pueda llamar initTramoHistory
+  exports: [TramosService], // exportado para que ProjectsService pueda llamar initTramoHistory
 })
 export class TramosModule {}

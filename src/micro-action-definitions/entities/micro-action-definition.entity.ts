@@ -39,7 +39,7 @@ export class MicroActionDefinition {
   @Column({ name: 'pac_id' })
   pacId: string;
 
-  @Column({ name: 'rubric_id', nullable: true })
+  @Column({ name: 'rubric_id', type: 'varchar', nullable: true })
   rubricId: string | null;
 
   @Column({ unique: true })

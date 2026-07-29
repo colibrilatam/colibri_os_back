@@ -25,10 +25,10 @@ export class NftOwnershipEvent {
   @Column({ name: 'nft_project_id' })
   nftProjectId: string;
 
-  @Column({ name: 'from_user_id', nullable: true })
+  @Column({ name: 'from_user_id', type: 'varchar', nullable: true })
   fromUserId: string | null;
 
-  @Column({ name: 'to_user_id', nullable: true })
+  @Column({ name: 'to_user_id', type: 'varchar', nullable: true })
   toUserId: string | null;
 
   @Column({ type: 'enum', enum: NftEventType, name: 'event_type' })

@@ -39,7 +39,7 @@ export class ProjectMember {
   @Column({ name: 'project_id' })
   projectId: string;
 
-  @Column({type: 'enum', enum: GenderProjectMember, nullable: true})
+  @Column({ type: 'enum', enum: GenderProjectMember, nullable: true })
   gender: GenderProjectMember;
 
   @Column({ name: 'user_id' })

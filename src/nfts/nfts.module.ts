@@ -19,11 +19,31 @@ import { NftOwnershipEventRepository } from './nft-ownership-event/nft-ownership
 import { ProjectsModule } from 'src/projects/projects.module';
 
 @Module({
-  imports: [ UsersModule, ProjectsModule,
+  imports: [
+    UsersModule,
+    ProjectsModule,
     TypeOrmModule.forFeature([NftProject, NftActor, MecenasNftPortfolio, NftOwnershipEvent]),
   ],
-  controllers: [NftProjectController, NftActorController, MecenasNftPortfolioController, NftOwnershipEventController],
-  providers: [NftProjectService,NftActorRepository, NftActorService, MecenasNftPortfolioService, MecenasNftPortfolioRepository, NftOwnershipEventService, NftOwnershipEventRepository],
-  exports: [NftProjectService, NftActorService, MecenasNftPortfolioService, NftOwnershipEventService],
+  controllers: [
+    NftProjectController,
+    NftActorController,
+    MecenasNftPortfolioController,
+    NftOwnershipEventController,
+  ],
+  providers: [
+    NftProjectService,
+    NftActorRepository,
+    NftActorService,
+    MecenasNftPortfolioService,
+    MecenasNftPortfolioRepository,
+    NftOwnershipEventService,
+    NftOwnershipEventRepository,
+  ],
+  exports: [
+    NftProjectService,
+    NftActorService,
+    MecenasNftPortfolioService,
+    NftOwnershipEventService,
+  ],
 })
 export class NftsModule {}

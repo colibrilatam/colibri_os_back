@@ -1,8 +1,8 @@
-import { PortfolioRole } from "src/nfts/entities/mecenas-nft-portfolio.entity";
+import { PortfolioRole } from 'src/nfts/entities/mecenas-nft-portfolio.entity';
 
 export interface ICreateMecenasNft {
-    mecenasUserId: string;
-    nftProjectId: string;
-    targetProjectId?: string | null;
-    portfolioRole?: PortfolioRole | null;
+  mecenasUserId: string;
+  nftProjectId: string;
+  targetProjectId?: string | null;
+  portfolioRole?: PortfolioRole | null;
 }

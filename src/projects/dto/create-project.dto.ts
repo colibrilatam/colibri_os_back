@@ -12,12 +12,12 @@ export class CreateProjectDto {
   // En CreateProjectDto, podés agregar opcionalmente:
   @ApiPropertyOptional({ type: 'string', format: 'binary', description: 'Imagen del proyecto' })
   @IsOptional()
-  image?: any;
+  image?: unknown;
 
   @ApiPropertyOptional({ enum: ProjectStatus })
   @IsEnum(ProjectStatus)
   @IsOptional()
-  @Transform(({ value }) => value?.toLowerCase())
+  @Transform(({ value }: { value?: string }) => value?.toLowerCase())
   status?: ProjectStatus;
 
   @ApiPropertyOptional({ example: 'Argentina' })

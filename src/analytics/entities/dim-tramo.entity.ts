@@ -1,11 +1,4 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  OneToMany,
-  OneToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Tramo } from '../../tramos/entities/tramo.entity';
 import { DimCategory } from './dim-category.entity';
 import { FactProjectActivity } from './fact-project-activity.entity';

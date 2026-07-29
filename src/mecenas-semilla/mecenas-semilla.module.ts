@@ -1,4 +1,3 @@
-
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MecenasSemillaController } from './mecenas-semilla.controller';
@@ -15,13 +14,7 @@ import { User } from 'src/users/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      User,
-      MecenasNftPortfolio,
-      NftProject,
-      NftOwnershipEvent,
-      Project,
-    ]),
+    TypeOrmModule.forFeature([User, MecenasNftPortfolio, NftProject, NftOwnershipEvent, Project]),
     UsersModule,
     NftsModule,
     ProjectsModule,
