@@ -1,11 +1,14 @@
 import { NestFactory, Reflector } from '@nestjs/core';
-import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
+import { ClassSerializerInterceptor, Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
+const logger = new Logger('Bootstrap');
+
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
-  const allowedOrigins = parseAllowedOrigins(process.env.FRONTEND_URL);
+  const allowedOrigins = parseAllowedOrigins(process.env.FRONTEND_URL, process.env.FRONTEND_URLS);
+
   app.enableCors({
     origin: (
       origin: string | undefined,
@@ -20,10 +23,8 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
-  // Prefijo global
   app.setGlobalPrefix('api/v1');
 
-  // Validación global con class-validator
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -34,7 +35,6 @@ async function bootstrap(): Promise<void> {
 
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
-  // Swagger
   if (process.env.SWAGGER_ENABLED === 'true') {
     const config = new DocumentBuilder()
       .setTitle('Colibrí OS API')
@@ -46,26 +46,48 @@ async function bootstrap(): Promise<void> {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('docs', app, document);
 
-    console.log(`📚 Swagger: http://localhost:${process.env.PORT ?? 3000}/docs`);
+    logger.log(`📚 Swagger: http://localhost:${process.env.PORT ?? 3000}/docs`);
   }
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  console.log(`🚀 Servidor corriendo en el puerto: ${port}`);
+  logger.log(`🚀 Servidor corriendo en el puerto: ${port}`);
 }
 
-void bootstrap();
-
-function parseAllowedOrigins(value: string | undefined): string[] {
-  if (!value) {
-    throw new Error('FRONTEND_URL es obligatoria y debe contener al menos un origen permitido');
+/**
+ * FRONTEND_URL: origen principal (se usa también para el redirect de Google OAuth).
+ * FRONTEND_URLS (opcional, separado por comas): orígenes adicionales permitidos
+ * en CORS — típicamente previews de Vercel.
+ */
+function parseAllowedOrigins(primary: string | undefined, extra: string | undefined): string[] {
+  if (!primary) {
+    throw new Error('FRONTEND_URL es obligatoria y debe contener el origen principal permitido');
   }
 
-  return value.split(',').map((origin) => {
-    try {
-      return new URL(origin.trim()).origin;
-    } catch {
-      throw new Error(`Origen inválido en FRONTEND_URL: ${origin}`);
-    }
-  });
+  const raw = [primary, ...(extra ? extra.split(',') : [])];
+
+  return raw
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0)
+    .map((origin) => {
+      try {
+        return new URL(origin).origin;
+      } catch {
+        throw new Error(`Origen inválido en FRONTEND_URL/FRONTEND_URLS: ${origin}`);
+      }
+    });
 }
+
+bootstrap().catch((error: unknown) => {
+  logger.error(
+    JSON.stringify({
+      message: 'Error fatal durante el bootstrap de la aplicación',
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      env: process.env.NODE_ENV,
+      nodeVersion: process.version,
+      timestamp: new Date().toISOString(),
+    }),
+  );
+  process.exit(1);
+});

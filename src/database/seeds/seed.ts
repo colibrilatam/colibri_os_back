@@ -15,6 +15,14 @@ import { seedEvidences } from './seeders/evidence.seeder';
 import { seedProjectPacs } from './seeders/ProjectPac.seeder';
 
 async function seed() {
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_PROD_SEED !== 'true') {
+    console.error(
+      '❌ Seed abortado: NODE_ENV=production. Si realmente querés sembrar producción, ' +
+        'corré con ALLOW_PROD_SEED=true de forma explícita.',
+    );
+    process.exit(1);
+  }
+  
   await AppDataSource.initialize();
   console.log('📦 Conectado a la DB');
 

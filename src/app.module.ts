@@ -1,5 +1,3 @@
-// src/app.module.ts
-
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -23,6 +21,7 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
 import { MecenasSemillaModule } from './mecenas-semilla/mecenas-semilla.module';
 import { DigitalCredentialsModule } from './digital-credentials/digital-credentials.module';
 import { TramoClosureModule } from './tramo-closure/tramo-closure.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -65,6 +64,7 @@ import { TramoClosureModule } from './tramo-closure/tramo-closure.module';
     MecenasSemillaModule,
     DigitalCredentialsModule,
     TramoClosureModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
