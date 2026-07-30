@@ -1,0 +1,32 @@
+name: Sync doc issues
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "doc-issues/**"
+      - "scripts/sync-doc-issues.mjs"
+      - ".github/workflows/sync-doc-issues.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: doc-issues-sync-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Sync doc issues
+        run: node scripts/sync-doc-issues.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
