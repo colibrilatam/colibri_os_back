@@ -20,13 +20,15 @@ export class UsersService {
     @InjectRepository(UserRoleChangeAudit)
     private readonly roleChangeAuditRepository: Repository<UserRoleChangeAudit>,
   ) {}
+
   async create(user: ICreateUser) {
     try {
-      const userFound = await this.userRepository.findByEmail(user.email);
+      const email = this.normalizeEmail(user.email);
+      const userFound = await this.userRepository.findByEmail(email);
       if (userFound) {
         throw new BadRequestException('El email proporcionado ya se encuentra en uso');
       }
-      return await this.userRepository.create(user);
+      return await this.userRepository.create({ ...user, email });
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -36,7 +38,7 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
-    return await this.userRepository.findByEmail(email);
+    return await this.userRepository.findByEmail(this.normalizeEmail(email));
   }
 
   async findAll() {
@@ -121,5 +123,9 @@ export class UsersService {
     if (principal.userId !== targetUserId && principal.role !== UserRole.ADMIN) {
       throw new ForbiddenException('No tenés permiso para operar sobre este usuario');
     }
+  }
+
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
   }
 }
