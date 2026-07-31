@@ -40,7 +40,7 @@ export class MicroActionInstanceController {
   // ─── POST /micro-action-instances ────────────────────────────────────────
 
   @Post()
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Iniciar una microacción',
@@ -86,7 +86,7 @@ export class MicroActionInstanceController {
   // ─── GET /micro-action-instances/project/:projectId ──────────────────────
 
   @Get('project/:projectId')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Listar todas las instancias de un proyecto',
     description: 'Devuelve todas las microacciones instanciadas para el proyecto indicado.',
@@ -139,7 +139,7 @@ export class MicroActionInstanceController {
   // ─── GET /micro-action-instances/me ──────────────────────────────────────
 
   @Get('me')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Listar mis propias instancias de microacción',
     description: 'El emprendedor autenticado consulta todas las instancias que le pertenecen.',
@@ -166,7 +166,7 @@ export class MicroActionInstanceController {
   // ─── GET /micro-action-instances/:id ─────────────────────────────────────
 
   @Get(':id')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Obtener una instancia por ID',
     description:
@@ -216,7 +216,7 @@ export class MicroActionInstanceController {
   // ─── PATCH /micro-action-instances/:id ───────────────────────────────────
 
   @Patch(':id')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Actualizar estado o notas de una instancia',
     description: `Permite avanzar el estado de la instancia o actualizar las notas de ejecución.
@@ -253,7 +253,7 @@ export class MicroActionInstanceController {
   // ─── POST /micro-action-instances/:id/submit ─────────────────────────────
 
   @Post(':id/submit')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Enviar instancia a evaluación',
@@ -288,7 +288,7 @@ export class MicroActionInstanceController {
   // ─── POST /micro-action-instances/:id/reopen ─────────────────────────────
 
   @Post(':id/reopen')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Reabrir una instancia para corrección',
@@ -324,7 +324,7 @@ export class MicroActionInstanceController {
   // ─── DELETE /micro-action-instances/:id ──────────────────────────────────
 
   @Delete(':id')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Eliminar una instancia',

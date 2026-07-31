@@ -30,7 +30,7 @@ export class ReputationController {
   // ─── ALGORITMO ────────────────────────────────────────────────────────────────
 
   @Post('algorithm-versions')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Crear versión del algoritmo del IC',
@@ -43,7 +43,7 @@ export class ReputationController {
   }
 
   @Get('algorithm-versions')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Listar todas las versiones del algoritmo' })
   @ApiResponse({ status: 200, description: 'Lista de versiones del algoritmo.' })
   findAllAlgorithmVersions() {
@@ -51,7 +51,7 @@ export class ReputationController {
   }
 
   @Get('algorithm-versions/active')
-  @Roles(UserRole.ADMIN, UserRole.EVALUATOR, UserRole.MENTOR)
+  // @Roles(UserRole.ADMIN, UserRole.EVALUATOR, UserRole.MENTOR)
   @ApiOperation({ summary: 'Obtener la versión activa del algoritmo' })
   @ApiResponse({ status: 200, description: 'Versión activa del algoritmo.' })
   @ApiResponse({ status: 404, description: 'No hay versión activa.' })
@@ -60,7 +60,7 @@ export class ReputationController {
   }
 
   @Get('algorithm-versions/:id')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Obtener una versión del algoritmo por ID' })
   @ApiParam({ name: 'id', example: 'algo-uuid-001' })
   @ApiResponse({ status: 200, description: 'Versión del algoritmo.' })
@@ -72,7 +72,7 @@ export class ReputationController {
   // ─── MOTOR DE CÁLCULO ─────────────────────────────────────────────────────────
 
   @Post('calculate')
-  @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
+  //@Roles(UserRole.ADMIN, UserRole.EVALUATOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Calcular el Índice Colibrí de un proyecto',
@@ -96,15 +96,15 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   // ─── SNAPSHOTS ────────────────────────────────────────────────────────────────
 
   @Get('projects/:projectId/latest')
-  @Roles(
-    UserRole.ENTREPRENEUR,
-    UserRole.MENTOR,
-    UserRole.EVALUATOR,
-    UserRole.ADMIN,
-    UserRole.MECENAS_SEMILLA,
-    UserRole.MECENAS_FUNDACIONAL,
-    UserRole.MECENAS_CAMBIO,
-  )
+  // @Roles(
+  //   UserRole.ENTREPRENEUR,
+  //   UserRole.MENTOR,
+  //   UserRole.EVALUATOR,
+  //   UserRole.ADMIN,
+  //   UserRole.MECENAS_SEMILLA,
+  //   UserRole.MECENAS_FUNDACIONAL,
+  //   UserRole.MECENAS_CAMBIO,
+  // )
   @ApiOperation({
     summary: 'Obtener el snapshot reputacional vigente de un proyecto',
     description:
@@ -118,15 +118,15 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   }
 
   @Get('projects/:projectId/history')
-  @Roles(
-    UserRole.ENTREPRENEUR,
-    UserRole.MENTOR,
-    UserRole.EVALUATOR,
-    UserRole.ADMIN,
-    UserRole.MECENAS_SEMILLA,
-    UserRole.MECENAS_FUNDACIONAL,
-    UserRole.MECENAS_CAMBIO,
-  )
+  // @Roles(
+  //   UserRole.ENTREPRENEUR,
+  //   UserRole.MENTOR,
+  //   UserRole.EVALUATOR,
+  //   UserRole.ADMIN,
+  //   UserRole.MECENAS_SEMILLA,
+  //   UserRole.MECENAS_FUNDACIONAL,
+  //   UserRole.MECENAS_CAMBIO,
+  // )
   @ApiOperation({
     summary: 'Historial de snapshots de un proyecto',
     description:
@@ -139,15 +139,15 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   }
 
   @Get('snapshots/:id')
-  @Roles(
-    UserRole.ENTREPRENEUR,
-    UserRole.MENTOR,
-    UserRole.EVALUATOR,
-    UserRole.ADMIN,
-    UserRole.MECENAS_SEMILLA,
-    UserRole.MECENAS_FUNDACIONAL,
-    UserRole.MECENAS_CAMBIO,
-  )
+  // @Roles(
+  //   UserRole.ENTREPRENEUR,
+  //   UserRole.MENTOR,
+  //   UserRole.EVALUATOR,
+  //   UserRole.ADMIN,
+  //   UserRole.MECENAS_SEMILLA,
+  //   UserRole.MECENAS_FUNDACIONAL,
+  //   UserRole.MECENAS_CAMBIO,
+  // )
   @ApiOperation({
     summary: 'Obtener un snapshot con todas sus explicaciones',
     description:

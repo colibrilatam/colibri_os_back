@@ -42,7 +42,7 @@ export class TramosController {
   // ─── CRUD base ────────────────────────────────────────────────────────────
 
   @Post()
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Crear un nuevo tramo',
     description:
@@ -101,7 +101,7 @@ export class TramosController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Actualizar un tramo',
     description:
@@ -121,7 +121,7 @@ export class TramosController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Eliminar un tramo',
@@ -143,7 +143,7 @@ export class TramosController {
   // ─── Historial de tramos ──────────────────────────────────────────────────
 
   @Post('project/:projectId/change')
-  @Roles(UserRole.ADMIN)
+ // @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Cambiar el tramo activo de un proyecto',
     description:

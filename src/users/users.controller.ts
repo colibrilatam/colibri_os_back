@@ -74,7 +74,7 @@ export class UsersController {
   }
 
   @Patch(':id/role')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Cambiar el rol de un usuario y registrar la auditoría' })
   async changeRole(
     @Param('id', ParseUUIDPipe) id: string,

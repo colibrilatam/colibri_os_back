@@ -17,7 +17,7 @@ export class MecenasSemillaController {
   constructor(private readonly mecenasService: MecenasSemillaService) {}
 
   @Post('activate/:userId')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Activar rol de Mecenas Aliado Semilla',
     description:
@@ -43,7 +43,7 @@ export class MecenasSemillaController {
   }
 
   @Get('dashboard/:userId')
-  @Roles(UserRole.MECENAS_SEMILLA, UserRole.ADMIN)
+  // @Roles(UserRole.MECENAS_SEMILLA, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Obtener dashboard del mecenas',
     description:
@@ -76,7 +76,7 @@ export class MecenasSemillaController {
   }
 
   @Post('buy-nfts/:userId')
-  @Roles(UserRole.MECENAS_SEMILLA, UserRole.ADMIN)
+  // @Roles(UserRole.MECENAS_SEMILLA, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Comprar NFTs Colibrí asignables',
     description:
@@ -109,7 +109,7 @@ export class MecenasSemillaController {
   }
 
   @Get('projects/:userId')
-  @Roles(UserRole.MECENAS_SEMILLA, UserRole.ADMIN)
+  // @Roles(UserRole.MECENAS_SEMILLA, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Explorar proyectos visibles para el mecenas',
     description:
@@ -140,7 +140,7 @@ export class MecenasSemillaController {
   }
 
   @Post('assign-nft/:userId')
-  @Roles(UserRole.MECENAS_SEMILLA, UserRole.ADMIN)
+  // @Roles(UserRole.MECENAS_SEMILLA, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Asignar NFT Colibrí a un proyecto elegible',
     description:

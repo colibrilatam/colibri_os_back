@@ -44,7 +44,7 @@ export class NftProjectController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Obtener todos los NFTs de proyectos' })
   findAll() {
     return this.nftProjectService.findAll();
@@ -87,7 +87,7 @@ export class NftProjectController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Eliminar un NFT de proyecto' })
   remove(@Param('id') id: string) {
     return this.nftProjectService.remove(id);

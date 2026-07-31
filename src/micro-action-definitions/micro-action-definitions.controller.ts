@@ -66,7 +66,7 @@ export class MicroActionDefinitionsController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Crear una definición de microacción',
     description:
@@ -156,7 +156,7 @@ export class MicroActionDefinitionsController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Actualizar una microacción',
     description:
@@ -184,7 +184,7 @@ export class MicroActionDefinitionsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Eliminar una microacción',

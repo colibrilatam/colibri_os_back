@@ -33,7 +33,7 @@ export class DigitalCredentialsController {
   constructor(private readonly service: DigitalCredentialsService) {}
 
   @Get('project/:projectId')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Listar credenciales de un proyecto' })
   @ApiParam({ name: 'projectId', example: 'proj-uuid-0001' })
   @ApiResponse({ status: 200, description: 'Lista de credenciales del proyecto.' })
@@ -42,7 +42,7 @@ export class DigitalCredentialsController {
   }
 
   @Get('user/:userId')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Listar credenciales de un usuario' })
   @ApiParam({ name: 'userId', example: 'user-uuid-001' })
   @ApiResponse({ status: 200, description: 'Lista de credenciales del usuario.' })
@@ -51,7 +51,7 @@ export class DigitalCredentialsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Obtener una credencial por ID' })
   @ApiParam({ name: 'id', example: 'cred-uuid-001' })
   @ApiResponse({ status: 200, description: 'Detalle de la credencial.' })
@@ -61,7 +61,7 @@ export class DigitalCredentialsController {
   }
 
   @Post(':id/revoke')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Revocar una credencial',

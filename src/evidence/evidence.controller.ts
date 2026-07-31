@@ -312,7 +312,7 @@ export class EvidenceController {
 
   @Post(':id/retry-deletion')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Reintentar borrado pendiente (ADMIN)',
