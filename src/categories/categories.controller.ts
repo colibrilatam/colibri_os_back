@@ -29,8 +29,8 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../users/entities/user.entity';
+// import { Roles } from '../auth/decorators/roles.decorator';
+// import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Categories')
 @Controller('categories')

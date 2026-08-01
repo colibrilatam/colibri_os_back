@@ -29,9 +29,9 @@ import { UpdateTramoDto } from './dto/update-tramo.dto';
 import { ChangeTramoDto } from './dto/change-tramo.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '../users/entities/user.entity';
+// import { Roles } from '../auth/decorators/roles.decorator';
+// import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Tramos')
 @Controller('tramos')
@@ -143,7 +143,7 @@ export class TramosController {
   // ─── Historial de tramos ──────────────────────────────────────────────────
 
   @Post('project/:projectId/change')
- // @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Cambiar el tramo activo de un proyecto',
     description:

@@ -26,8 +26,8 @@ import { CreatePacDto } from './dto/create-pac.dto';
 import { UpdatePacDto } from './dto/update-pac.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../users/entities/user.entity';
+// import { Roles } from '../auth/decorators/roles.decorator';
+// import { UserRole } from '../users/entities/user.entity';
 
 const EXAMPLE_PAC = {
   id: 'pac-uuid-0001',
@@ -138,7 +138,7 @@ export class PacsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
- // @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Eliminar un PAC',

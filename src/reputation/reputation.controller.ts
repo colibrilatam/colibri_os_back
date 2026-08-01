@@ -17,8 +17,8 @@ import { CreateAlgorithmVersionDto } from './dto/create-algorithm-version.dto';
 import { CalculateSnapshotDto } from './dto/calculate-snapshot.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../users/entities/user.entity';
+// import { Roles } from '../auth/decorators/roles.decorator';
+// import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Reputation')
 @ApiBearerAuth()
