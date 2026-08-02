@@ -26,8 +26,8 @@ import { CreateMicroActionDefinitionDto } from './dto/create-micro-action-defini
 import { UpdateMicroActionDefinitionDto } from './dto/update-micro-action-definition.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../users/entities/user.entity';
+// import { Roles } from '../auth/decorators/roles.decorator';
+// import { UserRole } from '../users/entities/user.entity';
 
 const EXAMPLE_MAD = {
   id: 'd1e2f3a4-aaaa-4bbb-8ccc-000011112222',
@@ -66,7 +66,7 @@ export class MicroActionDefinitionsController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Crear una definición de microacción',
     description:
@@ -156,7 +156,7 @@ export class MicroActionDefinitionsController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Actualizar una microacción',
     description:
@@ -184,7 +184,7 @@ export class MicroActionDefinitionsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Eliminar una microacción',

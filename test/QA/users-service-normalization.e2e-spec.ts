@@ -3,9 +3,23 @@ import { BadRequestException } from '@nestjs/common';
 import { AuthProvider, UserRole } from '../../src/users/entities/user.entity';
 import { UsersService } from '../../src/users/users.service';
 
+type MockUserRepository = {
+  findByEmail: jest.Mock;
+  create: jest.Mock;
+  findOneByID: jest.Mock;
+  findAll: jest.Mock;
+  updateUser: jest.Mock;
+  deleteUser: jest.Mock;
+};
+
+type MockRoleChangeAuditRepository = {
+  create: jest.Mock;
+  save: jest.Mock;
+};
+
 describe('UsersService - normalizacion de email (QA-AUD-002)', () => {
-  let userRepository: any;
-  let roleChangeAuditRepository: any;
+  let userRepository: MockUserRepository;
+  let roleChangeAuditRepository: MockRoleChangeAuditRepository;
   let service: UsersService;
 
   beforeEach(() => {
@@ -23,12 +37,12 @@ describe('UsersService - normalizacion de email (QA-AUD-002)', () => {
       save: jest.fn(),
     };
 
-    service = new UsersService(userRepository, roleChangeAuditRepository);
+    service = new UsersService(userRepository as any, roleChangeAuditRepository as any);
   });
 
   it('trimea y baja a minusculas antes de buscar o crear', async () => {
     userRepository.findByEmail.mockResolvedValue(null);
-    userRepository.create.mockImplementation(async (user: any) => user);
+    userRepository.create.mockImplementation((user: unknown) => user);
 
     await service.create({
       email: '  MiUsuario@Example.com  ',
