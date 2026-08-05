@@ -140,7 +140,7 @@ export class EvidenceService {
         evidenceId: evidence.id,
         authorUserId,
         projectId: evidence.projectId,
-        expectedPublicId: `${signature.folder}/${signature.publicId}`,
+        expectedPublicId: `${signature.folder}/${signature.publicId}.pdf`,
         folder: signature.folder,
         mimeType: dto.mimeType,
         resourceType: this.cloudinaryService.getResourceType(dto.mimeType),
@@ -181,10 +181,12 @@ export class EvidenceService {
 
     const resourceType = session.resourceType;
 
+    
     const fileMeta = await this.cloudinaryService.getFileMetadata(
       dto.cloudinaryPublicId,
       resourceType,
     );
+    
 
     if (
       fileMeta.publicId !== session.expectedPublicId ||
