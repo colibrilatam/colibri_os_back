@@ -197,7 +197,7 @@ export class EvaluationController {
   }
 
   @Get('pending-reviews')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN,  UserRole.EVALUATOR)
   @ApiOperation({
     summary: 'Listar evaluaciones pendientes de revisión humana',
     description:
@@ -259,7 +259,7 @@ export class EvaluationController {
   // ══════════════════════════════════════════════════════════
 
   @Post('rubrics')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN,  UserRole.EVALUATOR)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Crear una rúbrica',
@@ -303,7 +303,7 @@ export class EvaluationController {
   }
 
   @Patch('rubrics/:id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN,  UserRole.EVALUATOR)
   @ApiOperation({
     summary: 'Actualizar una rúbrica',
     description: 'Solo admin. Todos los campos son opcionales.',
