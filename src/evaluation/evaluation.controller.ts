@@ -27,7 +27,7 @@ import { CreateRubricDto } from './dto/create-rubric.dto';
 import { UpdateRubricDto } from './dto/update-rubric.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+// import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
@@ -97,7 +97,7 @@ export class EvaluationController {
   }
 
   @Post('ai-result')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Registrar resultado de IA',
@@ -130,7 +130,7 @@ export class EvaluationController {
   }
 
   @Post('human-review')
-  @Roles(UserRole.EVALUATOR, UserRole.MENTOR, UserRole.ADMIN)
+  // @Roles(UserRole.EVALUATOR, UserRole.MENTOR, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Registrar revisión humana',
@@ -213,7 +213,7 @@ export class EvaluationController {
   }
 
   @Get('evidence/:evidenceId')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Listar evaluaciones de una evidencia',
     description:
