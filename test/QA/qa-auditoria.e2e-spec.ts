@@ -106,7 +106,9 @@ describe('QA audit battery - disponibilidad, CORS y auth', () => {
     });
 
     it('GET /api/v1/ready devuelve 503 si la consulta a la base falla', async () => {
-      const querySpy = jest.spyOn(ctx.dataSource, 'query').mockRejectedValueOnce(new Error('db down'));
+      const querySpy = jest
+        .spyOn(ctx.dataSource, 'query')
+        .mockRejectedValueOnce(new Error('db down'));
 
       try {
         await request(server()).get('/api/v1/ready').expect(503);
@@ -153,7 +155,10 @@ describe('QA audit battery - disponibilidad, CORS y auth', () => {
     };
 
     it('registra un usuario y guarda el email en minusculas', async () => {
-      const res = await request(server()).post('/api/v1/auth/signup').send(signupPayload).expect(201);
+      const res = await request(server())
+        .post('/api/v1/auth/signup')
+        .send(signupPayload)
+        .expect(201);
 
       expect(res.body.token).toEqual(expect.any(String));
 

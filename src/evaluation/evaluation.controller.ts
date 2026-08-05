@@ -27,7 +27,7 @@ import { CreateRubricDto } from './dto/create-rubric.dto';
 import { UpdateRubricDto } from './dto/update-rubric.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+// import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
@@ -70,7 +70,7 @@ export class EvaluationController {
   // ══════════════════════════════════════════════════════════
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
+  // @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Crear una evaluación',
@@ -97,7 +97,7 @@ export class EvaluationController {
   }
 
   @Post('ai-result')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Registrar resultado de IA',
@@ -130,7 +130,7 @@ export class EvaluationController {
   }
 
   @Post('human-review')
-  @Roles(UserRole.EVALUATOR, UserRole.MENTOR, UserRole.ADMIN)
+  // @Roles(UserRole.EVALUATOR, UserRole.MENTOR, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Registrar revisión humana',
@@ -164,7 +164,7 @@ export class EvaluationController {
   }
 
   @Post('finalize')
-  @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
+  // @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Finalizar una evaluación',
@@ -213,7 +213,7 @@ export class EvaluationController {
   }
 
   @Get('evidence/:evidenceId')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Listar evaluaciones de una evidencia',
     description:
@@ -234,7 +234,7 @@ export class EvaluationController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Obtener una evaluación por ID',
     description: 'Devuelve el detalle completo con resultado de IA, revisión humana y rúbrica.',
@@ -259,7 +259,7 @@ export class EvaluationController {
   // ══════════════════════════════════════════════════════════
 
   @Post('rubrics')
-  @Roles(UserRole.ADMIN,  UserRole.EVALUATOR)
+ // @Roles(UserRole.ADMIN,  UserRole.EVALUATOR)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Crear una rúbrica',
@@ -274,7 +274,7 @@ export class EvaluationController {
 
   // Se agrega "/active" para diferenciarlo del get de abajo
   @Get('rubrics/active')
-  @Roles(UserRole.ADMIN, UserRole.EVALUATOR, UserRole.MENTOR)
+  // @Roles(UserRole.ADMIN, UserRole.EVALUATOR, UserRole.MENTOR)
   @ApiOperation({
     summary: 'Listar rúbricas activas',
     description: 'Devuelve todas las rúbricas con `isActive = true`.',
@@ -289,7 +289,7 @@ export class EvaluationController {
   }
 
   @Get('rubrics/:id')
-  @Roles(UserRole.ADMIN, UserRole.EVALUATOR, UserRole.MENTOR)
+  // @Roles(UserRole.ADMIN, UserRole.EVALUATOR, UserRole.MENTOR)
   @ApiOperation({ summary: 'Obtener una rúbrica por ID' })
   @ApiParam({ name: 'id', description: 'UUID de la rúbrica', example: 'rubric-uuid-0001' })
   @ApiResponse({
@@ -303,7 +303,7 @@ export class EvaluationController {
   }
 
   @Patch('rubrics/:id')
-  @Roles(UserRole.ADMIN,  UserRole.EVALUATOR)
+  // @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
   @ApiOperation({
     summary: 'Actualizar una rúbrica',
     description: 'Solo admin. Todos los campos son opcionales.',
