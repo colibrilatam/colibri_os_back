@@ -301,7 +301,17 @@ export class EvidenceService {
   async findOne(id: string): Promise<Evidence> {
     const evidence = await this.evidenceRepo.findOne({
       where: { id },
-      relations: ['versions', 'microActionInstance', 'author'],
+      relations: [
+        'versions',
+        'microActionInstance',
+        'author',
+        'project',
+        'microActionInstance.microActionDefinition',
+        'microActionInstance.microActionDefinition.pac',
+        'evaluations',
+        'evaluations.rubric',
+        'evaluations.humanReview',
+      ],
     });
 
     if (!evidence) {
