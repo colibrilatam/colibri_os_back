@@ -35,7 +35,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Tramos')
 @Controller('tramos')
-@UseGuards(JwtAuthGuard, RolesGuard)
+//@UseGuards(JwtAuthGuard, RolesGuard)
 export class TramosController {
   constructor(private readonly tramosService: TramosService) {}
 
