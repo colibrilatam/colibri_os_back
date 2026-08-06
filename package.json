@@ -29,6 +29,7 @@
   "overrides": {
     "qs": "^6.15.3",
     "body-parser": "^2.3.0",
+    "brace-expansion": "^2.1.4",
     "@nestjs/swagger": {
       "js-yaml": "^5.2.2"
     }
