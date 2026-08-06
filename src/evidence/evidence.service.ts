@@ -181,12 +181,10 @@ export class EvidenceService {
 
     const resourceType = session.resourceType;
 
-    
     const fileMeta = await this.cloudinaryService.getFileMetadata(
       dto.cloudinaryPublicId,
       resourceType,
     );
-    
 
     if (
       fileMeta.publicId !== session.expectedPublicId ||
