@@ -367,6 +367,8 @@ export class EvaluationService {
     return this.evaluationRepo
       .createQueryBuilder('evaluation')
       .leftJoinAndSelect('evaluation.evidence', 'evidence')
+      .leftJoinAndSelect('evidence.author', 'author')
+      .leftJoinAndSelect('evidence.project', 'project')
       .leftJoinAndSelect('evaluation.rubric', 'rubric')
       .leftJoinAndSelect('evaluation.aiResult', 'aiResult')
       .leftJoinAndSelect('evaluation.humanReview', 'humanReview')
