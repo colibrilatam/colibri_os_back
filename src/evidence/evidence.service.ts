@@ -181,12 +181,10 @@ export class EvidenceService {
 
     const resourceType = session.resourceType;
 
-    
     const fileMeta = await this.cloudinaryService.getFileMetadata(
       dto.cloudinaryPublicId,
       resourceType,
     );
-    
 
     if (
       fileMeta.publicId !== session.expectedPublicId ||
@@ -303,7 +301,17 @@ export class EvidenceService {
   async findOne(id: string): Promise<Evidence> {
     const evidence = await this.evidenceRepo.findOne({
       where: { id },
-      relations: ['versions', 'microActionInstance', 'author'],
+      relations: [
+        'versions',
+        'microActionInstance',
+        'author',
+        'project',
+        'microActionInstance.microActionDefinition',
+        'microActionInstance.microActionDefinition.pac',
+        'evaluations',
+        'evaluations.rubric',
+        'evaluations.humanReview',
+      ],
     });
 
     if (!evidence) {
