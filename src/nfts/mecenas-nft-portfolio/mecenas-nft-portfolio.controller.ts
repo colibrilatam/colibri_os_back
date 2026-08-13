@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import type { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { CreateMecenasNftDto } from './dto/create-mecenas-nft.dto';
 import { UpdateMecenasNftDto } from './dto/update-mecenas-nft.dto';
 import { MecenasNftPortfolioService } from './mecenas-nft-portfolio.service';
@@ -38,7 +39,14 @@ export class MecenasNftPortfolioController {
 
   @ApiOperation({ summary: 'Actualiza una entrada en el portafolio de NFT del mecenas por su ID' })
   @Patch('nft-project/:id')
-  async updateMecenasNft(@Param('id') id: string, @Body() data: UpdateMecenasNftDto) {
-    return await this.mecenasNftPortfolioService.updateMecenasNft(id, data);
+  async updateMecenasNft(
+    @Param('id') id: string,
+    @Body() data: UpdateMecenasNftDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return await this.mecenasNftPortfolioService.updateMecenasNft(id, data, {
+      userId: user.sub,
+      role: user.role,
+    });
   }
 }

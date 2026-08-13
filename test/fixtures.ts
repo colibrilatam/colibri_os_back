@@ -20,6 +20,10 @@ import {
 } from 'src/micro-action-instance/entities/micro-action-instance.entity';
 import { Evidence, EvidenceStatus } from 'src/evidence/entities/evidence.entity';
 import { Rubric, RubricTargetEntity } from 'src/evaluation/entities/rubric.entity';
+import { NftActor, ActorNftType } from 'src/nfts/entities/nft-actor.entity';
+import { NftProject } from 'src/nfts/entities/nft-project.entity';
+import { MecenasNftPortfolio } from 'src/nfts/entities/mecenas-nft-portfolio.entity';
+import { ProjectPac, ProjectPacStatus } from 'src/projects/entities/project.pac.entity';
 
 let counter = 0;
 /** Sufijo corto y único por fixture, para no chocar con `unique: true` entre tests. */
@@ -29,6 +33,7 @@ export class Fixtures {
   private readonly userRepo: Repository<User>;
   private readonly projectRepo: Repository<Project>;
   private readonly projectMemberRepo: Repository<ProjectMember>;
+  private readonly projectPacRepo: Repository<ProjectPac>;
   private readonly tramoRepo: Repository<Tramo>;
   private readonly categoryRepo: Repository<Category>;
   private readonly pacRepo: Repository<Pac>;
@@ -37,6 +42,9 @@ export class Fixtures {
   private readonly evidenceRepo: Repository<Evidence>;
   private readonly rubricRepo: Repository<Rubric>;
   private readonly jwtService: JwtService;
+  private readonly nftActorRepo: Repository<NftActor>;
+  private readonly nftProjectRepo: Repository<NftProject>;
+  private readonly mecenasNftPortfolioRepo: Repository<MecenasNftPortfolio>;
 
   constructor(private readonly app: INestApplication) {
     this.userRepo = app.get(getRepositoryToken(User));
@@ -50,6 +58,11 @@ export class Fixtures {
     this.evidenceRepo = app.get(getRepositoryToken(Evidence));
     this.rubricRepo = app.get(getRepositoryToken(Rubric));
     this.jwtService = app.get(JwtService);
+    this.nftActorRepo = app.get(getRepositoryToken(NftActor));
+    this.nftProjectRepo = app.get(getRepositoryToken(NftProject));
+    this.mecenasNftPortfolioRepo = app.get(getRepositoryToken(MecenasNftPortfolio));
+    this.projectMemberRepo = app.get(getRepositoryToken(ProjectMember));
+    this.projectPacRepo = app.get(getRepositoryToken(ProjectPac));
   }
 
   // ─── Usuarios ───────────────────────────────────────────────────────────────
@@ -181,6 +194,22 @@ export class Fixtures {
     );
   }
 
+    async createProjectPac(
+    projectId: string,
+    pacId: string,
+    overrides: Partial<ProjectPac> = {},
+  ): Promise<ProjectPac> {
+    return this.projectPacRepo.save(
+      this.projectPacRepo.create({
+        projectId,
+        pacId,
+        status: ProjectPacStatus.PENDING,
+        progress: 0,
+        ...overrides,
+      } as ProjectPac),
+    );
+  }
+
   // ─── Microacción y evidencia ────────────────────────────────────────────────
 
   async createMicroActionInstance(
@@ -249,5 +278,48 @@ export class Fixtures {
     const instanceB = await this.createMicroActionInstance(projectB.id, ownerB.id, mad.id);
 
     return { mad, ownerA, projectA, instanceA, ownerB, projectB, instanceB };
+  }
+
+  // ─── NFTs (SEC-006C) ────────────────────────────────────────────────────────
+
+  async createNftActorFixture(
+    userId: string,
+    overrides: Partial<NftActor> = {},
+  ): Promise<NftActor> {
+    return this.nftActorRepo.save(
+      this.nftActorRepo.create({
+        userId,
+        actorNftType: ActorNftType.MENTOR,
+        chainId: 1,
+        contractAddress: '0x1234567890123456789012345678901234567890',
+        tokenId: uniq('token'),
+        ...overrides,
+      } as NftActor),
+    );
+  }
+
+  async createNftProjectFixture(overrides: Partial<NftProject> = {}): Promise<NftProject> {
+    return this.nftProjectRepo.save(
+      this.nftProjectRepo.create({
+        chainId: 1,
+        contractAddress: '0x1234567890123456789012345678901234567890',
+        tokenId: uniq('nft-project-token'),
+        ...overrides,
+      } as NftProject),
+    );
+  }
+
+  async createMecenasPortfolioFixture(
+    mecenasUserId: string,
+    nftProjectId: string,
+    overrides: Partial<MecenasNftPortfolio> = {},
+  ): Promise<MecenasNftPortfolio> {
+    return this.mecenasNftPortfolioRepo.save(
+      this.mecenasNftPortfolioRepo.create({
+        mecenasUserId,
+        nftProjectId,
+        ...overrides,
+      } as MecenasNftPortfolio),
+    );
   }
 }

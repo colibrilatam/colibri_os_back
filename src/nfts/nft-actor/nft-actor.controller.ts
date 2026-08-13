@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
+import type { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { NftActorService } from './nft-actor.service';
 import { CreateNftActorDto } from './dto/create-nft-actor.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -33,7 +34,14 @@ export class NftActorController {
 
   @ApiOperation({ summary: 'Actualizar un NFT Actor' })
   @Patch(':id')
-  async updateNftActor(@Param('id') id: string, @Body() data: UpdateNftActorDto) {
-    return await this.nftActorService.updateNftActor(id, data);
+  async updateNftActor(
+    @Param('id') id: string,
+    @Body() data: UpdateNftActorDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return await this.nftActorService.updateNftActor(id, data, {
+      userId: user.sub,
+      role: user.role,
+    });
   }
 }

@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { NftProject } from '../entities/nft-project.entity';
 import { CreateNftProjectDto } from './dto/create-nft-project.dto';
 import { UpdateNftProjectDto } from './dto/update-nft-project.dto';
@@ -77,11 +77,16 @@ export class NftProjectService {
   }
 
   // 1. BIFURCACIÓN — verificar si un proyecto tiene NFT
-  async checkNftStatus(projectId: string): Promise<{
+  async checkNftStatus(
+    projectId: string,
+    manager?: EntityManager,
+  ): Promise<{
     hasNft: boolean;
     nftProject: NftProject | null;
   }> {
-    const nftProject = await this.nftProjectRepository.findOne({
+    const repo = manager ? manager.getRepository(NftProject) : this.nftProjectRepository;
+
+    const nftProject = await repo.findOne({
       where: { projectId },
       relations: ['currentHolder'],
     });
@@ -113,16 +118,28 @@ export class NftProjectService {
   }
 
   // 3. CIERRE DE TRAMO — evolucionar visualmente el NFT
+  // Acepta un EntityManager opcional para poder participar en la
+  // transacción única del cierre de tramo (snapshot + NFT + tramo).
   async evolveVisual(
     projectId: string,
     newTramoId: string,
     newVisualVersion: string,
+    manager?: EntityManager,
   ): Promise<NftProject> {
-    const nft = await this.findByProject(projectId);
+    const repo = manager ? manager.getRepository(NftProject) : this.nftProjectRepository;
+
+    const nft = await repo.findOne({
+      where: { projectId },
+      relations: ['project', 'currentHolder', 'ownershipEvents'],
+    });
+
+    if (!nft) {
+      throw new NotFoundException(`El proyecto ${projectId} no tiene NFT asociado`);
+    }
 
     nft.representedTramoId = newTramoId;
     nft.currentVisualVersion = newVisualVersion;
 
-    return this.nftProjectRepository.save(nft);
+    return repo.save(nft);
   }
 }
