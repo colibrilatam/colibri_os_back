@@ -4,6 +4,7 @@ import { NftProject } from './entities/nft-project.entity';
 import { NftActor } from './entities/nft-actor.entity';
 import { MecenasNftPortfolio } from './entities/mecenas-nft-portfolio.entity';
 import { NftOwnershipEvent } from './entities/nft-ownership-event.entity';
+import { NftResourceAudit } from './entities/nft-resource-audit.entity';
 import { NftActorRepository } from './nft-actor/nft-actor.repository';
 import { NftActorService } from './nft-actor/nft-actor.service';
 import { NftActorController } from './nft-actor/nft-actor.controller';
@@ -22,7 +23,13 @@ import { ProjectsModule } from 'src/projects/projects.module';
   imports: [
     UsersModule,
     ProjectsModule,
-    TypeOrmModule.forFeature([NftProject, NftActor, MecenasNftPortfolio, NftOwnershipEvent]),
+    TypeOrmModule.forFeature([
+      NftProject,
+      NftActor,
+      MecenasNftPortfolio,
+      NftOwnershipEvent,
+      NftResourceAudit,
+    ]),
   ],
   controllers: [
     NftProjectController,

@@ -9,11 +9,12 @@ import { Pac } from 'src/pacs/entities/pac.entity';
 import { ProjectPac } from './entities/project.pac.entity';
 import { ProjectMember } from '../project-members/entities/project-member.entity';
 import { ProjectAccessService } from './project-access.service';
+import { ProjectResourceAudit } from './entities/project-resource-audit.entity';
 
 @Module({
   imports: [
     CloudinaryModule,
-    TypeOrmModule.forFeature([Project, Pac, ProjectPac, ProjectMember]),
+    TypeOrmModule.forFeature([Project, Pac, ProjectPac, ProjectMember, ProjectResourceAudit]),
     TramosModule, // expone TramosService para inyectarlo en ProjectsService
   ],
   controllers: [ProjectsController],

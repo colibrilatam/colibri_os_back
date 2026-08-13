@@ -66,7 +66,7 @@ export class ProjectsController {
     @Body() dto: UpdateProjectDto,
   ) {
     await this.projectAccessService.assertCanManageProject({ userId, role }, id);
-    return this.projectsService.update(id, dto);
+    return this.projectsService.update(id, dto, { userId, role });
   }
 
   @Delete(':id')
@@ -79,7 +79,7 @@ export class ProjectsController {
     @CurrentUser('role') role: UserRole,
   ) {
     await this.projectAccessService.assertCanManageProject({ userId, role }, id);
-    return this.projectsService.remove(id);
+    return this.projectsService.remove(id, { userId, role });
   }
 
   @Patch('pac/:id')
@@ -94,7 +94,24 @@ export class ProjectsController {
   ) {
     const projectPac = await this.projectsService.findProjectPac(projectPacId);
     await this.projectAccessService.assertCanManageProject({ userId, role }, projectPac.projectId);
-    return await this.projectsService.updateProjectPac(projectPacId, status);
+    return await this.projectsService.updateProjectPac(projectPacId, status, { userId, role });
+  }
+
+  @Delete('pac/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Eliminar un PAC de un proyecto' })
+  async removeProjectPac(
+    @Param('id') projectPacId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    // OJO: el projectId sale del ProjectPac encontrado en base (no del input del
+    // usuario), así que no hay forma de "apuntar" a un proyecto propio para
+    // colarse y borrar el PAC de un proyecto ajeno.
+    const projectPac = await this.projectsService.findProjectPac(projectPacId);
+    await this.projectAccessService.assertCanManageProject({ userId, role }, projectPac.projectId);
+    await this.projectsService.removeProjectPac(projectPacId, { userId, role });
   }
 
   @Post(':projectId/pac/:pacId')
@@ -108,6 +125,6 @@ export class ProjectsController {
     @CurrentUser('role') role: UserRole,
   ) {
     await this.projectAccessService.assertCanManageProject({ userId, role }, projectId);
-    return await this.projectsService.createProjectPac(projectId, pacId);
+    return await this.projectsService.createProjectPac(projectId, pacId, { userId, role });
   }
 }

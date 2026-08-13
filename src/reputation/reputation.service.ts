@@ -1,5 +1,5 @@
 // src/reputation/reputation.service.ts
-import { Repository, DataSource, IsNull } from 'typeorm';
+import { Repository, DataSource, IsNull, EntityManager } from 'typeorm';
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IcAlgorithmVersion } from './entities/ic-algorithm-version.entity';
@@ -100,8 +100,15 @@ export class ReputationService {
   }
 
   // ─── MOTOR DE CÁLCULO DEL IC ──────────────────────────────────────────────────
+  // Acepta un EntityManager opcional para poder participar en una
+  // transacción externa (ej. el cierre de tramo, que necesita que el
+  // snapshot, la evolución del NFT y el cambio de tramo se confirmen o se
+  // reviertan todos juntos — ver TX-001).
 
-  async calculateSnapshot(dto: CalculateSnapshotDto): Promise<ReputationIndexSnapshot> {
+  async calculateSnapshot(
+    dto: CalculateSnapshotDto,
+    manager?: EntityManager,
+  ): Promise<ReputationIndexSnapshot> {
     const project = await this.projectRepo.findOne({
       where: { id: dto.projectId },
     });
@@ -181,16 +188,20 @@ export class ReputationService {
       icPublic >= 60 ? EligibilityStatus.ELIGIBLE : EligibilityStatus.NOT_ELIGIBLE;
 
     // ── Persistencia en transacción ──────────────────────────────────────────
+    // Si nos pasan un manager (porque somos parte de una transacción más
+    // grande, ej. el cierre de tramo), reutilizamos esa transacción en vez
+    // de abrir una anidada — así el snapshot, el NFT y el cambio de tramo
+    // se confirman o se revierten todos juntos.
 
-    await this.dataSource.transaction(async (manager) => {
+    const persist = async (m: EntityManager) => {
       // Cerrar snapshot anterior del proyecto
-      await manager.update(
+      await m.update(
         ReputationIndexSnapshot,
         { projectId: dto.projectId, validTo: IsNull() },
         { validTo: now },
       );
 
-      const newSnapshot = manager.create(ReputationIndexSnapshot, {
+      const newSnapshot = m.create(ReputationIndexSnapshot, {
         projectId: dto.projectId,
         userId,
         tramoId: project.currentTramoId ?? null,
@@ -208,7 +219,7 @@ export class ReputationService {
         validTo: null,
       } as unknown as ReputationIndexSnapshot);
 
-      const saved = await manager.save(ReputationIndexSnapshot, newSnapshot);
+      const saved = await m.save(ReputationIndexSnapshot, newSnapshot);
 
       // ── Explicaciones granulares ─────────────────────────────────────────
 
@@ -239,22 +250,33 @@ export class ReputationService {
         },
       ];
 
-      await manager.save(ReputationIndexExplanation, explanations);
+      await m.save(ReputationIndexExplanation, explanations);
 
       return saved;
-    });
+    };
+
+    if (manager) {
+      await persist(manager);
+    } else {
+      await this.dataSource.transaction(persist);
+    }
 
     this.logger.log(
       `IC calculado para proyecto ${dto.projectId} — IC público: ${icPublic} — algoritmo: ${algorithm.code}`,
     );
 
-    return this.findLatestSnapshot(dto.projectId);
+    return this.findLatestSnapshot(dto.projectId, manager);
   }
 
   // ─── CONSULTAS ────────────────────────────────────────────────────────────────
 
-  async findLatestSnapshot(projectId: string): Promise<ReputationIndexSnapshot> {
-    const snapshot = await this.snapshotRepo.findOne({
+  async findLatestSnapshot(
+    projectId: string,
+    manager?: EntityManager,
+  ): Promise<ReputationIndexSnapshot> {
+    const repo = manager ? manager.getRepository(ReputationIndexSnapshot) : this.snapshotRepo;
+
+    const snapshot = await repo.findOne({
       where: { projectId, validTo: IsNull() }, // ← corregido
       relations: ['algorithmVersion', 'explanations', 'tramo'],
       order: { calculatedAt: 'DESC' },

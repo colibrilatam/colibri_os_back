@@ -1,6 +1,6 @@
 // src/tramo-closure/tramo-closure.controller.ts
 
-import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TramoClosureService } from './tramo-closure.service';
 import { EvaluateClosureDto } from './dto/evaluate-closure.dto';
@@ -57,6 +57,16 @@ Devuelve:
       dto.projectId,
     );
     return this.service.evaluateCompletion(dto);
+  }
+
+  @Get('reconciliation')
+  @ApiOperation({
+    summary: 'Detectar proyectos desincronizados entre tramo, NFT y snapshot',
+    description:
+      'Corre también automáticamente cada hora. Este endpoint permite disparar la verificación manualmente y devuelve la lista de inconsistencias encontradas.',
+  })
+  async reconciliation() {
+    return this.service.findInconsistentProjects();
   }
 
   @Post('close')
