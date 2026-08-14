@@ -22,4 +22,12 @@ export class UpdateMicroActionInstanceDto {
   @IsOptional()
   @IsString()
   executionNotes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Resumen opcional del motivo del cambio, se guarda en el historial de versiones',
+    example: 'Corrección de notas tras feedback del mentor',
+  })
+  @IsOptional()
+  @IsString()
+  changeSummary?: string;
 }

@@ -12,6 +12,7 @@ import { User } from '../../users/entities/user.entity';
 import { Project } from '../../projects/entities/project.entity';
 import { MicroActionDefinition } from '../../micro-action-definitions/entities/micro-action-definition.entity';
 import { Evidence } from '../../evidence/entities/evidence.entity';
+import { MicroActionInstanceVersion } from './micro-action-instance-version.entity';
 
 export enum MicroActionInstanceStatus {
   PENDING = 'pending',
@@ -96,4 +97,7 @@ export class MicroActionInstance {
 
   @OneToMany(() => Evidence, (evidence) => evidence.microActionInstance)
   evidences: Evidence[];
+
+  @OneToMany(() => MicroActionInstanceVersion, (v) => v.microActionInstance, { cascade: true })
+  versions: MicroActionInstanceVersion[];
 }

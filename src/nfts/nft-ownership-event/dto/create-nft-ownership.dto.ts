@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+} from 'class-validator';
 import { NftEventType } from 'src/nfts/entities/nft-ownership-event.entity';
 
 export class CreateNftOwnershipDto {
@@ -7,23 +13,27 @@ export class CreateNftOwnershipDto {
     description: 'ID del proyecto NFT asociado',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
-  @IsString()
+  @IsUUID()
   nftProjectId: string;
 
   @ApiProperty({
-    description: 'ID del usuario que transfiere el NFT',
+    description:
+      'ID del usuario cuyo wallet debe coincidir con el from on-chain',
     example: '123e4567-e89b-12d3-a456-426614174000',
+    required: false,
   })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   fromUserId?: string;
 
   @ApiProperty({
-    description: 'ID del usuario que recibe el NFT',
+    description:
+      'ID del usuario cuyo wallet debe coincidir con el to on-chain',
     example: '123e4567-e89b-12d3-a456-426614174000',
+    required: false,
   })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   toUserId?: string;
 
   @ApiProperty({
@@ -35,17 +45,14 @@ export class CreateNftOwnershipDto {
   eventType: NftEventType;
 
   @ApiProperty({
-    description: 'Hash de la transacción en la blockchain (si aplica)',
-    example: '0xabc123...',
+    description:
+      'Hash real de la transacción. La fecha, bloque, from, to y tokenId se reconstruyen desde RPC.',
+    example:
+      '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
   })
-  @IsOptional()
   @IsString()
-  txHash?: string;
-
-  @ApiProperty({
-    description: 'Fecha y hora en que ocurrió el evento',
-    example: '2024-06-01T12:00:00Z',
+  @Matches(/^0x[a-fA-F0-9]{64}$/, {
+    message: 'txHash debe ser un hash EVM válido de 32 bytes',
   })
-  @IsDateString()
-  occurredAt: Date;
+  txHash: string;
 }

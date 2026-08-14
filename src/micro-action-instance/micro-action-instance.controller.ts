@@ -163,6 +163,60 @@ export class MicroActionInstanceController {
     return this.service.findAllByUser(userId);
   }
 
+  // ─── GET /micro-action-instances/:id/versions ────────────────────────────
+
+  @Get(':id/versions')
+  // @Roles(UserRole.ENTREPRENEUR, UserRole.MENTOR, UserRole.EVALUATOR, UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Historial de versiones de una instancia de microacción',
+    description:
+      'Devuelve todas las versiones registradas de la instancia (creación, cambios de estado, actualizaciones de notas, envíos y reaperturas), ordenadas de la más reciente a la más antigua.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID de la instancia',
+    example: 'c1d2e3f4-aaaa-4bbb-8ccc-ddddeeee0001',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Versiones de la instancia.',
+    schema: {
+      example: [
+        {
+          id: 'mai-ver-uuid-002',
+          versionNumber: 2,
+          changeType: 'status_change',
+          status: 'submitted',
+          previousStatus: 'in_progress',
+          executionNotes: 'Realicé 5 entrevistas.',
+          attemptNumber: 1,
+          reopenedCount: 0,
+          changeSummary: 'Cambio de estado: in_progress → submitted',
+          createdAt: '2024-04-03T14:30:00.000Z',
+        },
+        {
+          id: 'mai-ver-uuid-001',
+          versionNumber: 1,
+          changeType: 'created',
+          status: 'pending',
+          previousStatus: null,
+          executionNotes: null,
+          attemptNumber: 1,
+          reopenedCount: 0,
+          changeSummary: 'Instancia creada',
+          createdAt: '2024-04-01T10:00:00.000Z',
+        },
+      ],
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Instancia no encontrada.' })
+  findVersions(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() principal: { sub: string; role: UserRole },
+  ) {
+    return this.service.findVersions(id, { userId: principal.sub, role: principal.role });
+  }
+
   // ─── GET /micro-action-instances/:id ─────────────────────────────────────
 
   @Get(':id')

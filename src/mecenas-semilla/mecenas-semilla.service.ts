@@ -4,14 +4,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+
 import { UsersService } from '../users/users.service';
 import { NftActorService } from '../nfts/nft-actor/nft-actor.service';
 import { NftProjectService } from '../nfts/nft-project/nfts-project.service';
 import { MecenasNftPortfolioService } from '../nfts/mecenas-nft-portfolio/mecenas-nft-portfolio.service';
+
 import { ActorNftType } from '../nfts/entities/nft-actor.entity';
 import { UserRole } from '../users/entities/user.entity';
-import { MecenasSemillaRepository } from './mecenas-semilla.repository';
 import { MecenasNftPortfolio } from 'src/nfts/entities/mecenas-nft-portfolio.entity';
+
+import { MecenasSemillaRepository } from './mecenas-semilla.repository';
 
 @Injectable()
 export class MecenasSemillaService {
@@ -23,40 +26,77 @@ export class MecenasSemillaService {
     private readonly portfolioService: MecenasNftPortfolioService,
   ) {}
 
-  async activateMecenas(userId: string, changedByUserId: string) {
-    const user = await this.usersService.findOneById(userId);
-    if (user.role === UserRole.MECENAS_SEMILLA) {
-      throw new ConflictException('El usuario ya está activado como Mecenas Aliado Semilla');
-    }
+  async activateMecenas(
+  userId: string,
+  changedByUserId: string,
+) {
+  const user = await this.usersService.findOneById(userId);
 
-    const existingNftActor = await this.nftActorService.findByUserId(userId).catch(() => null);
-
-    if (existingNftActor) {
-      throw new ConflictException('El usuario ya tiene un NFT de acreditación emitido');
-    }
-    await this.usersService.changeRole(userId, changedByUserId, {
-      role: UserRole.MECENAS_SEMILLA,
-      reason: 'ActivaciÃ³n de Mecenas Aliado Semilla',
-    });
-
-    // Emitir NFT intransferible de acreditación (simulado en MVP)
-    await this.nftActorService.createNftActor({
-      userId,
-      actorNftType: ActorNftType.MECENAS,
-      chainId: 0,
-      contractAddress: 'PENDING_BLOCKCHAIN',
-      tokenId: `MECENAS-${userId}`,
-    });
-
-    return { message: 'Mecenas Aliado Semilla activado correctamente' };
+  if (user.role === UserRole.MECENAS_SEMILLA) {
+    throw new ConflictException(
+      'El usuario ya está activado como Mecenas Aliado Semilla',
+    );
   }
 
+  const existingNftActor =
+    await this.nftActorService
+      .findByUserId(userId)
+      .catch(() => null);
+
+  if (existingNftActor) {
+    throw new ConflictException(
+      'El usuario ya tiene un NFT de acreditación emitido',
+    );
+  }
+
+  /*
+   * El cambio de rol requiere un principal autorizado.
+   *
+   * Obtenemos el usuario que realiza la operación desde la
+   * base de datos para utilizar su rol real.
+   */
+  const changedByUser =
+    await this.usersService.findOneById(changedByUserId);
+
+  const principal = {
+    userId: changedByUserId,
+    role: changedByUser.role,
+  };
+
+  await this.usersService.changeRole(
+    userId,
+    changedByUserId,
+    {
+      role: UserRole.MECENAS_SEMILLA,
+      reason: 'Activación de Mecenas Aliado Semilla',
+    },
+    principal,
+  );
+
+  // Emitir NFT intransferible de acreditación (simulado en MVP).
+  // La emisión blockchain real deberá pasar por la capa CHAIN
+  // antes de considerarse una prueba on-chain válida.
+  await this.nftActorService.createNftActor({
+    userId,
+    actorNftType: ActorNftType.MECENAS,
+    chainId: 0,
+    contractAddress: 'PENDING_BLOCKCHAIN',
+    tokenId: `MECENAS-${userId}`,
+  });
+
+  return {
+    message: 'Mecenas Aliado Semilla activado correctamente',
+  };
+}
   async getDashboard(mecenasUserId: string) {
     await this.usersService.findOneById(mecenasUserId);
 
     const [summary, allPortfolios] = await Promise.all([
       this.mecenasRepository.getPortfolioSummary(mecenasUserId),
-      this.portfolioService.findByMecenasId(mecenasUserId).catch((): MecenasNftPortfolio[] => []), // ← tipado explícito
+
+      this.portfolioService
+        .findByMecenasId(mecenasUserId)
+        .catch((): MecenasNftPortfolio[] => []),
     ]);
 
     const sponsoredProjects = allPortfolios
@@ -71,24 +111,40 @@ export class MecenasSemillaService {
     };
   }
 
-  async buyNfts(mecenasUserId: string, quantity: number) {
+  async buyNfts(
+    mecenasUserId: string,
+    quantity: number,
+  ) {
     if (quantity < 1) {
-      throw new BadRequestException('La cantidad debe ser al menos 1');
+      throw new BadRequestException(
+        'La cantidad debe ser al menos 1',
+      );
     }
-    const user = await this.usersService.findOneById(mecenasUserId);
+
+    const user =
+      await this.usersService.findOneById(mecenasUserId);
+
     if (user.role !== UserRole.MECENAS_SEMILLA) {
-      throw new ConflictException('El usuario no está activado como Mecenas Aliado Semilla');
+      throw new ConflictException(
+        'El usuario no está activado como Mecenas Aliado Semilla',
+      );
     }
 
     const created: MecenasNftPortfolio[] = [];
-    for (let i = 0; i < quantity; i++) {
-      const nftProject = await this.nftProjectService.createSimulated(mecenasUserId, i);
 
-      const portfolio = await this.portfolioService.createMecenasNft({
-        mecenasUserId,
-        nftProjectId: nftProject.id,
-        targetProjectId: null,
-      });
+    for (let i = 0; i < quantity; i++) {
+      const nftProject =
+        await this.nftProjectService.createSimulated(
+          mecenasUserId,
+          i,
+        );
+
+      const portfolio =
+        await this.portfolioService.createMecenasNft({
+          mecenasUserId,
+          nftProjectId: nftProject.id,
+          targetProjectId: null,
+        });
 
       created.push(portfolio);
     }
@@ -99,43 +155,78 @@ export class MecenasSemillaService {
     };
   }
 
-  // ─── PASO 4: Exploración de proyectos ───────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────
+  // PASO 4: Exploración de proyectos
+  // ─────────────────────────────────────────────────────────────
 
   async getProjects(mecenasUserId: string) {
     const [eligible, sponsored] = await Promise.all([
       this.mecenasRepository.findEligibleProjects(),
-      this.portfolioService.findByMecenasId(mecenasUserId).catch((): MecenasNftPortfolio[] => []), // ← tipado explícito
+
+      this.portfolioService
+        .findByMecenasId(mecenasUserId)
+        .catch((): MecenasNftPortfolio[] => []),
     ]);
 
     return {
       eligibleProjects: eligible,
+
       sponsoredProjects: sponsored
         .filter((p) => p.targetProjectId !== null)
         .map((p) => p.targetProject),
     };
   }
 
-  async assignNft(mecenasUserId: string, portfolioId: string, projectId: string) {
-    const portfolio = await this.portfolioService.findById(portfolioId).catch(() => null);
+  async assignNft(
+    mecenasUserId: string,
+    portfolioId: string,
+    projectId: string,
+  ) {
+    const portfolio =
+      await this.portfolioService
+        .findById(portfolioId)
+        .catch(() => null);
 
-    if (!portfolio) throw new NotFoundException('NFT de portafolio no encontrado');
+    if (!portfolio) {
+      throw new NotFoundException(
+        'NFT de portafolio no encontrado',
+      );
+    }
+
     if (portfolio.mecenasUserId !== mecenasUserId) {
-      throw new ConflictException('Este NFT no pertenece al mecenas');
-    }
-    if (portfolio.targetProjectId !== null) {
-      throw new ConflictException('Este NFT ya fue asignado a un proyecto');
+      throw new ConflictException(
+        'Este NFT no pertenece al mecenas',
+      );
     }
 
-    const nftProject = await this.nftProjectService.findByProject(projectId).catch(() => null);
+    if (portfolio.targetProjectId !== null) {
+      throw new ConflictException(
+        'Este NFT ya fue asignado a un proyecto',
+      );
+    }
+
+    const nftProject =
+      await this.nftProjectService
+        .findByProject(projectId)
+        .catch(() => null);
 
     if (!nftProject) {
-      throw new NotFoundException('El proyecto no tiene NFT Colibrí asociado');
-    }
-    if (nftProject.currentHolderUserId !== null) {
-      throw new ConflictException('Este proyecto ya tiene un mecenas patrocinador');
+      throw new NotFoundException(
+        'El proyecto no tiene NFT Colibrí asociado',
+      );
     }
 
-    // Ejecutar asignación atómica
+    if (nftProject.currentHolderUserId !== null) {
+      throw new ConflictException(
+        'Este proyecto ya tiene un mecenas patrocinador',
+      );
+    }
+
+    // La operación de asignación se ejecuta atómicamente.
+    //
+    // El evento de ownership queda inicialmente PENDING.
+    // No se considera evidencia blockchain confirmada hasta que
+    // CHAIN valide la transacción mediante RPC.
     await this.mecenasRepository.assignNftToProject(
       portfolio.id,
       nftProject.id,
@@ -143,6 +234,8 @@ export class MecenasSemillaService {
       mecenasUserId,
     );
 
-    return { message: 'NFT asignado al proyecto correctamente' };
+    return {
+      message: 'NFT asignado al proyecto correctamente',
+    };
   }
 }

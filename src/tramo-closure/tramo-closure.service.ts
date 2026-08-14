@@ -45,6 +45,13 @@ export interface TramoCompletionStatus {
   canClose: boolean;
 }
 
+export interface TramoStateAudit {
+  tramoId: string | null;
+  tramoCode: string | null;
+  nftVisualVersion: string | null;
+  snapshotId: string | null;
+}
+
 export interface CloseTramoResult {
   message: string;
   projectId: string;
@@ -53,6 +60,9 @@ export interface CloseTramoResult {
   icPublic: number;
   nftEvolved: boolean;
   idempotencyKey: string;
+  requestedByUserId: string;
+  previousState: TramoStateAudit;
+  nextState: TramoStateAudit;
   replayed: boolean;
 }
 
@@ -162,218 +172,344 @@ export class TramoClosureService {
   // compensación (revertir el cambio de tramo si la evolución del NFT
   // termina fallando de forma definitiva).
 
-  async closeTramo(dto: CloseTramoDto): Promise<CloseTramoResult> {
-    const idempotencyKey = dto.idempotencyKey?.trim() || `${dto.projectId}:${dto.tramoId}`;
+  async closeTramo(
+  dto: CloseTramoDto,
+  requestedByUserId: string,
+): Promise<CloseTramoResult> {
+  const idempotencyKey =
+    dto.idempotencyKey?.trim() || `${dto.projectId}:${dto.tramoId}`;
 
-    // ── Camino rápido: ¿ya se ejecutó esta operación? ────────────────────────
-    const existing = await this.operationRepo.findOne({ where: { idempotencyKey } });
+  // ── Camino rápido: operación ya completada ───────────────────────────────
 
-  if (existing?.status === TramoClosureStatus.COMPLETED) {
-        return { ...(existing.resultPayload as unknown as CloseTramoResult), replayed: true };
-      }
+  const existing = await this.operationRepo.findOne({
+    where: { idempotencyKey },
+  });
 
-    if (existing?.status === TramoClosureStatus.IN_PROGRESS) {
+  if (existing) {
+    // Una idempotencyKey no puede reutilizarse para otro recurso.
+    if (
+      existing.projectId !== dto.projectId ||
+      existing.tramoId !== dto.tramoId
+    ) {
+      throw new ConflictException(
+        'La idempotencyKey ya fue utilizada para otro proyecto o tramo',
+      );
+    }
+
+    if (existing.status === TramoClosureStatus.COMPLETED) {
+      return {
+        ...(existing.resultPayload as unknown as CloseTramoResult),
+        replayed: true,
+      };
+    }
+
+    if (existing.status === TramoClosureStatus.IN_PROGRESS) {
       throw new ConflictException(
         `Ya hay un cierre en curso para esta operación (idempotencyKey: ${idempotencyKey})`,
       );
     }
+  }
 
-    // ── Validaciones previas (lectura, se pueden repetir sin riesgo) ─────────
+  // ── Validaciones previas ─────────────────────────────────────────────────
 
-    const status = await this.evaluateCompletion({
-      projectId: dto.projectId,
-      tramoId: dto.tramoId,
+  const status = await this.evaluateCompletion({
+    projectId: dto.projectId,
+    tramoId: dto.tramoId,
+  });
+
+  if (!status.isComplete) {
+    throw new BadRequestException(
+      `El tramo no puede cerrarse: faltan ${status.missingEvidences} evidencias aprobadas (${status.approvedEvidences}/${REQUIRED_APPROVED_EVIDENCES})`,
+    );
+  }
+
+  if (!status.canClose) {
+    throw new BadRequestException(
+      `El tramo ${dto.tramoId} no es el tramo actual del proyecto`,
+    );
+  }
+
+  const currentTramo = await this.tramoRepo.findOne({
+    where: { id: dto.tramoId },
+  });
+
+  if (!currentTramo) {
+    throw new NotFoundException(
+      `Tramo ${dto.tramoId} no encontrado`,
+    );
+  }
+
+  const newVisualVersion =
+    dto.newVisualVersion ?? `v${currentTramo.sortOrder + 1}`;
+
+  // ── Reclamo atómico de la operación ─────────────────────────────────────
+
+  const operation = await this.claimOperation(
+    idempotencyKey,
+    dto,
+    requestedByUserId,
+  );
+
+  if (operation.status === TramoClosureStatus.COMPLETED) {
+    return {
+      ...(operation.resultPayload as unknown as CloseTramoResult),
+      replayed: true,
+    };
+  }
+
+  try {
+    const result = await this.executeClosureTransaction({
+      dto,
+      newVisualVersion,
+      idempotencyKey,
+      requestedByUserId,
     });
 
-    if (!status.isComplete) {
-      throw new BadRequestException(
-        `El tramo no puede cerrarse: faltan ${status.missingEvidences} evidencias aprobadas (${status.approvedEvidences}/${REQUIRED_APPROVED_EVIDENCES})`,
+    await this.operationRepo.update(operation.id, {
+      status: TramoClosureStatus.COMPLETED,
+      resultPayload: JSON.parse(JSON.stringify(result)),
+      completedAt: new Date(),
+      lastError: null,
+    });
+
+    return result;
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : 'Error desconocido';
+
+    await this.operationRepo.update(operation.id, {
+      status: TramoClosureStatus.FAILED,
+      lastError: message,
+      attempts: operation.attempts + 1,
+    });
+
+    this.logger.error(
+      `[Cierre de tramo] Falló y se revirtió — proyecto: ${dto.projectId} — ${message}`,
+    );
+
+    throw err;
+  }
+}
+
+  // Efectos estructurales del cierre, todos dentro de una única transacción.
+  private async executeClosureTransaction(params: {
+  dto: CloseTramoDto;
+  newVisualVersion: string;
+  idempotencyKey: string;
+  requestedByUserId: string;
+}): Promise<CloseTramoResult> {
+  const {
+    dto,
+    newVisualVersion,
+    idempotencyKey,
+    requestedByUserId,
+  } = params;
+
+  return this.dataSource.transaction(async (manager: EntityManager) => {
+    // ── 1. LOCK DEL PROYECTO ───────────────────────────────────────────────
+    // Impide que dos cierres concurrentes con distintas idempotencyKey
+    // puedan avanzar el mismo proyecto simultáneamente.
+
+    const project = await manager.findOne(Project, {
+      where: { id: dto.projectId },
+      lock: {
+        mode: 'pessimistic_write',
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException(
+        `Proyecto ${dto.projectId} no encontrado`,
       );
     }
 
-    if (!status.canClose) {
-      throw new BadRequestException(`El tramo ${dto.tramoId} no es el tramo actual del proyecto`);
+    // ── 2. MÁQUINA DE ESTADOS ──────────────────────────────────────────────
+    // El tramo solicitado debe ser exactamente el tramo actual.
+
+    if (project.currentTramoId !== dto.tramoId) {
+      throw new BadRequestException(
+        `Transición inválida: el proyecto está actualmente en el tramo ${project.currentTramoId}, no en ${dto.tramoId}`,
+      );
     }
 
-    const currentTramo = await this.tramoRepo.findOne({
+    const currentTramo = await manager.findOne(Tramo, {
       where: { id: dto.tramoId },
     });
 
     if (!currentTramo) {
-      throw new NotFoundException(`Tramo ${dto.tramoId} no encontrado`);
+      throw new NotFoundException(
+        `Tramo ${dto.tramoId} no encontrado`,
+      );
     }
 
-    const nextTramo = await this.tramoRepo.findOne({
-      where: { sortOrder: currentTramo.sortOrder + 1, isActive: true },
+    // Solo se permite avanzar exactamente al siguiente tramo activo.
+    const nextTramo = await manager.findOne(Tramo, {
+      where: {
+        sortOrder: currentTramo.sortOrder + 1,
+        isActive: true,
+      },
     });
 
-    const newVisualVersion = dto.newVisualVersion ?? `v${currentTramo.sortOrder + 1}`;
+    // ── 3. ESTADO PREVIO ──────────────────────────────────────────────────
 
-    // ── Reclamar la operación de forma atómica (INSERT ... ON CONFLICT) ─────
-    // Esto es lo que hace que dos requests simultáneos con la misma
-    // idempotencyKey no puedan ejecutar los efectos dos veces.
+    const nftStatus = await this.nftProjectService.checkNftStatus(
+      dto.projectId,
+      manager,
+    );
 
-    const operation = await this.claimOperation(idempotencyKey, dto);
+    const previousNftVisualVersion =
+      nftStatus.nftProject?.currentVisualVersion ?? null;
 
-    if (operation.status === TramoClosureStatus.COMPLETED) {
-          // Alguien más terminó la operación justo mientras validábamos.
-          return { ...(operation.resultPayload as unknown as CloseTramoResult), replayed: true };
-        }
+    const previousState: TramoStateAudit = {
+      tramoId: currentTramo.id,
+      tramoCode: currentTramo.code,
+      nftVisualVersion: previousNftVisualVersion,
+      snapshotId: null,
+    };
 
-    try {
-      const result = await this.executeClosureTransaction({
-        dto,
-        currentTramo,
-        nextTramo,
+    // ── 4. RECALCULAR REPUTACIÓN ──────────────────────────────────────────
+
+    const snapshot = await this.reputationService.calculateSnapshot(
+      { projectId: dto.projectId },
+      manager,
+    );
+
+    previousState.snapshotId = snapshot.id;
+
+    this.logger.log(
+      `[Cierre ${currentTramo.code}] IC recalculado — proyecto: ${dto.projectId} — IC público: ${snapshot.icPublic}`,
+    );
+
+    // ── 5. EVOLUCIÓN DEL NFT ───────────────────────────────────────────────
+
+    let nftEvolved = false;
+    let nextNftVisualVersion = previousNftVisualVersion;
+
+    if (nftStatus.hasNft) {
+      const targetTramoId = nextTramo?.id ?? currentTramo.id;
+
+      await this.nftProjectService.evolveVisual(
+        dto.projectId,
+        targetTramoId,
         newVisualVersion,
-        idempotencyKey,
-      });
-
-    await this.operationRepo.update(operation.id, {
-            status: TramoClosureStatus.COMPLETED,
-            resultPayload: JSON.parse(JSON.stringify(result)),
-            completedAt: new Date(),
-            lastError: null,
-          });
-
-      return result;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error desconocido';
-
-      // La transacción ya hizo rollback: no hay estados parciales en las
-      // tablas de negocio. Solo dejamos constancia recuperable del fallo.
-      await this.operationRepo.update(operation.id, {
-        status: TramoClosureStatus.FAILED,
-        lastError: message,
-        attempts: operation.attempts + 1,
-      });
-
-      this.logger.error(
-        `[Cierre T${currentTramo.code}] Falló y se revirtió — proyecto: ${dto.projectId} — ${message}`,
-      );
-
-      throw err;
-    }
-  }
-
-  // Efectos estructurales del cierre, todos dentro de una única transacción.
-  private async executeClosureTransaction(params: {
-    dto: CloseTramoDto;
-    currentTramo: Tramo;
-    nextTramo: Tramo | null;
-    newVisualVersion: string;
-    idempotencyKey: string;
-  }): Promise<CloseTramoResult> {
-    const { dto, currentTramo, nextTramo, newVisualVersion, idempotencyKey } = params;
-
-    return this.dataSource.transaction(async (manager: EntityManager) => {
-      // ── Efecto 1: Recalcular IC consolidado ────────────────────────────
-      const snapshot = await this.reputationService.calculateSnapshot(
-        { projectId: dto.projectId },
         manager,
       );
 
+      nftEvolved = true;
+      nextNftVisualVersion = newVisualVersion;
+
       this.logger.log(
-        `[Cierre T${currentTramo.code}] IC recalculado — proyecto: ${dto.projectId} — IC público: ${snapshot.icPublic}`,
+        `[Cierre ${currentTramo.code}] NFT evolucionado a ${newVisualVersion} — proyecto: ${dto.projectId}`,
+      );
+    }
+
+    // ── 6. TRANSICIÓN DE ESTADO ────────────────────────────────────────────
+
+    let nextTramoId: string | null = null;
+
+    if (nextTramo) {
+      await this.tramosService.changeTramo(
+        dto.projectId,
+        {
+          newTramoId: nextTramo.id,
+          changeReason: `Cierre de ${currentTramo.code}`,
+        },
+        requestedByUserId,
+        manager,
       );
 
-      // ── Efecto 2: Evolución visual del NFT ─────────────────────────────
-      let nftEvolved = false;
+      nextTramoId = nextTramo.id;
 
-      const nftStatus = await this.nftProjectService.checkNftStatus(dto.projectId, manager);
+      this.logger.log(
+        `[Cierre ${currentTramo.code}] Proyecto avanzó a ${nextTramo.code}`,
+      );
+    } else {
+      this.logger.log(
+        `[Cierre ${currentTramo.code}] No hay tramo siguiente — fin de la ruta`,
+      );
+    }
 
-      if (nftStatus.hasNft) {
-        await this.nftProjectService.evolveVisual(
-          dto.projectId,
-          nextTramo?.id ?? dto.tramoId,
-          newVisualVersion,
-          manager,
-        );
-        nftEvolved = true;
+    // ── 7. ESTADO POSTERIOR ───────────────────────────────────────────────
 
-        this.logger.log(
-          `[Cierre T${currentTramo.code}] NFT evolucionado a ${newVisualVersion} — proyecto: ${dto.projectId}`,
-        );
-      } else {
-        this.logger.log(
-          `[Cierre T${currentTramo.code}] Proyecto sin NFT — se omite evolución visual`,
-        );
-      }
+    const nextState: TramoStateAudit = {
+      tramoId: nextTramo?.id ?? currentTramo.id,
+      tramoCode: nextTramo?.code ?? currentTramo.code,
+      nftVisualVersion: nextNftVisualVersion,
+      snapshotId: snapshot.id,
+    };
 
-      // ── Efecto 3: Habilitar el siguiente tramo ─────────────────────────
-      let nextTramoId: string | null = null;
-
-      if (nextTramo) {
-        await this.tramosService.changeTramo(
-          dto.projectId,
-          {
-            newTramoId: nextTramo.id,
-            changeReason: `Cierre de ${currentTramo.code}`,
-          },
-          undefined,
-          manager,
-        );
-        nextTramoId = nextTramo.id;
-
-        this.logger.log(`[Cierre T${currentTramo.code}] Proyecto avanzó a ${nextTramo.code}`);
-      } else {
-        this.logger.log(
-          `[Cierre T${currentTramo.code}] No hay tramo siguiente — fin de la ruta de vuelo`,
-        );
-      }
-
-      return {
-        message: nextTramo
-          ? `Tramo ${currentTramo.code} cerrado exitosamente. El proyecto avanzó a ${nextTramo.code}.`
-          : `Tramo ${currentTramo.code} cerrado exitosamente. El proyecto completó la ruta de vuelo.`,
-        projectId: dto.projectId,
-        closedTramoId: dto.tramoId,
-        nextTramoId,
-        icPublic: Number(snapshot.icPublic),
-        nftEvolved,
-        idempotencyKey,
-        replayed: false,
-      };
-    });
-  }
+    return {
+      message: nextTramo
+        ? `Tramo ${currentTramo.code} cerrado exitosamente. El proyecto avanzó a ${nextTramo.code}.`
+        : `Tramo ${currentTramo.code} cerrado exitosamente. El proyecto completó la ruta de vuelo.`,
+      projectId: dto.projectId,
+      closedTramoId: currentTramo.id,
+      nextTramoId,
+      icPublic: Number(snapshot.icPublic),
+      nftEvolved,
+      idempotencyKey,
+      requestedByUserId,
+      previousState,
+      nextState,
+      replayed: false,
+    };
+  });
+}
 
   // Inserta (o recupera) la fila de idempotencia de forma atómica.
   // `ON CONFLICT DO NOTHING` + re-lectura evita condiciones de carrera entre
   // requests concurrentes con la misma idempotencyKey.
   private async claimOperation(
-    idempotencyKey: string,
-    dto: CloseTramoDto,
-  ): Promise<TramoClosureOperation> {
-    await this.dataSource
-      .createQueryBuilder()
-      .insert()
-      .into(TramoClosureOperation)
-      .values({
-        idempotencyKey,
-        projectId: dto.projectId,
-        tramoId: dto.tramoId,
-        status: TramoClosureStatus.IN_PROGRESS,
-      })
-      .orIgnore()
-      .execute();
+  idempotencyKey: string,
+  dto: CloseTramoDto,
+  requestedByUserId: string,
+): Promise<TramoClosureOperation> {
+  await this.dataSource
+    .createQueryBuilder()
+    .insert()
+    .into(TramoClosureOperation)
+    .values({
+      idempotencyKey,
+      projectId: dto.projectId,
+      tramoId: dto.tramoId,
+      status: TramoClosureStatus.IN_PROGRESS,
+      requestedByUserId,
+    })
+    .orIgnore()
+    .execute();
 
-    const operation = await this.operationRepo.findOne({ where: { idempotencyKey } });
+  const operation = await this.operationRepo.findOne({
+    where: { idempotencyKey },
+  });
 
-    if (!operation) {
-      // No debería pasar nunca, pero si pasa preferimos fallar explícito
-      // antes que ejecutar los efectos sin registro de idempotencia.
-      throw new ConflictException('No se pudo registrar la operación de cierre de tramo');
-    }
-
-    // Si la fila ya existía en FAILED (reintento tras un fallo previo), la
-    // reactivamos para este intento.
-    if (operation.status === TramoClosureStatus.FAILED) {
-      await this.operationRepo.update(operation.id, { status: TramoClosureStatus.IN_PROGRESS });
-      operation.status = TramoClosureStatus.IN_PROGRESS;
-    }
-
-    return operation;
+  if (!operation) {
+    throw new ConflictException(
+      'No se pudo registrar la operación de cierre de tramo',
+    );
   }
+
+  // Una clave jamás puede representar dos recursos distintos.
+  if (
+    operation.projectId !== dto.projectId ||
+    operation.tramoId !== dto.tramoId
+  ) {
+    throw new ConflictException(
+      'La idempotencyKey ya fue utilizada para otro proyecto o tramo',
+    );
+  }
+
+  if (operation.status === TramoClosureStatus.FAILED) {
+    await this.operationRepo.update(operation.id, {
+      status: TramoClosureStatus.IN_PROGRESS,
+      requestedByUserId,
+    });
+
+    operation.status = TramoClosureStatus.IN_PROGRESS;
+    operation.requestedByUserId = requestedByUserId;
+  }
+
+  return operation;
+}
 
   // ─── RECONCILIACIÓN ─────────────────────────────────────────────────────────
   // Detecta desincronizaciones entre proyecto, NFT y snapshot que pudieran
@@ -401,11 +537,14 @@ export class TramoClosureService {
     for (const op of failedOps) {
       if (op.attempts >= MAX_RECONCILE_ATTEMPTS) continue;
 
-      await this.closeTramo({
+      await this.closeTramo(
+      {
         projectId: op.projectId,
         tramoId: op.tramoId,
         idempotencyKey: op.idempotencyKey,
-      }).catch((err: unknown) =>
+      },
+      op.requestedByUserId ?? 'system-reconciliation',
+    ).catch((err: unknown) =>
         this.logger.warn(
           `Reconciliación: reintento automático de ${op.idempotencyKey} falló: ${
             err instanceof Error ? err.message : 'Error desconocido'
