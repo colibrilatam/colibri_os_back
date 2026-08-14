@@ -1,0 +1,1 @@
+export { NftChainProofStatus } from './nft-ownership-event.entity';

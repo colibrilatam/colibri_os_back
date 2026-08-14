@@ -5,6 +5,5 @@ export interface ICreateNftOwnershipEvent {
   fromUserId?: string;
   toUserId?: string;
   eventType: NftEventType;
-  txHash?: string;
-  occurredAt: Date;
+  txHash: string;
 }

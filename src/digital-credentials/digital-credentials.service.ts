@@ -58,13 +58,35 @@ export class DigitalCredentialsService {
       issuedAt: new Date(),
     } as DigitalCredential);
 
-    const saved = await this.credentialRepo.save(credential);
+    try {
+      const saved = await this.credentialRepo.save(credential);
 
-    this.logger.log(
-      `Credencial digital emitida — evidence: ${params.evidenceId} — usuario: ${params.userId}`,
-    );
+      this.logger.log(
+        `Credencial digital emitida — evidence: ${params.evidenceId} — usuario: ${params.userId}`,
+      );
 
-    return saved;
+      return saved;
+    } catch (error) {
+      // BE-001: si dos finalizaciones concurrentes llegan hasta acá, el
+      // índice único parcial de la migración rechaza la segunda inserción.
+      // En vez de propagar el error, devolvemos la credencial ya emitida.
+      if ((error as { code?: string }).code === '23505') {
+        this.logger.warn(
+          `Colisión de emisión concurrente detectada para evidence ${params.evidenceId} — devolviendo credencial existente`,
+        );
+        const alreadyIssued = await this.credentialRepo.findOne({
+          where: {
+            evidenceId: params.evidenceId,
+            credentialType: CredentialType.EVIDENCE_APPROVED,
+            status: CredentialStatus.ISSUED,
+          },
+        });
+        if (alreadyIssued) {
+          return alreadyIssued;
+        }
+      }
+      throw error;
+    }
   }
 
   async findAllByProject(projectId: string): Promise<DigitalCredential[]> {
