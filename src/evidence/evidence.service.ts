@@ -34,6 +34,21 @@ const MAX_DELETION_ATTEMPTS = 5;
 
 const EDITABLE_STATUSES: EvidenceStatus[] = [EvidenceStatus.DRAFT, EvidenceStatus.REJECTED];
 
+// FILE-002: resultado de re-verificar la integridad de una evidencia contra
+// el hash de contenido registrado en su última versión.
+export interface IntegrityVerificationResult {
+  evidenceId: string;
+  versionNumber: number;
+  isValid: boolean;
+  algorithm: string;
+  expectedHash: string | null;
+  calculatedHash: string;
+  expectedByteSize: number | null;
+  calculatedByteSize: number;
+  storageUri: string;
+  verifiedAt: Date;
+}
+
 @Injectable()
 export class EvidenceService {
   private readonly logger = new Logger(EvidenceService.name);
@@ -385,6 +400,66 @@ export class EvidenceService {
     });
   }
 
+  // ─── FILE-002: Verificar integridad del archivo confirmado ────────────────────
+  // Re-descarga el recurso desde storageUri y recalcula el SHA-256, comparando
+  // contra lo registrado en la última EvidenceVersion. Detecta sustitución del
+  // recurso (mismo canonicalUri, contenido distinto) y alteración de bytes.
+  // Es idempotente: puede llamarse cuantas veces se quiera sin efectos
+  // secundarios sobre los datos existentes.
+
+  async verifyIntegrity(
+    evidenceId: string,
+    principal: ProjectPrincipal,
+  ): Promise<IntegrityVerificationResult> {
+    const evidence = await this.findOneAuthorized(evidenceId, principal);
+
+    const lastVersion = await this.versionRepo.findOne({
+      where: { evidenceId: evidence.id },
+      order: { versionNumber: 'DESC' },
+    });
+
+    if (!lastVersion || !lastVersion.storageUri) {
+      throw new BadRequestException(
+        'La evidencia no tiene un archivo con versión registrada para verificar',
+      );
+    }
+
+    const { bytes } = await this.downloadResource(lastVersion.storageUri, MAX_EVIDENCE_FILE_BYTES);
+    const calculatedHash = crypto.createHash('sha256').update(bytes).digest('hex');
+    const calculatedByteSize = bytes.length;
+
+    const isValid =
+      !!lastVersion.contentHash &&
+      calculatedHash === lastVersion.contentHash &&
+      (lastVersion.byteSize == null || calculatedByteSize === lastVersion.byteSize);
+
+    const result: IntegrityVerificationResult = {
+      evidenceId: evidence.id,
+      versionNumber: lastVersion.versionNumber,
+      isValid,
+      algorithm: lastVersion.hashAlgorithm ?? 'sha256',
+      expectedHash: lastVersion.contentHash,
+      calculatedHash,
+      expectedByteSize: lastVersion.byteSize,
+      calculatedByteSize,
+      storageUri: lastVersion.storageUri,
+      verifiedAt: new Date(),
+    };
+
+    if (!isValid) {
+      this.logger.warn(
+        `Verificación de integridad FALLIDA — evidence ${evidence.id} v${lastVersion.versionNumber}: ` +
+          `hash esperado ${lastVersion.contentHash}, hash calculado ${calculatedHash}`,
+      );
+    } else {
+      this.logger.log(
+        `Verificación de integridad OK — evidence ${evidence.id} v${lastVersion.versionNumber}`,
+      );
+    }
+
+    return result;
+  }
+
   // ─── Eliminar (solo DRAFT) — patrón outbox ────────────────────────────────────
   // No se borra el archivo de Cloudinary ni la fila local en el mismo paso.
   // Se marca la evidencia como DELETION_PENDING, se encola en el outbox y el
@@ -583,10 +658,25 @@ export class EvidenceService {
   private async calculateContentHashAndVerifyMime(
     secureUrl: string,
     maxBytes: number,
-  ): Promise<{ contentHash: string; contentType: string | null }> {
+  ): Promise<{ contentHash: string; contentType: string | null; byteSize: number }> {
+    const { bytes, contentType } = await this.downloadResource(secureUrl, maxBytes);
+
+    return {
+      contentHash: crypto.createHash('sha256').update(bytes).digest('hex'),
+      contentType,
+      byteSize: bytes.length,
+    };
+  }
+
+  // Descarga cruda de un recurso con límite de tamaño. Usado tanto al
+  // confirmar un upload como al re-verificar integridad (FILE-002).
+  private async downloadResource(
+    uri: string,
+    maxBytes: number,
+  ): Promise<{ bytes: Buffer; contentType: string | null }> {
     let response: Response;
     try {
-      response = await fetch(secureUrl);
+      response = await fetch(uri);
     } catch {
       throw new BadRequestException('No se pudo recuperar el archivo para verificar su integridad');
     }
@@ -601,16 +691,13 @@ export class EvidenceService {
     }
 
     const contentType = response.headers.get('content-type');
-
     const bytes = Buffer.from(await response.arrayBuffer());
+
     if (bytes.length > maxBytes) {
       throw new BadRequestException('El archivo supera el tamaño máximo permitido');
     }
 
-    return {
-      contentHash: crypto.createHash('sha256').update(bytes).digest('hex'),
-      contentType,
-    };
+    return { bytes, contentType };
   }
 
   // Compara el Content-Type real servido por Cloudinary contra el MIME
