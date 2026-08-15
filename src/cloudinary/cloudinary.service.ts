@@ -10,6 +10,7 @@ export interface CloudinarySignature {
   apiKey: string;
   folder: string;
   publicId: string;
+  resourceType: 'image' | 'video' | 'raw';
 }
 
 export interface CloudinaryFileMetadata {
@@ -45,6 +46,20 @@ export const RESOURCE_TYPE_MAP: Record<string, 'image' | 'video' | 'raw'> = {
   'application/vnd.ms-excel': 'raw',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'raw',
   'text/plain': 'raw',
+};
+
+// Extensión real de archivo por MIME type — Cloudinary exige que el public_id
+// de un recurso `raw` incluya la extensión (a diferencia de image/video, donde
+// el formato se infiere aparte y no forma parte del public_id).
+export const MIME_EXTENSION_MAP: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.ms-powerpoint': 'ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'application/vnd.ms-excel': 'xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'text/plain': 'txt',
 };
 
 @Injectable()
@@ -87,9 +102,15 @@ export class CloudinaryService {
     const apiKey = this.getRequiredConfig('cloudinary.apiKey');
     const cloudName = this.getRequiredConfig('cloudinary.cloudName');
 
+    const resourceType = this.getResourceType(mimeType);
     const timestamp = Math.round(Date.now() / 1000);
     const folder = `colibri/evidences/project_${projectId.slice(0, 8)}`;
-    const publicId = `ev_${evidenceId.slice(0, 8)}_${timestamp}`;
+    const basePublicId = `ev_${evidenceId.slice(0, 8)}_${timestamp}`;
+
+    // Para recursos `raw`, la extensión real va incluida en el public_id
+    // firmado; para image/video no corresponde (Cloudinary la infiere sola).
+    const extension = resourceType === 'raw' ? MIME_EXTENSION_MAP[mimeType] : null;
+    const publicId = extension ? `${basePublicId}.${extension}` : basePublicId;
 
     // Parámetros que se firman — deben coincidir exactamente con lo que el frontend envía
     const paramsToSign = `folder=${folder}&public_id=${publicId}&timestamp=${timestamp}`;
@@ -109,6 +130,7 @@ export class CloudinaryService {
       apiKey,
       folder,
       publicId,
+      resourceType,
     };
   }
 

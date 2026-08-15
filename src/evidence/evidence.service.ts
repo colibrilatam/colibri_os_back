@@ -115,7 +115,7 @@ export class EvidenceService {
   async requestUploadSignature(
     authorUserId: string,
     dto: RequestUploadSignatureDto,
-  ): Promise<CloudinarySignature> {
+  ): Promise<CloudinarySignature & { uploadSessionId: string }> {
     const evidence = await this.findOneAndAssertOwnership(dto.evidenceId, authorUserId);
 
     this.assertEditable(evidence);
@@ -130,29 +130,33 @@ export class EvidenceService {
       dto.mimeType,
     );
 
+    // Cualquier sesión previa sin consumir para esta evidencia/usuario queda
+    // invalidada: solo la última sesión emitida sirve para confirmar.
     await this.uploadSessionRepo.update(
       { evidenceId: evidence.id, authorUserId, consumedAt: IsNull() },
       { expiresAt: new Date() },
     );
 
-    await this.uploadSessionRepo.save(
+    const session = await this.uploadSessionRepo.save(
       this.uploadSessionRepo.create({
         evidenceId: evidence.id,
         authorUserId,
         projectId: evidence.projectId,
-        expectedPublicId: `${signature.folder}/${signature.publicId}.pdf`,
+        expectedPublicId: `${signature.folder}/${signature.publicId}`,
         folder: signature.folder,
         mimeType: dto.mimeType,
-        resourceType: this.cloudinaryService.getResourceType(dto.mimeType),
+        resourceType: signature.resourceType,
         maxBytes: MAX_EVIDENCE_FILE_BYTES,
         expiresAt: new Date(Date.now() + UPLOAD_SESSION_TTL_MS),
         consumedAt: null,
       }),
     );
 
-    this.logger.log(`Firma de upload generada para evidence ${evidence.id}`);
+    this.logger.log(
+      `Firma de upload generada para evidence ${evidence.id} (sesión ${session.id})`,
+    );
 
-    return signature;
+    return { ...signature, uploadSessionId: session.id };
   }
 
   // ─── Paso 2: Confirmar que el archivo fue subido a Cloudinary ─────────────────
@@ -163,16 +167,22 @@ export class EvidenceService {
     this.assertEditable(evidence);
 
     const session = await this.uploadSessionRepo.findOne({
-      where: {
-        evidenceId: evidence.id,
-        authorUserId,
-        consumedAt: IsNull(),
-      },
-      order: { createdAt: 'DESC' },
+      where: { id: dto.uploadSessionId },
     });
 
-    if (!session || session.expiresAt <= new Date()) {
-      throw new BadRequestException('La sesión de carga no existe o expiró');
+    if (
+      !session ||
+      session.evidenceId !== evidence.id ||
+      session.authorUserId !== authorUserId ||
+      session.projectId !== evidence.projectId
+    ) {
+      // Mensaje genérico: no revelamos cuál validación falló (sesión ajena,
+      // de otra evidencia, o de otro proyecto).
+      throw new ForbiddenException('La sesión de carga no es válida para esta evidencia');
+    }
+
+    if (session.consumedAt || session.expiresAt <= new Date()) {
+      throw new BadRequestException('La sesión de carga ya fue utilizada o expiró');
     }
 
     if (dto.cloudinaryPublicId !== session.expectedPublicId) {
@@ -196,7 +206,16 @@ export class EvidenceService {
       );
     }
 
-    const contentHash = await this.calculateContentHash(fileMeta.secureUrl, session.maxBytes);
+    const { contentHash, contentType } = await this.calculateContentHashAndVerifyMime(
+      fileMeta.secureUrl,
+      session.maxBytes,
+    );
+
+    if (!this.mimeTypesAreEquivalent(contentType, session.mimeType)) {
+      throw new BadRequestException(
+        'El tipo de archivo subido no coincide con el MIME declarado en la sesión',
+      );
+    }
 
     await this.dataSource.transaction(async (manager) => {
       const lockedSession = await manager
@@ -204,6 +223,8 @@ export class EvidenceService {
         .createQueryBuilder('session')
         .setLock('pessimistic_write')
         .where('session.id = :id', { id: session.id })
+        .andWhere('session.evidence_id = :evidenceId', { evidenceId: evidence.id })
+        .andWhere('session.author_user_id = :authorUserId', { authorUserId })
         .getOne();
 
       if (!lockedSession || lockedSession.consumedAt || lockedSession.expiresAt <= new Date()) {
@@ -556,7 +577,13 @@ export class EvidenceService {
     }
   }
 
-  private async calculateContentHash(secureUrl: string, maxBytes: number): Promise<string> {
+  // Descarga el archivo confirmado para calcular su hash de integridad y, de
+  // paso, captura el Content-Type real servido por Cloudinary (se reutiliza
+  // el mismo fetch para no pagar una descarga extra solo para verificar MIME).
+  private async calculateContentHashAndVerifyMime(
+    secureUrl: string,
+    maxBytes: number,
+  ): Promise<{ contentHash: string; contentType: string | null }> {
     let response: Response;
     try {
       response = await fetch(secureUrl);
@@ -573,12 +600,33 @@ export class EvidenceService {
       throw new BadRequestException('El archivo supera el tamaño máximo permitido');
     }
 
+    const contentType = response.headers.get('content-type');
+
     const bytes = Buffer.from(await response.arrayBuffer());
     if (bytes.length > maxBytes) {
       throw new BadRequestException('El archivo supera el tamaño máximo permitido');
     }
 
-    return crypto.createHash('sha256').update(bytes).digest('hex');
+    return {
+      contentHash: crypto.createHash('sha256').update(bytes).digest('hex'),
+      contentType,
+    };
+  }
+
+  // Compara el Content-Type real servido por Cloudinary contra el MIME
+  // declarado al pedir la firma. Tolerante a variantes benignas (charset,
+  // application/octet-stream genérico para binarios Office) para no romper
+  // uploads legítimos, pero corta cualquier cambio de tipo evidente
+  // (ej.: declarar PDF y subir texto plano o una imagen).
+  private mimeTypesAreEquivalent(actualContentType: string | null, expectedMime: string): boolean {
+    if (!actualContentType) return true;
+
+    const normalized = actualContentType.split(';')[0].trim().toLowerCase();
+
+    if (normalized === expectedMime.toLowerCase()) return true;
+    if (normalized === 'application/octet-stream') return true;
+
+    return false;
   }
 
   // Extrae el publicId de una URL de Cloudinary
