@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
@@ -51,6 +55,13 @@ jobs:
       - name: Unit tests
         run: npm run test -- --ci --coverage
 
+      - name: Subir reporte de cobertura (evidencia técnica)
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage-${{ github.sha }}
+          path: coverage/
+          retention-days: 30
+
   e2e-tests:
     runs-on: ubuntu-latest
     needs: lint-and-build
@@ -72,6 +83,7 @@ jobs:
 
     env:
       NODE_ENV: test
+      PORT: 3000
       DATABASE_URL: postgresql://colibri_ci:colibri_ci@localhost:5432/colibri_ci
       JWT_SECRET: ci-test-secret-not-for-production
       JWT_EXPIRES_IN: 1h
@@ -111,8 +123,97 @@ jobs:
       - name: Verificar migraciones idempotentes (segunda corrida no debe fallar ni cambiar nada)
         run: npm run migration:run
 
-      - name: E2E tests
+      - name: Build backend (para el smoke test de arranque real)
+        run: npm run build
+
+      - name: Smoke test — arranque real y GET /api/v1/health
+        run: |
+          node dist/main.js &
+          APP_PID=$!
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:3000/api/v1/health > /tmp/health.json; then
+              echo "Health OK:"
+              cat /tmp/health.json
+              READY=0
+              break
+            fi
+            echo "Esperando arranque de la app... ($i)"
+            sleep 2
+          done
+          if [ -z "$READY" ]; then
+            echo "ERROR: la app no respondió en /api/v1/health"
+            kill $APP_PID || true
+            exit 1
+          fi
+          curl -sf http://localhost:3000/api/v1/ready
+          kill $APP_PID
+
+      - name: E2E tests (incluye suites de autorización)
         run: npm run test:e2e -- --ci
 
       - name: Probar rollback de la última migración
         run: npm run migration:revert
+
+  build-artifact:
+    runs-on: ubuntu-latest
+    needs: lint-and-build
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (pass 1)
+        run: |
+          npm run build
+          cp -r dist dist-pass1
+
+      - name: Build limpio (pass 2)
+        run: |
+          rm -rf dist
+          npm run build
+
+      - name: Verificar que el build es reproducible (mismo output en 2 corridas)
+        run: diff -rq dist-pass1 dist
+
+      - name: Empaquetar artefacto de release
+        run: |
+          mkdir -p release
+          cp -r dist package.json package-lock.json release/
+          cp -r src/database/migrations release/migrations
+          tar --sort=name --owner=0 --group=0 --numeric-owner \
+              --mtime='UTC 2020-01-01' \
+              -czf "release/colibri-os-back-${GITHUB_SHA}.tar.gz" \
+              -C release dist package.json package-lock.json migrations
+          sha256sum "release/colibri-os-back-${GITHUB_SHA}.tar.gz" > "release/colibri-os-back-${GITHUB_SHA}.tar.gz.sha256"
+
+      - name: Subir artefacto de release
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.sha }}
+          path: |
+            release/colibri-os-back-${{ github.sha }}.tar.gz
+            release/colibri-os-back-${{ github.sha }}.tar.gz.sha256
+          retention-days: 90
+
+  ci-gate:
+    name: CI Gate (usar este check en branch protection)
+    runs-on: ubuntu-latest
+    needs: [lint-and-build, unit-tests, e2e-tests, build-artifact, sca-gate, sast-gate, secret-scan-gate]
+    if: always()
+    steps:
+      - name: Verificar que todos los jobs requeridos pasaron
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "Uno o más jobs requeridos fallaron o fueron cancelados."
+            exit 1
+          fi
+          echo "Todos los jobs requeridos pasaron correctamente."
