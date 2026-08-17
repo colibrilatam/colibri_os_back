@@ -7,11 +7,13 @@ import { MicroActionInstanceVersion } from './entities/micro-action-instance-ver
 import { MicroActionInstanceService } from './micro-action-instance.service';
 import { MicroActionInstanceController } from './micro-action-instance.controller';
 import { ProjectsModule } from '../projects/projects.module';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([MicroActionInstance, MicroActionInstanceVersion]),
     ProjectsModule,
+    CloudinaryModule,
   ],
   controllers: [MicroActionInstanceController],
   providers: [MicroActionInstanceService],

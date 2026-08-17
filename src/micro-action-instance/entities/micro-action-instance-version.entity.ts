@@ -9,7 +9,8 @@ import {
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
-import { MicroActionInstance, MicroActionInstanceStatus } from './micro-action-instance.entity';
+import { MicroActionInstance } from './micro-action-instance.entity';
+import { MicroActionInstanceStatus } from './micro-action-instance-status.enum';
 import { User } from '../../users/entities/user.entity';
 
 export enum MicroActionInstanceChangeType {
@@ -18,6 +19,8 @@ export enum MicroActionInstanceChangeType {
   NOTES_UPDATE = 'notes_update',
   SUBMITTED = 'submitted',
   REOPENED = 'reopened',
+  REJECTED = 'rejected',
+  COMPLETED = 'completed',
 }
 
 @Entity('micro_action_instance_versions')
@@ -26,10 +29,10 @@ export class MicroActionInstanceVersion {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'micro_action_instance_id' })
+  @Column({ name: 'micro_action_instance_id', type: 'uuid' })
   microActionInstanceId: string;
 
-  @Column({ name: 'version_number' })
+  @Column({ name: 'version_number', type: 'int' })
   versionNumber: number;
 
   @Column({
@@ -56,10 +59,10 @@ export class MicroActionInstanceVersion {
   @Column({ name: 'execution_notes', type: 'text', nullable: true })
   executionNotes: string | null;
 
-  @Column({ name: 'attempt_number' })
+  @Column({ name: 'attempt_number', type: 'int' })
   attemptNumber: number;
 
-  @Column({ name: 'reopened_count' })
+  @Column({ name: 'reopened_count', type: 'int' })
   reopenedCount: number;
 
   @Column({ name: 'change_summary', type: 'text', nullable: true })
@@ -68,7 +71,10 @@ export class MicroActionInstanceVersion {
   @Column({ name: 'supersedes_version_number', type: 'int', nullable: true })
   supersedesVersionNumber: number | null;
 
-  @Column({ name: 'created_by_user_id' })
+  @Column({ name: 'canonical_uri', type: 'text', nullable: true })
+  canonicalUri: string | null;
+
+  @Column({ name: 'created_by_user_id', type: 'uuid' })
   createdByUserId: string;
 
   @CreateDateColumn({ name: 'created_at' })
