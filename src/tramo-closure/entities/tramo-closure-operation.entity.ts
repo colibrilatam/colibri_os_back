@@ -27,14 +27,14 @@ export class TramoClosureOperation {
   // propia (ej. UUID generado en el frontend) si necesita reintentar
   // exactamente el mismo intento tras un timeout de red.
   @Index({ unique: true })
-  @Column({ name: 'idempotency_key' })
+  @Column({ name: 'idempotency_key', type: 'varchar' })
   idempotencyKey: string;
 
   @Index()
-  @Column({ name: 'project_id' })
+  @Column({ name: 'project_id', type: 'uuid' })
   projectId: string;
 
-  @Column({ name: 'tramo_id' })
+  @Column({ name: 'tramo_id', type: 'uuid' })
   tramoId: string;
 
   @Index()
@@ -56,7 +56,7 @@ export class TramoClosureOperation {
   @Column({ name: 'result_payload', type: 'jsonb', nullable: true })
   resultPayload: Record<string, unknown> | null;
 
-  @Column({ name: 'requested_by_user_id', nullable: true })
+  @Column({ name: 'requested_by_user_id', type: 'uuid', nullable: true })
   requestedByUserId: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
