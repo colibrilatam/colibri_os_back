@@ -223,7 +223,7 @@ export class Fixtures {
         projectId,
         actorUserId,
         microActionDefinitionId,
-        status: MicroActionInstanceStatus.IN_PROGRESS,
+        status: MicroActionInstanceStatus.PENDING,
         ...overrides,
       } as MicroActionInstance),
     );

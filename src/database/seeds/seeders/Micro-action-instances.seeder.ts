@@ -11,7 +11,7 @@ import {
 // Instancias por tramo:
 //   T1 (7 PACs × 3 MADs = 21 instancias) — todas completed
 //   T2 (7 PACs × 3 MADs = 21 instancias) — todas completed
-//   T3 (7 PACs × 3 MADs = 21 instancias) — PACs 1-6 completed, PAC 7 pending/in_progress
+//   T3 (7 PACs × 3 MADs = 21 instancias) — PACs 1-6 completed, PAC 7 pending
 //
 // Regla de evidencia: 1 evidencia por PAC → solo la MAD sortOrder=1 de cada PAC
 // lleva evidencia. Las otras 2 instancias del PAC quedan completed sin evidencia.
@@ -70,17 +70,10 @@ export async function seedMicroActionInstances(
       isOnTime: true,
     };
 
-    if (
-      status === MicroActionInstanceStatus.COMPLETED ||
-      status === MicroActionInstanceStatus.CLOSED
-    ) {
+    if (status === MicroActionInstanceStatus.COMPLETED) {
       base.startedAt = daysAgo(offsetDaysAgo + 3);
-      base.submittedAt = daysAgo(offsetDaysAgo + 1);
       base.completedAt = daysAgo(offsetDaysAgo);
-      base.validatedAt = daysAgo(offsetDaysAgo);
-    } else if (status === MicroActionInstanceStatus.IN_PROGRESS) {
-      base.startedAt = daysAgo(offsetDaysAgo);
-    } else if (status === MicroActionInstanceStatus.STARTED) {
+    } else {
       base.startedAt = daysAgo(offsetDaysAgo);
     }
 
@@ -97,29 +90,19 @@ export async function seedMicroActionInstances(
     instancesData.push(buildInstance(mad, MicroActionInstanceStatus.COMPLETED, 70));
   }
 
-  // ── T3: PACs 1-6 completed, PAC 7 con estados mixtos ─────────────────────
+  // ── T3: PACs 1-6 completed, PAC 7 con pending ─────────────────────────────
   // Identificar a qué PAC pertenece cada MAD de T3:
   // Código MAD_3_{catIndex}_{sortOrder} → catIndex = sort del PAC dentro del tramo
   for (const mad of madsT3) {
     const parts = mad.code.split('_');
     const catIndex = parseInt(parts[2], 10);
-    const sortOrder = parseInt(parts[3], 10);
 
     if (catIndex <= 6) {
       // PACs 1-6 de T3: completados (hace ~30-10 días)
       instancesData.push(buildInstance(mad, MicroActionInstanceStatus.COMPLETED, 15));
     } else {
-      // PAC 7 de T3 (catIndex === 7): evidencia pendiente
-      if (sortOrder === 1) {
-        // La MAD principal (la que llevará evidencia): pending
-        instancesData.push(buildInstance(mad, MicroActionInstanceStatus.PENDING, 0));
-      } else if (sortOrder === 2) {
-        // Segunda MAD: started (arrancó pero no tiene evidencia aún)
-        instancesData.push(buildInstance(mad, MicroActionInstanceStatus.STARTED, 2));
-      } else {
-        // Tercera MAD: pending
-        instancesData.push(buildInstance(mad, MicroActionInstanceStatus.PENDING, 0));
-      }
+      // PAC 7 de T3 (catIndex === 7): pending
+      instancesData.push(buildInstance(mad, MicroActionInstanceStatus.PENDING, 0));
     }
   }
 
