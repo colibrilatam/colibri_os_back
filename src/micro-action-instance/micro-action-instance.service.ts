@@ -287,6 +287,12 @@ export class MicroActionInstanceService {
       await this.repo.save(instance);
     }
 
+    if (changeType === MicroActionInstanceChangeType.REJECTED) {
+      const instance = version.microActionInstance;
+      instance.status = MicroActionInstanceStatus.PENDING;
+      await this.repo.save(instance);
+    }
+
     return this.versionRepo.save(version);
   }
 
