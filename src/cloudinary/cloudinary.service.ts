@@ -208,4 +208,37 @@ export class CloudinaryService {
         .end(file.buffer);
     });
   }
+
+  async uploadVersionFile(
+    file: Express.Multer.File,
+    instanceId: string,
+  ): Promise<{ secure_url: string; public_id: string }> {
+    const resourceType = this.getResourceType(file.mimetype);
+    const timestamp = Date.now();
+    const publicId = `ver_${instanceId.slice(0, 8)}_${timestamp}`;
+
+    return new Promise((resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream(
+          {
+            folder: 'colibri/versions',
+            public_id: publicId,
+            resource_type: resourceType,
+          },
+          (error, result) => {
+            if (error) {
+              const rawMessage = (error as { message?: unknown }).message;
+              const message =
+                typeof rawMessage === 'string'
+                  ? rawMessage
+                  : 'Error desconocido al subir el archivo a Cloudinary';
+              reject(new Error(message));
+              return;
+            }
+            resolve(result as { secure_url: string; public_id: string });
+          },
+        )
+        .end(file.buffer);
+    });
+  }
 }

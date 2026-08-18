@@ -24,6 +24,7 @@ import { UpdateRubricDto } from './dto/update-rubric.dto';
 import { UserRole } from '../users/entities/user.entity';
 import { DigitalCredentialsService } from '../digital-credentials/digital-credentials.service';
 import { ProjectAccessService, ProjectPrincipal } from '../projects/project-access.service';
+import { EvaluationDecisionAudit } from './entities/evaluation-decision-audit.entity';
 
 @Injectable()
 export class EvaluationService {
@@ -44,6 +45,9 @@ export class EvaluationService {
 
     @InjectRepository(Evidence)
     private readonly evidenceRepo: Repository<Evidence>,
+
+    @InjectRepository(EvaluationDecisionAudit)
+    private readonly decisionAuditRepo: Repository<EvaluationDecisionAudit>,
 
     private readonly digitalCredentialsService: DigitalCredentialsService,
 
@@ -244,6 +248,10 @@ export class EvaluationService {
       evaluation.evidence.projectId,
     );
 
+    // BE-001: solo el evaluador asignado (quien creó la evaluación) o un admin
+    // pueden finalizarla. Tener acceso al proyecto ya no alcanza.
+    this.assertAssignedEvaluator(principal, evaluation);
+
     if (evaluation.isFinal) {
       throw new BadRequestException('La evaluación ya está finalizada');
     }
@@ -257,6 +265,7 @@ export class EvaluationService {
     }
 
     const { evidenceStatus, validationStatus } = this.mapResultToStatuses(dto.evaluationResult);
+    const previousEvidenceStatus = evidence.status;
 
     const now = new Date();
 
@@ -307,6 +316,21 @@ export class EvaluationService {
       }
 
       await manager.save(Evidence, lockedEvidence);
+
+      // BE-001: la decisión queda auditada en la misma transacción.
+      await manager.save(
+        EvaluationDecisionAudit,
+        manager.getRepository(EvaluationDecisionAudit).create({
+          evaluationId: lockedEvaluation.id,
+          evidenceId: lockedEvidence.id,
+          performedByUserId: principal.userId,
+          performedByRole: principal.role,
+          result: dto.evaluationResult,
+          score: dto.score ?? null,
+          previousEvidenceStatus,
+          newEvidenceStatus: evidenceStatus,
+        }),
+      );
     });
 
     // Emisión automática de credencial digital al aprobar
@@ -320,7 +344,7 @@ export class EvaluationService {
     }
 
     this.logger.log(
-      `Evaluation ${dto.evaluationId} finalizada — resultado: ${dto.evaluationResult}`,
+      `Evaluation ${dto.evaluationId} finalizada por ${principal.userId} (${principal.role}) — resultado: ${dto.evaluationResult}`,
     );
 
     return this.findOneEvaluation(evaluation.id);
@@ -450,6 +474,20 @@ export class EvaluationService {
         'Solo evaluadores, mentores o admins pueden registrar una revisión humana',
       );
     }
+  }
+
+  private assertAssignedEvaluator(principal: ProjectPrincipal, evaluation: Evaluation): void {
+    if (principal.role === UserRole.ADMIN) {
+      return;
+    }
+
+    if (evaluation.createdByUserId && evaluation.createdByUserId === principal.userId) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'Solo el evaluador asignado a esta evaluación (o un admin) puede finalizarla',
+    );
   }
 
   private mapResultToStatuses(result: EvaluationResult): {

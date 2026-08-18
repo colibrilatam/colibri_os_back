@@ -7,9 +7,9 @@ import { MicroActionInstanceStatus } from '../entities/micro-action-instance.ent
 export class UpdateMicroActionInstanceDto {
   @ApiPropertyOptional({
     description:
-      'Nuevo estado de la instancia. Las transiciones válidas son: started → in_progress | submitted; in_progress → submitted; reopened → in_progress | submitted.',
+      'Nuevo estado de la instancia. La única transición válida es: pending → completed.',
     enum: MicroActionInstanceStatus,
-    example: MicroActionInstanceStatus.IN_PROGRESS,
+    example: MicroActionInstanceStatus.COMPLETED,
   })
   @IsOptional()
   @IsEnum(MicroActionInstanceStatus)
@@ -22,4 +22,12 @@ export class UpdateMicroActionInstanceDto {
   @IsOptional()
   @IsString()
   executionNotes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Resumen opcional del motivo del cambio, se guarda en el historial de versiones',
+    example: 'Corrección de notas tras feedback del mentor',
+  })
+  @IsOptional()
+  @IsString()
+  changeSummary?: string;
 }

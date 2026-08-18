@@ -79,8 +79,9 @@ export class UsersController {
   async changeRole(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('id') adminUserId: string,
+    @CurrentUser('role') role: UserRole,
     @Body() dto: ChangeUserRoleDto,
   ) {
-    return this.usersService.changeRole(id, adminUserId, dto);
+    return this.usersService.changeRole(id, adminUserId, dto, { userId: adminUserId, role });
   }
 }

@@ -1,20 +1,34 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  Matches,
+} from 'class-validator';
 
 export class AssignNftDto {
   @ApiProperty({
-    description: 'ID del registro de portafolio (NFT disponible del mecenas)',
+    description:
+      'ID del registro de portafolio (NFT disponible del mecenas)',
     format: 'uuid',
-    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @IsUUID()
   portfolioId: string;
 
   @ApiProperty({
-    description: 'ID del proyecto elegible receptor del NFT',
+    description:
+      'ID del proyecto elegible receptor del NFT',
     format: 'uuid',
-    example: '123e4567-e89b-12d3-a456-426614174001',
   })
   @IsUUID()
   projectId: string;
+
+  @ApiProperty({
+    description:
+      'Hash de la transacción que realizó la transferencia on-chain del NFT',
+    example:
+      '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+  })
+  @IsString()
+  @Matches(/^0x[a-fA-F0-9]{64}$/)
+  txHash: string;
 }
