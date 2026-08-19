@@ -125,7 +125,7 @@ export class MicroActionInstanceService {
 
     const [data, total] = await this.repo.findAndCount({
       where,
-      relations: ['microActionDefinition', 'project', 'versions'],
+      relations: ['microActionDefinition', 'project', 'versions', 'actor'],
       order: { createdAt: 'DESC' },
       skip: (pageNum - 1) * limitNum,
       take: limitNum,
@@ -245,7 +245,7 @@ export class MicroActionInstanceService {
       changeType: MicroActionInstanceChangeType.SUBMITTED,
       status: MicroActionInstanceStatus.SUBMITTED,
       previousStatus: null,
-      executionNotes: dto.executionNotes ?? instance.executionNotes,
+      executionNotes: dto.executionNotes && dto.executionNotes.length > 0 ? dto.executionNotes : 'El usuario no ingresó notas de ejecución',
       attemptNumber: instance.attemptNumber,
       reopenedCount: instance.reopenedCount,
       changeSummary: `Versión ${nextVersionNumber} enviada`,
