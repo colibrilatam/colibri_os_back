@@ -12,6 +12,7 @@ import { EvidenceModule } from '../evidence/evidence.module';
 import { Evidence } from '../evidence/entities/evidence.entity';
 import { DigitalCredentialsModule } from 'src/digital-credentials/digital-credentials.module';
 import { ProjectsModule } from '../projects/projects.module';
+import { EvaluationDecisionAudit } from './entities/evaluation-decision-audit.entity';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ProjectsModule } from '../projects/projects.module';
       EvaluationHumanReview,
       Rubric,
       Evidence,
+      EvaluationDecisionAudit,
     ]),
     EvidenceModule,
     DigitalCredentialsModule,

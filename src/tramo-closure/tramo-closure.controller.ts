@@ -1,6 +1,6 @@
 // src/tramo-closure/tramo-closure.controller.ts
 
-import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TramoClosureService } from './tramo-closure.service';
 import { EvaluateClosureDto } from './dto/evaluate-closure.dto';
@@ -59,43 +59,74 @@ Devuelve:
     return this.service.evaluateCompletion(dto);
   }
 
-  @Post('close')
-  @HttpCode(HttpStatus.OK)
+  @Get('reconciliation')
   @ApiOperation({
-    summary: 'Cerrar un tramo y avanzar al siguiente',
-    description: `Ejecuta los tres efectos estructurales del cierre de tramo:
+    summary: 'Detectar proyectos desincronizados entre tramo, NFT y snapshot',
+    description:
+      'Corre también automáticamente cada hora. Este endpoint permite disparar la verificación manualmente y devuelve la lista de inconsistencias encontradas.',
+  })
+  async reconciliation() {
+    return this.service.findInconsistentProjects();
+  }
+
+  @Post('close')
+@HttpCode(HttpStatus.OK)
+@ApiOperation({
+  summary: 'Cerrar un tramo y avanzar al siguiente',
+  description: `Ejecuta los tres efectos estructurales del cierre de tramo:
 
 1. **Recalcula el Índice Colibrí** con snapshot consolidado
 2. **Evoluciona visualmente el NFT** del proyecto (si tiene NFT)
 3. **Habilita el siguiente tramo** actualizando \`currentTramoId\` del proyecto
 
 Falla si las 7 evidencias no están aprobadas o si el tramo no es el actual del proyecto.`,
-  })
-  @ApiResponse({
-    status: 200,
-    schema: {
-      example: {
-        message: 'Tramo T1 cerrado exitosamente. El proyecto avanzó a T2.',
-        projectId: 'proj-uuid-0001',
-        closedTramoId: 'tramo-uuid-0001',
-        nextTramoId: 'tramo-uuid-0002',
-        icPublic: 78.5,
-        nftEvolved: true,
+})
+@ApiResponse({
+  status: 200,
+  schema: {
+    example: {
+      message: 'Tramo T1 cerrado exitosamente. El proyecto avanzó a T2.',
+      projectId: 'proj-uuid-0001',
+      closedTramoId: 'tramo-uuid-0001',
+      nextTramoId: 'proj-uuid-0002',
+      icPublic: 78.5,
+      nftEvolved: true,
+      requestedByUserId: 'user-uuid-0001',
+      previousState: {
+        tramoId: 'tramo-uuid-0001',
+        tramoCode: 'T1',
+      },
+      nextState: {
+        tramoId: 'tramo-uuid-0002',
+        tramoCode: 'T2',
       },
     },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'El tramo no puede cerrarse porque faltan evidencias aprobadas.',
-  })
-  async closeTramo(
-    @Body() dto: CloseTramoDto,
-    @CurrentUser() principal: { sub: string; role: UserRole },
-  ) {
-    await this.projectAccess.assertCanManageProject(
-      { userId: principal.sub, role: principal.role },
-      dto.projectId,
-    );
-    return this.service.closeTramo(dto);
-  }
+  },
+})
+@ApiResponse({
+  status: 400,
+  description: 'El tramo no puede cerrarse porque la transición es inválida o faltan evidencias.',
+})
+@ApiResponse({
+  status: 401,
+  description: 'Usuario no autenticado.',
+})
+@ApiResponse({
+  status: 403,
+  description: 'El usuario autenticado no está autorizado a administrar el proyecto.',
+})
+async closeTramo(
+  @Body() dto: CloseTramoDto,
+  @CurrentUser() principal: { sub: string; role: UserRole },
+) {
+  await this.projectAccess.assertCanManageProject(
+    {
+      userId: principal.sub,
+      role: principal.role,
+    },
+    dto.projectId,
+  );
+
+  return this.service.closeTramo(dto, principal.sub);
+}
 }

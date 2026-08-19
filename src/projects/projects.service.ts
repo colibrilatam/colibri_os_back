@@ -9,6 +9,12 @@ import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import type { Express } from 'express';
 import { ProjectPac, ProjectPacStatus } from './entities/project.pac.entity';
 import { Pac } from 'src/pacs/entities/pac.entity';
+import {
+  ProjectAuditAction,
+  ProjectAuditResourceType,
+  ProjectResourceAudit,
+} from './entities/project-resource-audit.entity';
+import { ProjectPrincipal } from './project-access.service';
 
 @Injectable()
 export class ProjectsService {
@@ -18,6 +24,8 @@ export class ProjectsService {
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
     @InjectRepository(ProjectPac) private readonly projectPacRepository: Repository<ProjectPac>,
+    @InjectRepository(ProjectResourceAudit)
+    private readonly auditRepository: Repository<ProjectResourceAudit>,
     private readonly tramosService: TramosService,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
@@ -65,21 +73,73 @@ export class ProjectsService {
     return project;
   }
 
-  async update(id: string, dto: UpdateProjectDto): Promise<Project> {
+  async update(id: string, dto: UpdateProjectDto, principal: ProjectPrincipal): Promise<Project> {
     const project = await this.findOne(id);
     Object.assign(project, dto);
-    return this.projectRepository.save(project);
+    const saved = await this.projectRepository.save(project);
+
+    await this.logAudit({
+      resourceType: ProjectAuditResourceType.PROJECT,
+      resourceId: saved.id,
+      action: ProjectAuditAction.UPDATE,
+      performedByUserId: principal.userId,
+      projectId: saved.id,
+      changes: dto as Record<string, unknown>,
+    });
+
+    return saved;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, principal: ProjectPrincipal): Promise<void> {
     const project = await this.findOne(id);
+
+    // Registramos la auditoría antes de eliminar para no perder la referencia
+    // al proyecto (no hay FK hacia "projects" en la tabla de auditoría).
+    await this.logAudit({
+      resourceType: ProjectAuditResourceType.PROJECT,
+      resourceId: project.id,
+      action: ProjectAuditAction.DELETE,
+      performedByUserId: principal.userId,
+      projectId: project.id,
+      changes: { projectName: project.projectName, ownerUserId: project.ownerUserId },
+    });
+
     await this.projectRepository.remove(project);
   }
 
-  async updateProjectPac(projectPacId: string, status: ProjectPacStatus) {
+  async updateProjectPac(
+    projectPacId: string,
+    status: ProjectPacStatus,
+    principal: ProjectPrincipal,
+  ) {
     const projectPac = await this.findProjectPac(projectPacId);
+    const previousStatus = projectPac.status;
     projectPac.status = status;
     await this.projectPacRepository.save(projectPac);
+
+    await this.logAudit({
+      resourceType: ProjectAuditResourceType.PROJECT_PAC,
+      resourceId: projectPac.id,
+      action: ProjectAuditAction.PAC_STATUS_CHANGE,
+      performedByUserId: principal.userId,
+      projectId: projectPac.projectId,
+      changes: { previousStatus, status },
+    });
+  }
+
+  async removeProjectPac(projectPacId: string, principal: ProjectPrincipal): Promise<void> {
+    const projectPac = await this.findProjectPac(projectPacId);
+
+    await this.logAudit({
+      resourceType: ProjectAuditResourceType.PROJECT_PAC,
+      resourceId: projectPac.id,
+      action: ProjectAuditAction.PAC_DELETE,
+      performedByUserId: principal.userId,
+      projectId: projectPac.projectId,
+      changes: { pacId: projectPac.pacId, status: projectPac.status },
+    });
+
+    await this.projectPacRepository.remove(projectPac);
   }
 
   async findProjectPac(projectPacId: string): Promise<ProjectPac> {
@@ -90,7 +150,7 @@ export class ProjectsService {
     return projectPac;
   }
 
-  async createProjectPac(projectId: string, pacId: string) {
+  async createProjectPac(projectId: string, pacId: string, principal: ProjectPrincipal) {
     const existingProject = await this.projectRepository.findOne({
       where: { id: projectId },
     });
@@ -126,6 +186,26 @@ export class ProjectsService {
 
     const savedProjectPacRelation = await this.projectPacRepository.save(newProjectPacRelation);
 
+    await this.logAudit({
+      resourceType: ProjectAuditResourceType.PROJECT_PAC,
+      resourceId: savedProjectPacRelation.id,
+      action: ProjectAuditAction.PAC_CREATE,
+      performedByUserId: principal.userId,
+      projectId,
+      changes: { pacId },
+    });
+
     return savedProjectPacRelation;
+  }
+
+  private async logAudit(entry: {
+    resourceType: ProjectAuditResourceType;
+    resourceId: string;
+    action: ProjectAuditAction;
+    performedByUserId: string;
+    projectId: string;
+    changes?: Record<string, unknown> | null;
+  }): Promise<void> {
+    await this.auditRepository.save(this.auditRepository.create(entry));
   }
 }

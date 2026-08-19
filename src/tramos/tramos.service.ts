@@ -7,7 +7,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, EntityManager } from 'typeorm';
 import { Tramo } from './entities/tramo.entity';
 import { Project } from '../projects/entities/project.entity';
 import { ProjectTramoHistory } from './entities/project-tramo-history.entity';
@@ -119,9 +119,16 @@ export class TramosService {
     projectId: string,
     dto: ChangeTramoDto,
     changedByUserId?: string,
+    manager?: EntityManager,
   ): Promise<ProjectTramoHistory> {
+    const projectRepo = manager ? manager.getRepository(Project) : this.projectRepository;
+    const tramoRepo = manager ? manager.getRepository(Tramo) : this.tramoRepository;
+    const historyRepo = manager
+      ? manager.getRepository(ProjectTramoHistory)
+      : this.historyRepository;
+
     // Validar que el proyecto existe
-    const project = await this.projectRepository.findOne({
+    const project = await projectRepo.findOne({
       where: { id: projectId },
     });
     if (!project) {
@@ -129,7 +136,7 @@ export class TramosService {
     }
 
     // Validar que el nuevo tramo existe
-    const newTramo = await this.tramoRepository.findOne({
+    const newTramo = await tramoRepo.findOne({
       where: { id: dto.newTramoId },
     });
     if (!newTramo) {
@@ -146,7 +153,7 @@ export class TramosService {
     const now = new Date();
 
     // Cerrar el registro de historia abierto anterior (leftAt === NULL)
-    const openRecord = await this.historyRepository.findOne({
+    const openRecord = await historyRepo.findOne({
       where: { projectId, leftAt: IsNull() },
     });
 
@@ -154,11 +161,11 @@ export class TramosService {
       const diffMs = now.getTime() - openRecord.enteredAt.getTime();
       openRecord.leftAt = now;
       openRecord.daysInTramo = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      await this.historyRepository.save(openRecord);
+      await historyRepo.save(openRecord);
     }
 
     // Crear el nuevo registro de historia abierto
-    const newRecord = this.historyRepository.create({
+    const newRecord = historyRepo.create({
       projectId,
       tramoId: dto.newTramoId,
       enteredAt: now,
@@ -166,11 +173,11 @@ export class TramosService {
       changeReason: dto.changeReason ?? null,
       changedByUserId: changedByUserId ?? null,
     });
-    const saved = await this.historyRepository.save(newRecord);
+    const saved = await historyRepo.save(newRecord);
 
     // Actualizar el proyecto
     project.currentTramoId = dto.newTramoId;
-    await this.projectRepository.save(project);
+    await projectRepo.save(project);
 
     return saved;
   }

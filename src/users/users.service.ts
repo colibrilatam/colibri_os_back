@@ -89,7 +89,14 @@ export class UsersService {
     return this.findAll();
   }
 
-  async changeRole(targetUserId: string, changedByUserId: string, dto: ChangeUserRoleDto) {
+  async changeRole(
+    targetUserId: string,
+    changedByUserId: string,
+    dto: ChangeUserRoleDto,
+    principal: { userId: string; role: UserRole },
+  ) {
+    this.assertAdmin(principal);
+
     const targetUser = await this.userRepository.findOneByID(targetUserId);
     if (!targetUser) {
       throw new NotFoundException('Usuario no encontrado');
@@ -122,6 +129,12 @@ export class UsersService {
   ): void {
     if (principal.userId !== targetUserId && principal.role !== UserRole.ADMIN) {
       throw new ForbiddenException('No tenés permiso para operar sobre este usuario');
+    }
+  }
+
+  private assertAdmin(principal: { userId: string; role: UserRole }): void {
+    if (principal.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Solo un administrador puede cambiar el rol de un usuario');
     }
   }
 

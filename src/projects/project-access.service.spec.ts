@@ -2,7 +2,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ProjectAccessService } from './project-access.service';
 import { UserRole } from '../users/entities/user.entity';
 
-describe.skip('ProjectAccessService', () => {
+describe('ProjectAccessService', () => {
   const project = { id: 'project-1', ownerUserId: 'owner-1' };
   let projectRepository: { findOne: jest.Mock };
   let memberRepository: { findOne: jest.Mock };
