@@ -70,13 +70,6 @@ export class MicroActionInstanceService {
     return this.dataSource.transaction(async (manager) => {
       const saved = await manager.save(MicroActionInstance, instance);
 
-      await this.createVersionRecord(manager, saved, {
-        changeType: MicroActionInstanceChangeType.CREATED,
-        previousStatus: null,
-        createdByUserId: principal.userId,
-        changeSummary: 'Instancia creada',
-      });
-
       return saved;
     });
   }
@@ -189,19 +182,6 @@ export class MicroActionInstanceService {
 
     return this.dataSource.transaction(async (manager) => {
       const saved = await manager.save(MicroActionInstance, instance);
-
-      await this.createVersionRecord(manager, saved, {
-        changeType: statusChanged
-          ? MicroActionInstanceChangeType.STATUS_CHANGE
-          : MicroActionInstanceChangeType.NOTES_UPDATE,
-        previousStatus: statusChanged ? previousStatus : null,
-        createdByUserId: principal.userId,
-        changeSummary:
-          dto.changeSummary ??
-          (statusChanged
-            ? `Cambio de estado: ${previousStatus} → ${saved.status}`
-            : 'Actualización de notas de ejecución'),
-      });
 
       return saved;
     });
