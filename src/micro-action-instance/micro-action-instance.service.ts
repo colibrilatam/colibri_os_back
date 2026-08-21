@@ -7,11 +7,14 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository, DataSource } from 'typeorm';
+import { EntityManager, Repository, DataSource, Like } from 'typeorm';
 import {
   MicroActionInstance,
   MicroActionInstanceStatus,
 } from './entities/micro-action-instance.entity';
+import { MicroActionDefinition } from '../micro-action-definitions/entities/micro-action-definition.entity';
+import { ProjectPac, ProjectPacStatus } from '../projects/entities/project.pac.entity';
+import { Pac } from '../pacs/entities/pac.entity';
 import {
   MicroActionInstanceVersion,
   MicroActionInstanceChangeType,
@@ -32,6 +35,15 @@ export class MicroActionInstanceService {
 
     @InjectRepository(MicroActionInstanceVersion)
     private readonly versionRepo: Repository<MicroActionInstanceVersion>,
+
+    @InjectRepository(MicroActionDefinition)
+    private readonly definitionRepo: Repository<MicroActionDefinition>,
+
+    @InjectRepository(ProjectPac)
+    private readonly projectPacRepo: Repository<ProjectPac>,
+
+    @InjectRepository(Pac)
+    private readonly pacRepo: Repository<Pac>,
 
     private readonly projectAccess: ProjectAccessService,
     private readonly cloudinaryService: CloudinaryService,
@@ -285,6 +297,11 @@ export class MicroActionInstanceService {
         instance.executionWindowDaysSnapshot = Math.floor(diffDays);
       }
       await this.repo.save(instance);
+
+      await this.validatePacCompleted(
+        version.microActionInstance.projectId,
+        version.microActionInstance.microActionDefinitionId,
+      );
     }
 
     if (changeType === MicroActionInstanceChangeType.REJECTED) {
@@ -367,5 +384,117 @@ export class MicroActionInstanceService {
     const diffMs = new Date().getTime() - instance.startedAt.getTime();
     const diffDays = diffMs / (1000 * 60 * 60 * 24);
     return diffDays <= instance.executionWindowDaysSnapshot;
+  }
+
+  private async validatePacCompleted(
+    projectId: string,
+    microActionDefinitionId: string,
+  ): Promise<void> {
+    const definition = await this.definitionRepo.findOne({
+      where: { id: microActionDefinitionId },
+    });
+
+    if (!definition) {
+      throw new NotFoundException(
+        `Definición ${microActionDefinitionId} no encontrada`,
+      );
+    }
+
+    const code = definition.code;
+    const lastUnderscoreIndex = code.lastIndexOf('_');
+    const codePrefix = code.substring(0, lastUnderscoreIndex + 1);
+
+    const definitions = await this.definitionRepo.find({
+      where: { code: Like(`${codePrefix}%`) },
+      order: { code: 'ASC' },
+    });
+
+    const instances = await Promise.all(
+      definitions.map((def) =>
+        this.repo.findOne({
+          where: {
+            microActionDefinitionId: def.id,
+            projectId,
+          },
+        }),
+      ),
+    );
+
+    const allCompleted = instances.every(
+      (instance) => instance?.status === MicroActionInstanceStatus.COMPLETED,
+    );
+
+    if (!allCompleted) {
+      return;
+    }
+
+    const projectPac = await this.projectPacRepo.findOne({
+      where: {
+        projectId,
+        pacId: definition.pacId,
+      },
+    });
+
+    if (!projectPac) {
+      throw new NotFoundException(
+        `ProjectPac no encontrado para projectId ${projectId} y pacId ${definition.pacId}`,
+      );
+    }
+
+    projectPac.status = ProjectPacStatus.COMPLETED;
+    projectPac.completedAt = new Date();
+    await this.projectPacRepo.save(projectPac);
+
+    await this.activateNextProjectPac(projectId, definition.pacId);
+  }
+
+  private async activateNextProjectPac(
+    projectId: string,
+    currentPacId: string,
+  ): Promise<void> {
+    const currentPac = await this.pacRepo.findOne({
+      where: { id: currentPacId },
+    });
+
+    if (!currentPac) {
+      return;
+    }
+
+    const parts = currentPac.code.split('_');
+    if (parts.length < 3) {
+      return;
+    }
+
+    const [prefix, tramo, pacNumberStr] = parts;
+    const pacNumber = parseInt(pacNumberStr, 10);
+
+    if (Number.isNaN(pacNumber) || pacNumber >= 7) {
+      return;
+    }
+
+    const nextPacCode = `${prefix}_${tramo}_${pacNumber + 1}_1`;
+
+    const nextPac = await this.pacRepo.findOne({
+      where: { code: nextPacCode },
+    });
+
+    if (!nextPac) {
+      return;
+    }
+
+    const nextProjectPac = await this.projectPacRepo.findOne({
+      where: {
+        projectId,
+        pacId: nextPac.id,
+      },
+    });
+
+    if (!nextProjectPac) {
+      return;
+    }
+
+    nextProjectPac.status = ProjectPacStatus.IN_PROGRESS;
+    nextProjectPac.startedAt = new Date();
+    await this.projectPacRepo.save(nextProjectPac);
   }
 }
