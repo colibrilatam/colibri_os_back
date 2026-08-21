@@ -4,6 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Profile, Strategy } from 'passport-google-oauth20';
 import { AuthProvider } from 'src/users/entities/user.entity';
 import type { IGoogleUser } from '../interfaces/googleUser.interface';
+import { OAuthStateStore } from './oauth-state.store';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -13,6 +14,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET')!,
       callbackURL: configService.get<string>('GOOGLE_CALLBACK_URL')!,
       scope: ['profile', 'email'],
+      // OAUTH-001: state anti-CSRF sin depender de express-session.
+      state: true,
+      store: new OAuthStateStore(),
     });
   }
 

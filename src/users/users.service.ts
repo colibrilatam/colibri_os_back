@@ -4,14 +4,19 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import bcrypt from 'bcrypt';
 import { ICreateUser } from './interfaces/create-user.interface';
 import { UserRepository } from './user.repository';
-import { User, UserRole } from './entities/user.entity';
+import { User, UserRole, UserStatus } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserRoleChangeAudit } from './entities/user-role-change-audit.entity';
 import { ChangeUserRoleDto } from './dtos/change-user-role.dto';
+import { ChangeUserStatusDto } from './dtos/change-user-status.dto';
+import { ChangePasswordDto } from './dtos/change-password.dto';
+import { SessionsService } from '../auth/sessions/sessions.service';
 
 @Injectable()
 export class UsersService {
@@ -19,6 +24,7 @@ export class UsersService {
     private readonly userRepository: UserRepository,
     @InjectRepository(UserRoleChangeAudit)
     private readonly roleChangeAuditRepository: Repository<UserRoleChangeAudit>,
+    private readonly sessionsService: SessionsService,
   ) {}
 
   async create(user: ICreateUser) {
@@ -74,7 +80,13 @@ export class UsersService {
     if (!userFound) {
       throw new NotFoundException('Usuario no encontrado');
     }
-    return await this.userRepository.deleteUser(id);
+    const result = await this.userRepository.deleteUser(id);
+
+    // Desactivar es un evento crítico: invalida de inmediato cualquier
+    // access/refresh token que el usuario ya tuviera.
+    await this.sessionsService.bumpSessionVersion(id);
+
+    return result;
   }
 
   async findOneAuthorized(id: string, principal: { userId: string; role: UserRole }) {
@@ -123,6 +135,69 @@ export class UsersService {
     return this.findOneById(targetUserId);
   }
 
+  /**
+   * Suspende, desactiva o reactiva a un usuario. Cambiar el estado a algo
+   * distinto de "active" es un evento crítico: revoca de inmediato
+   * cualquier sesión (access y refresh token) que el usuario ya tuviera.
+   */
+  async changeStatus(
+    targetUserId: string,
+    dto: ChangeUserStatusDto,
+    principal: { userId: string; role: UserRole },
+  ) {
+    this.assertAdmin(principal);
+
+    const targetUser = await this.userRepository.findOneByID(targetUserId);
+    if (!targetUser) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    if (targetUser.status === dto.status) {
+      throw new BadRequestException('El usuario ya tiene ese estado');
+    }
+
+    await this.userRepository.updateUser(targetUserId, { status: dto.status });
+
+    if (dto.status !== UserStatus.ACTIVE) {
+      await this.sessionsService.bumpSessionVersion(targetUserId);
+    }
+
+    return this.findOneById(targetUserId);
+  }
+
+  /**
+   * Cambio de contraseña del propio usuario autenticado. Revoca todas
+   * las sesiones anteriores (access + refresh tokens).
+   */
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<{ message: string }> {
+    if (dto.newPassword !== dto.confirmNewPassword) {
+      throw new BadRequestException('Las contraseñas nuevas deben ser iguales');
+    }
+
+    const userFound = await this.userRepository.findOneByID(userId);
+    if (!userFound) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    if (!userFound.password) {
+      throw new BadRequestException(
+        'Esta cuenta inicia sesión con Google y no tiene contraseña local',
+      );
+    }
+
+    const isValidPassword = await bcrypt.compare(dto.currentPassword, userFound.password);
+    if (!isValidPassword) {
+      throw new UnauthorizedException('La contraseña actual es incorrecta');
+    }
+
+    const newPasswordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.userRepository.updateUser(userId, { password: newPasswordHash });
+
+    await this.sessionsService.bumpSessionVersion(userId);
+
+    return { message: 'Contraseña actualizada correctamente. Las demás sesiones fueron cerradas.' };
+  }
+
   private assertSelfOrAdmin(
     targetUserId: string,
     principal: { userId: string; role: UserRole },
@@ -134,7 +209,7 @@ export class UsersService {
 
   private assertAdmin(principal: { userId: string; role: UserRole }): void {
     if (principal.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Solo un administrador puede cambiar el rol de un usuario');
+      throw new ForbiddenException('Solo un administrador puede realizar esta acción');
     }
   }
 

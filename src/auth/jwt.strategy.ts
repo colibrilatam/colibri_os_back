@@ -36,8 +36,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload): Promise<JwtPayload> {
     try {
       const user = await this.usersService.findOneById(payload.sub);
+
       if (user.status !== UserStatus.ACTIVE) {
         throw new UnauthorizedException('Usuario inactivo');
+      }
+
+      // La sessionVersion del token debe coincidir con la actual del
+      // usuario. Cambia en cada suspensión, cambio de contraseña o logout
+      // global, invalidando de inmediato cualquier JWT emitido antes,
+      // sin esperar a que expire.
+      if (payload.sessionVersion !== user.sessionVersion) {
+        throw new UnauthorizedException('Sesión revocada');
       }
 
       return {
@@ -45,6 +54,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         email: user.email,
         role: user.role,
         status: user.status,
+        sessionVersion: user.sessionVersion,
       };
     } catch {
       throw new UnauthorizedException('Sesión no válida');
