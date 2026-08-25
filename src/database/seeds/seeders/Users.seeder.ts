@@ -2,10 +2,12 @@ import * as bcrypt from 'bcrypt';
 import { DataSource } from 'typeorm';
 import { AuthProvider, Gender, User, UserRole, UserStatus } from 'src/users/entities/user.entity';
 
-export async function seedUsers(dataSource: DataSource) {
+export async function seedUsers(dataSource: DataSource, seedPassword: string) {
   const repo = dataSource.getRepository(User);
 
-  const password = await bcrypt.hash('Test@1234', 10);
+  // OPS-002: la contraseña ya no está hardcodeada ("Test@1234"). Se recibe
+  // desde seed.ts, que la toma de SEED_USERS_PASSWORD o genera una aleatoria.
+  const password = await bcrypt.hash(seedPassword, 10);
 
   const users = repo.create([
     // Entrepreneurs

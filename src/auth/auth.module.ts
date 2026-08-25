@@ -10,6 +10,7 @@ import { GoogleStrategy } from './google/google.strategy';
 import { UsersModule } from 'src/users/users.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { OAuthExchangeModule } from './oauth/oauth-exchange.module';
+import { PasswordResetModule } from './password-reset/password-reset.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { OAuthExchangeModule } from './oauth/oauth-exchange.module';
     PassportModule,
     SessionsModule,
     OAuthExchangeModule,
+    PasswordResetModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

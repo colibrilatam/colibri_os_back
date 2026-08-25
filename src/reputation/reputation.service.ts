@@ -17,6 +17,19 @@ import { Project } from '../projects/entities/project.entity';
 import { CreateAlgorithmVersionDto } from './dto/create-algorithm-version.dto';
 import { CalculateSnapshotDto } from './dto/calculate-snapshot.dto';
 
+// REP-001: dimensiones que hoy no tienen una fuente de datos implementada.
+// Mientras no se enriquezcan con las tablas fact del Grupo 5, su peso se
+// redistribuye proporcionalmente entre las dimensiones con datos reales en
+// vez de contarse como "mérito cero" del proyecto. Sacar una dimensión de
+// esta lista en cuanto se implemente su fuente real.
+const DIMENSIONS_WITHOUT_DATA_SOURCE = ['collaboration', 'sustainability'] as const;
+type DimensionKey =
+  | 'action'
+  | 'evidence'
+  | 'consistency'
+  | 'collaboration'
+  | 'sustainability';
+
 @Injectable()
 export class ReputationService {
   private readonly logger = new Logger(ReputationService.name);
@@ -43,7 +56,7 @@ export class ReputationService {
     private readonly dataSource: DataSource,
   ) {}
 
-  // ─── ALGORITMO ────────────────────────────────────────────────────────────────
+  // ─── ALGORITMO ────────────────────────────────────────────────────────────
 
   async createAlgorithmVersion(dto: CreateAlgorithmVersionDto): Promise<IcAlgorithmVersion> {
     const existing = await this.algorithmRepo.findOne({
@@ -56,7 +69,6 @@ export class ReputationService {
       );
     }
 
-    // Si la nueva versión es activa, desactivamos la anterior
     if (dto.isActive !== false) {
       await this.algorithmRepo.update({ isActive: true }, { isActive: false });
     }
@@ -99,11 +111,7 @@ export class ReputationService {
     return version;
   }
 
-  // ─── MOTOR DE CÁLCULO DEL IC ──────────────────────────────────────────────────
-  // Acepta un EntityManager opcional para poder participar en una
-  // transacción externa (ej. el cierre de tramo, que necesita que el
-  // snapshot, la evolución del NFT y el cambio de tramo se confirmen o se
-  // reviertan todos juntos — ver TX-001).
+  // ─── MOTOR DE CÁLCULO DEL IC ────────────────────────────────────────────────
 
   async calculateSnapshot(
     dto: CalculateSnapshotDto,
@@ -122,6 +130,9 @@ export class ReputationService {
     const now = new Date();
 
     // ── Señales de entrada ───────────────────────────────────────────────────
+    // REP-001 (pruebas negativas: "entradas de otro proyecto"): todos los
+    // queries están filtrados por dto.projectId, no hay forma de que datos
+    // de otro proyecto contaminen el cálculo.
 
     const allInstances = await this.instanceRepo.find({
       where: { projectId: dto.projectId },
@@ -137,9 +148,14 @@ export class ReputationService {
 
     const onTimeInstances = completedInstances.filter((i) => i.isOnTime === true);
 
-    const allEvidences = await this.evidenceRepo.find({
+    // REP-001 (pruebas negativas: "evidencias duplicadas"): se deduplica por
+    // id de evidencia antes de contar. TypeORM no debería devolver duplicados
+    // en un find() simple, pero si en el futuro se agregan joins que multipliquen
+    // filas, esta guarda evita inflar/deflar el score silenciosamente.
+    const allEvidencesRaw = await this.evidenceRepo.find({
       where: { projectId: dto.projectId },
     });
+    const allEvidences = this.deduplicateById(allEvidencesRaw);
 
     const approvedEvidences = allEvidences.filter(
       (e) => e.status === EvidenceStatus.APPROVED && e.isValidForIc,
@@ -147,54 +163,64 @@ export class ReputationService {
 
     const rejectedEvidences = allEvidences.filter((e) => e.status === EvidenceStatus.REJECTED);
 
-    // ── Cálculo de dimensiones ───────────────────────────────────────────────
+    // ── Cálculo de dimensiones (datos incompletos → score 0, no error) ───────
+    // REP-001 (pruebas negativas: "datos incompletos"): un proyecto sin
+    // microacciones o sin evidencias no debe romper el cálculo; su score en
+    // esa dimensión es 0 y queda documentado en la explicación granular.
 
-    // Acción: % de microacciones completadas sobre el total
     const actionScore =
       allInstances.length > 0 ? (completedInstances.length / allInstances.length) * 100 : 0;
 
-    // Evidencia: % de evidencias aprobadas sobre las enviadas
     const submittedEvidences = allEvidences.filter((e) => e.status !== EvidenceStatus.DRAFT);
     const evidenceScore =
       submittedEvidences.length > 0
         ? (approvedEvidences.length / submittedEvidences.length) * 100
         : 0;
 
-    // Constancia: % de microacciones completadas a tiempo
     const consistencyScore =
       completedInstances.length > 0
         ? (onTimeInstances.length / completedInstances.length) * 100
         : 0;
 
-    // Colaboración y sostenibilidad: base 0 por ahora
-    // Se enriquecerán con las tablas fact del Grupo 5
+    // Colaboración y sostenibilidad: sin fuente de datos implementada todavía
+    // (ver DIMENSIONS_WITHOUT_DATA_SOURCE). Se calculan en 0 pero su peso NO
+    // se aplica tal cual — se redistribuye (ver más abajo).
     const collaborationScore = 0;
     const sustainabilityScore = 0;
 
-    // ── IC bruto ponderado ───────────────────────────────────────────────────
+    const rawScores: Record<DimensionKey, number> = {
+      action: actionScore,
+      evidence: evidenceScore,
+      consistency: consistencyScore,
+      collaboration: collaborationScore,
+      sustainability: sustainabilityScore,
+    };
 
-    const icRaw =
-      (actionScore * Number(algorithm.weightAction)) / 100 +
-      (evidenceScore * Number(algorithm.weightEvidence)) / 100 +
-      (consistencyScore * Number(algorithm.weightConsistency)) / 100 +
-      (collaborationScore * Number(algorithm.weightCollaboration)) / 100 +
-      (sustainabilityScore * Number(algorithm.weightSustainability)) / 100;
+    const rawWeights: Record<DimensionKey, number> = {
+      action: Number(algorithm.weightAction),
+      evidence: Number(algorithm.weightEvidence),
+      consistency: Number(algorithm.weightConsistency),
+      collaboration: Number(algorithm.weightCollaboration),
+      sustainability: Number(algorithm.weightSustainability),
+    };
+
+    // ── Redistribución de pesos sin fuente de datos ──────────────────────────
+    const { effectiveWeights, redistribution } = this.redistributeWeights(rawWeights);
+
+    // ── IC bruto ponderado (con pesos ya redistribuidos) ─────────────────────
+    const icRaw = (Object.keys(rawScores) as DimensionKey[]).reduce(
+      (acc, key) => acc + (rawScores[key] * effectiveWeights[key]) / 100,
+      0,
+    );
 
     const icPublic = Math.min(Math.round(icRaw * 100) / 100, 100);
 
     // ── Elegibilidad ─────────────────────────────────────────────────────────
-
     const eligibilityStatus =
       icPublic >= 60 ? EligibilityStatus.ELIGIBLE : EligibilityStatus.NOT_ELIGIBLE;
 
     // ── Persistencia en transacción ──────────────────────────────────────────
-    // Si nos pasan un manager (porque somos parte de una transacción más
-    // grande, ej. el cierre de tramo), reutilizamos esa transacción en vez
-    // de abrir una anidada — así el snapshot, el NFT y el cambio de tramo
-    // se confirman o se revierten todos juntos.
-
     const persist = async (m: EntityManager) => {
-      // Cerrar snapshot anterior del proyecto
       await m.update(
         ReputationIndexSnapshot,
         { projectId: dto.projectId, validTo: IsNull() },
@@ -217,11 +243,15 @@ export class ReputationService {
         calculatedAt: now,
         validFrom: now,
         validTo: null,
+        explanationJson: {
+          algorithmVersionCode: algorithm.code,
+          rawWeights,
+          effectiveWeights,
+          redistribution,
+        },
       } as unknown as ReputationIndexSnapshot);
 
       const saved = await m.save(ReputationIndexSnapshot, newSnapshot);
-
-      // ── Explicaciones granulares ─────────────────────────────────────────
 
       const explanations: Partial<ReputationIndexExplanation>[] = [
         {
@@ -230,7 +260,7 @@ export class ReputationService {
           sourceEntity: 'micro_action_instance',
           sourceEntityId: dto.projectId,
           contributionValue: actionScore,
-          notes: `${completedInstances.length} de ${allInstances.length} microacciones completadas`,
+          notes: `${completedInstances.length} de ${allInstances.length} microacciones completadas. Peso efectivo: ${effectiveWeights.action}%`,
         },
         {
           snapshotId: saved.id,
@@ -238,7 +268,7 @@ export class ReputationService {
           sourceEntity: 'evidence',
           sourceEntityId: dto.projectId,
           contributionValue: evidenceScore,
-          notes: `${approvedEvidences.length} evidencias aprobadas, ${rejectedEvidences.length} rechazadas`,
+          notes: `${approvedEvidences.length} evidencias aprobadas, ${rejectedEvidences.length} rechazadas. Peso efectivo: ${effectiveWeights.evidence}%`,
         },
         {
           snapshotId: saved.id,
@@ -246,8 +276,16 @@ export class ReputationService {
           sourceEntity: 'micro_action_instance',
           sourceEntityId: dto.projectId,
           contributionValue: consistencyScore,
-          notes: `${onTimeInstances.length} de ${completedInstances.length} completadas a tiempo`,
+          notes: `${onTimeInstances.length} de ${completedInstances.length} completadas a tiempo. Peso efectivo: ${effectiveWeights.consistency}%`,
         },
+        ...DIMENSIONS_WITHOUT_DATA_SOURCE.map((dim) => ({
+          snapshotId: saved.id,
+          metricKey: `${dim}_score`,
+          sourceEntity: 'no_data_source',
+          sourceEntityId: dto.projectId,
+          contributionValue: 0,
+          notes: `Sin fuente de datos implementada (REP-001). Peso original ${rawWeights[dim]}% redistribuido entre las dimensiones con datos.`,
+        })),
       ];
 
       await m.save(ReputationIndexExplanation, explanations);
@@ -262,13 +300,81 @@ export class ReputationService {
     }
 
     this.logger.log(
-      `IC calculado para proyecto ${dto.projectId} — IC público: ${icPublic} — algoritmo: ${algorithm.code}`,
+      `IC calculado para proyecto ${dto.projectId} — IC público: ${icPublic} — algoritmo: ${algorithm.code}` +
+        (redistribution.redistributedPercentagePoints > 0
+          ? ` — redistribuidos ${redistribution.redistributedPercentagePoints}pp de pesos sin fuente`
+          : ''),
     );
 
     return this.findLatestSnapshot(dto.projectId, manager);
   }
 
-  // ─── CONSULTAS ────────────────────────────────────────────────────────────────
+  /**
+   * REP-001: redistribuye proporcionalmente el peso de las dimensiones sin
+   * fuente de datos (DIMENSIONS_WITHOUT_DATA_SOURCE) entre las dimensiones
+   * que sí tienen datos, en vez de dejar que ese peso "castigue" el índice
+   * multiplicando por un score en 0 que no refleja mérito real.
+   *
+   * Si algún día TODAS las dimensiones quedan sin fuente (caso degenerado),
+   * no se redistribuye nada y el IC queda en 0 — se documenta explícitamente
+   * en vez de fallar en silencio.
+   */
+  private redistributeWeights(rawWeights: Record<DimensionKey, number>): {
+    effectiveWeights: Record<DimensionKey, number>;
+    redistribution: {
+      dimensionsWithoutSource: string[];
+      redistributedPercentagePoints: number;
+      basis: 'proportional-to-existing-weights' | 'none';
+    };
+  } {
+    const withoutSource = new Set<DimensionKey>(
+      DIMENSIONS_WITHOUT_DATA_SOURCE as readonly DimensionKey[],
+    );
+
+    const weightToRedistribute = (Object.keys(rawWeights) as DimensionKey[])
+      .filter((k) => withoutSource.has(k))
+      .reduce((acc, k) => acc + rawWeights[k], 0);
+
+    const totalWeightWithSource = (Object.keys(rawWeights) as DimensionKey[])
+      .filter((k) => !withoutSource.has(k))
+      .reduce((acc, k) => acc + rawWeights[k], 0);
+
+    const effectiveWeights = { ...rawWeights };
+
+    if (weightToRedistribute > 0 && totalWeightWithSource > 0) {
+      for (const key of Object.keys(rawWeights) as DimensionKey[]) {
+        if (withoutSource.has(key)) {
+          effectiveWeights[key] = 0;
+        } else {
+          const proportion = rawWeights[key] / totalWeightWithSource;
+          effectiveWeights[key] = rawWeights[key] + weightToRedistribute * proportion;
+        }
+      }
+    }
+
+    return {
+      effectiveWeights,
+      redistribution: {
+        dimensionsWithoutSource: Array.from(withoutSource),
+        redistributedPercentagePoints:
+          weightToRedistribute > 0 && totalWeightWithSource > 0 ? weightToRedistribute : 0,
+        basis:
+          weightToRedistribute > 0 && totalWeightWithSource > 0
+            ? 'proportional-to-existing-weights'
+            : 'none',
+      },
+    };
+  }
+
+  private deduplicateById<T extends { id: string }>(items: T[]): T[] {
+    const seen = new Map<string, T>();
+    for (const item of items) {
+      seen.set(item.id, item);
+    }
+    return Array.from(seen.values());
+  }
+
+  // ─── CONSULTAS ────────────────────────────────────────────────────────────
 
   async findLatestSnapshot(
     projectId: string,
@@ -277,7 +383,7 @@ export class ReputationService {
     const repo = manager ? manager.getRepository(ReputationIndexSnapshot) : this.snapshotRepo;
 
     const snapshot = await repo.findOne({
-      where: { projectId, validTo: IsNull() }, // ← corregido
+      where: { projectId, validTo: IsNull() },
       relations: ['algorithmVersion', 'explanations', 'tramo'],
       order: { calculatedAt: 'DESC' },
     });

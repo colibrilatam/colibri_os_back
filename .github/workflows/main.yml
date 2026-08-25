@@ -148,6 +148,9 @@ jobs:
           curl -sf http://localhost:3000/api/v1/ready
           kill $APP_PID
 
+      - name: Auditoría QA-001 — cobertura de pruebas negativas por endpoint
+        run: node scripts/audit-negative-tests.mjs
+
       - name: E2E tests (incluye suites de autorización)
         run: npm run test:e2e -- --ci
 

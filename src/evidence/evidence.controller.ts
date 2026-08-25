@@ -29,6 +29,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { Throttle } from '@nestjs/throttler';
 
 const EXAMPLE_EVIDENCE = {
   id: 'ev-uuid-0001',
@@ -79,6 +80,7 @@ export class EvidenceController {
 
   // ─── POST /evidence/request-upload-signature ──────────────────────────────
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('request-upload-signature')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -115,6 +117,7 @@ export class EvidenceController {
 
   // ─── POST /evidence/confirm-upload ───────────────────────────────────────
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('confirm-upload')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
