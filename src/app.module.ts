@@ -25,6 +25,7 @@ import { HealthModule } from './health/health.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { MaintenanceModeMiddleware } from './common/middleware/maintenance-mode.middleware';
+import { validateEnv } from './config/env.validation';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { MaintenanceModeMiddleware } from './common/middleware/maintenance-mode.
       isGlobal: true,
       envFilePath: '.env',
       load: [cloudinaryConfig],
+      validate: validateEnv,
     }),
 
     TypeOrmModule.forRootAsync({

@@ -94,11 +94,19 @@ npm run test:e2e
 ## Arquitectura, seguridad y operación
 
 - [Arquitectura de Colibrí OS](docs/architecture.md): capas funcionales, módulos, entidades e integraciones.
+- [Configuración y variables de entorno](docs/configuration.md): esquema obligatorio de arranque y validación.
+- [CI/CD](docs/ci-cd.md): pipeline, gates obligatorios y evidencia técnica generada.
 - [Matriz de permisos](docs/security/permissions-matrix.md): acceso efectivo por ruta y rol.
+- [Matriz de permisos por actor/recurso/acción (SEC-003)](docs/security/SEC-003-permission-matrix.md): reglas de propiedad y membresía, en revisión.
+- [Proceso de excepciones de seguridad](docs/security/exceptions-process.md) y su [log de excepciones](docs/security/exceptions-log.md).
 - [Runbook de despliegue](docs/runbooks/deployment.md): preparación, liberación y verificación en Render.
 - [Runbook de rollback](docs/runbooks/rollback.md): restauración de una versión anterior y comprobaciones posteriores.
 - [Runbook de incidentes](docs/runbooks/incidents.md): respuesta, comunicación y cierre de incidentes.
+- [Checklist de onboarding y validación operativa](docs/onboarding-checklist.md): validación end-to-end por una persona no participante.
 
 ## Licencia
 
-Este repositorio es privado y no concede permiso de uso, redistribución ni modificación fuera de lo autorizado por Colibrí Latam. Su condición es `UNLICENSED`, coherente con `package.json`.
+Este repositorio es privado y no concede permiso de uso, redistribución ni
+modificación fuera de lo autorizado por Colibrí Latam. Ver el archivo
+[`LICENSE`](LICENSE) en la raíz del repositorio; su condición `UNLICENSED`
+es coherente con la declarada en `package.json`.
