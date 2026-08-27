@@ -13,30 +13,22 @@ import { Project } from '../../projects/entities/project.entity';
 import { MicroActionDefinition } from '../../micro-action-definitions/entities/micro-action-definition.entity';
 import { Evidence } from '../../evidence/entities/evidence.entity';
 import { MicroActionInstanceVersion } from './micro-action-instance-version.entity';
+import { MicroActionInstanceStatus } from './micro-action-instance-status.enum';
 
-export enum MicroActionInstanceStatus {
-  PENDING = 'pending',
-  STARTED = 'started',
-  IN_PROGRESS = 'in_progress',
-  SUBMITTED = 'submitted',
-  VALIDATED = 'validated',
-  COMPLETED = 'completed',
-  CLOSED = 'closed',
-  REOPENED = 'reopened',
-}
+export { MicroActionInstanceStatus } from './micro-action-instance-status.enum';
 
 @Entity('micro_action_instances')
 export class MicroActionInstance {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'actor_user_id' })
+  @Column({ name: 'actor_user_id', type: 'uuid' })
   actorUserId: string;
 
-  @Column({ name: 'project_id' })
+  @Column({ name: 'project_id', type: 'uuid' })
   projectId: string;
 
-  @Column({ name: 'micro_action_definition_id' })
+  @Column({ name: 'micro_action_definition_id', type: 'uuid' })
   microActionDefinitionId: string;
 
   @Column({
@@ -67,10 +59,10 @@ export class MicroActionInstance {
   @Column({ name: 'is_on_time', type: 'boolean', nullable: true })
   isOnTime: boolean | null;
 
-  @Column({ name: 'attempt_number', default: 1 })
+  @Column({ name: 'attempt_number', type: 'int', default: 1 })
   attemptNumber: number;
 
-  @Column({ name: 'reopened_count', default: 0 })
+  @Column({ name: 'reopened_count', type: 'int', default: 0 })
   reopenedCount: number;
 
   @Column({ name: 'execution_notes', type: 'text', nullable: true })

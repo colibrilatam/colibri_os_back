@@ -6,6 +6,7 @@ import { NftActor } from './entities/nft-actor.entity';
 import { MecenasNftPortfolio } from './entities/mecenas-nft-portfolio.entity';
 import { NftOwnershipEvent } from './entities/nft-ownership-event.entity';
 import { NftResourceAudit } from './entities/nft-resource-audit.entity';
+import { User } from '../users/entities/user.entity';
 
 import { NftActorRepository } from './nft-actor/nft-actor.repository';
 import { NftActorService } from './nft-actor/nft-actor.service';
@@ -29,6 +30,8 @@ import { ProjectsModule } from 'src/projects/projects.module';
 
 import { BlockchainRpcService } from './blockchain-rpc.service';
 import { NftChainVerificationService } from './nft-chain-verification.service';
+
+import { UserRepository } from '../users/user.repository';
 
 @Module({
   imports: [
@@ -66,6 +69,8 @@ import { NftChainVerificationService } from './nft-chain-verification.service';
 
     BlockchainRpcService,
     NftChainVerificationService,
+
+    UserRepository,
   ],
 
   exports: [

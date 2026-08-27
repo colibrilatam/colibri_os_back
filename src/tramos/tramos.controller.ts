@@ -35,7 +35,7 @@ import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Tramos')
 @Controller('tramos')
-@UseGuards(JwtAuthGuard, RolesGuard)
+//@UseGuards(JwtAuthGuard, RolesGuard)
 export class TramosController {
   constructor(private readonly tramosService: TramosService) {}
 

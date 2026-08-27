@@ -25,7 +25,7 @@ export class ProjectAccessService {
   async assertCanAccessProject(principal: ProjectPrincipal, projectId: string): Promise<Project> {
     const project = await this.findProject(projectId);
 
-    if (principal.role === UserRole.ADMIN || project.ownerUserId === principal.userId) {
+    if (principal.role === UserRole.ADMIN || principal.role === UserRole.EVALUATOR || project.ownerUserId === principal.userId) {
       return project;
     }
 

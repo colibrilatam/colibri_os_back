@@ -7,34 +7,25 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository, DataSource } from 'typeorm';
+import { EntityManager, Repository, DataSource, Like } from 'typeorm';
 import {
   MicroActionInstance,
   MicroActionInstanceStatus,
 } from './entities/micro-action-instance.entity';
+import { MicroActionDefinition } from '../micro-action-definitions/entities/micro-action-definition.entity';
+import { ProjectPac, ProjectPacStatus } from '../projects/entities/project.pac.entity';
+import { Pac } from '../pacs/entities/pac.entity';
 import {
   MicroActionInstanceVersion,
   MicroActionInstanceChangeType,
 } from './entities/micro-action-instance-version.entity';
 import { CreateMicroActionInstanceDto } from './dto/create-micro-action-instance.dto';
 import { UpdateMicroActionInstanceDto } from './dto/update-micro-action-instance.dto';
+import { CreateVersionDto } from './dto/create-version.dto';
+import { ResolveVersionDto } from './dto/resolve-version.dto';
 import { ProjectAccessService, ProjectPrincipal } from '../projects/project-access.service';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { UserRole } from '../users/entities/user.entity';
-
-function getAllowedTransitions(): {
-  [key in MicroActionInstanceStatus]: MicroActionInstanceStatus[];
-} {
-  return {
-    pending: [MicroActionInstanceStatus.STARTED],
-    started: [MicroActionInstanceStatus.IN_PROGRESS, MicroActionInstanceStatus.SUBMITTED],
-    in_progress: [MicroActionInstanceStatus.SUBMITTED],
-    submitted: [MicroActionInstanceStatus.VALIDATED, MicroActionInstanceStatus.REOPENED],
-    validated: [MicroActionInstanceStatus.COMPLETED],
-    completed: [MicroActionInstanceStatus.CLOSED],
-    closed: [],
-    reopened: [MicroActionInstanceStatus.IN_PROGRESS, MicroActionInstanceStatus.SUBMITTED],
-  };
-}
 
 @Injectable()
 export class MicroActionInstanceService {
@@ -45,7 +36,17 @@ export class MicroActionInstanceService {
     @InjectRepository(MicroActionInstanceVersion)
     private readonly versionRepo: Repository<MicroActionInstanceVersion>,
 
+    @InjectRepository(MicroActionDefinition)
+    private readonly definitionRepo: Repository<MicroActionDefinition>,
+
+    @InjectRepository(ProjectPac)
+    private readonly projectPacRepo: Repository<ProjectPac>,
+
+    @InjectRepository(Pac)
+    private readonly pacRepo: Repository<Pac>,
+
     private readonly projectAccess: ProjectAccessService,
+    private readonly cloudinaryService: CloudinaryService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -69,13 +70,6 @@ export class MicroActionInstanceService {
     return this.dataSource.transaction(async (manager) => {
       const saved = await manager.save(MicroActionInstance, instance);
 
-      await this.createVersion(manager, saved, {
-        changeType: MicroActionInstanceChangeType.CREATED,
-        previousStatus: null,
-        createdByUserId: principal.userId,
-        changeSummary: 'Instancia creada',
-      });
-
       return saved;
     });
   }
@@ -87,7 +81,7 @@ export class MicroActionInstanceService {
     await this.projectAccess.assertCanAccessProject(principal, projectId);
     return this.repo.find({
       where: { projectId },
-      relations: ['microActionDefinition', 'evidences'],
+      relations: ['microActionDefinition', 'evidences', 'versions'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -95,7 +89,7 @@ export class MicroActionInstanceService {
   async findAllByUser(actorUserId: string): Promise<MicroActionInstance[]> {
     return this.repo.find({
       where: { actorUserId },
-      relations: ['microActionDefinition', 'project'],
+      relations: ['microActionDefinition', 'project', 'versions'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -103,7 +97,7 @@ export class MicroActionInstanceService {
   async findOne(id: string): Promise<MicroActionInstance> {
     const instance = await this.repo.findOne({
       where: { id },
-      relations: ['microActionDefinition', 'evidences', 'actor', 'project'],
+      relations: ['microActionDefinition', 'evidences', 'actor', 'project', 'versions'],
     });
 
     if (!instance) {
@@ -117,6 +111,32 @@ export class MicroActionInstanceService {
     const instance = await this.findOne(id);
     await this.projectAccess.assertCanAccessProject(principal, instance.projectId);
     return instance;
+  }
+
+  async findAll(
+    page?: number,
+    limit?: number,
+    status?: MicroActionInstanceStatus,
+  ): Promise<{
+    data: MicroActionInstance[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const pageNum = page && page > 0 ? page : 1;
+    const limitNum = limit && limit > 0 ? limit : 10;
+
+    const where = status ? { status } : {};
+
+    const [data, total] = await this.repo.findAndCount({
+      where,
+      relations: ['microActionDefinition', 'project', 'versions', 'actor'],
+      order: { createdAt: 'DESC' },
+      skip: (pageNum - 1) * limitNum,
+      take: limitNum,
+    });
+
+    return { data, total, page: pageNum, limit: limitNum };
   }
 
   async findVersions(
@@ -157,74 +177,11 @@ export class MicroActionInstanceService {
     }
 
     if (!statusChanged && !notesChanged) {
-      // Nada cambió realmente: no generamos una versión vacía.
       return instance;
     }
 
     return this.dataSource.transaction(async (manager) => {
       const saved = await manager.save(MicroActionInstance, instance);
-
-      await this.createVersion(manager, saved, {
-        changeType: statusChanged
-          ? MicroActionInstanceChangeType.STATUS_CHANGE
-          : MicroActionInstanceChangeType.NOTES_UPDATE,
-        previousStatus: statusChanged ? previousStatus : null,
-        createdByUserId: principal.userId,
-        changeSummary:
-          dto.changeSummary ??
-          (statusChanged
-            ? `Cambio de estado: ${previousStatus} → ${saved.status}`
-            : 'Actualización de notas de ejecución'),
-      });
-
-      return saved;
-    });
-  }
-
-  async submit(id: string, principal: ProjectPrincipal): Promise<MicroActionInstance> {
-    const instance = await this.findOneAuthorized(id, principal);
-
-    this.assertOwnership(instance, principal);
-    this.validateTransition(instance.status, MicroActionInstanceStatus.SUBMITTED);
-
-    const previousStatus = instance.status;
-    instance.status = MicroActionInstanceStatus.SUBMITTED;
-    instance.submittedAt = new Date();
-
-    return this.dataSource.transaction(async (manager) => {
-      const saved = await manager.save(MicroActionInstance, instance);
-
-      await this.createVersion(manager, saved, {
-        changeType: MicroActionInstanceChangeType.SUBMITTED,
-        previousStatus,
-        createdByUserId: principal.userId,
-        changeSummary: 'Instancia enviada a evaluación',
-      });
-
-      return saved;
-    });
-  }
-
-  async reopen(id: string, principal: ProjectPrincipal): Promise<MicroActionInstance> {
-    const instance = await this.findOneAuthorized(id, principal);
-
-    this.assertOwnership(instance, principal);
-    this.validateTransition(instance.status, MicroActionInstanceStatus.REOPENED);
-
-    const previousStatus = instance.status;
-    instance.status = MicroActionInstanceStatus.REOPENED;
-    instance.reopenedCount += 1;
-    instance.attemptNumber += 1;
-
-    return this.dataSource.transaction(async (manager) => {
-      const saved = await manager.save(MicroActionInstance, instance);
-
-      await this.createVersion(manager, saved, {
-        changeType: MicroActionInstanceChangeType.REOPENED,
-        previousStatus,
-        createdByUserId: principal.userId,
-        changeSummary: `Instancia reabierta (intento #${saved.attemptNumber})`,
-      });
 
       return saved;
     });
@@ -235,12 +192,7 @@ export class MicroActionInstanceService {
 
     this.assertOwnership(instance, principal);
 
-    const deletableStatuses: MicroActionInstanceStatus[] = [
-      MicroActionInstanceStatus.STARTED,
-      MicroActionInstanceStatus.IN_PROGRESS,
-    ];
-
-    if (!deletableStatuses.includes(instance.status)) {
+    if (instance.status !== MicroActionInstanceStatus.PENDING) {
       throw new BadRequestException(
         `No se puede eliminar una instancia en estado "${instance.status}"`,
       );
@@ -249,9 +201,101 @@ export class MicroActionInstanceService {
     await this.repo.remove(instance);
   }
 
+  async createVersion(
+    instanceId: string,
+    principal: ProjectPrincipal,
+    dto: CreateVersionDto,
+    file: Express.Multer.File,
+  ): Promise<MicroActionInstanceVersion> {
+    const instance = await this.findOneAuthorized(instanceId, principal);
+    this.assertOwnership(instance, principal);
+
+    if (!file) {
+      throw new BadRequestException('El archivo es requerido');
+    }
+
+    const lastVersion = await this.versionRepo.findOne({
+      where: { microActionInstanceId: instanceId },
+      order: { versionNumber: 'DESC' },
+    });
+    if (lastVersion && lastVersion.changeType !== MicroActionInstanceChangeType.REJECTED) {
+      throw new BadRequestException(
+        `Ya hay una versión con estado: ${lastVersion.changeType}`,
+      );
+    }
+    const nextVersionNumber = lastVersion ? lastVersion.versionNumber + 1 : 1;
+
+    const uploadResult = await this.cloudinaryService.uploadVersionFile(file, instanceId);
+
+    instance.status = MicroActionInstanceStatus.SUBMITTED;
+    instance.submittedAt = new Date();
+    await this.repo.save(instance);
+
+    const version = this.versionRepo.create({
+      microActionInstanceId: instanceId,
+      versionNumber: nextVersionNumber,
+      changeType: MicroActionInstanceChangeType.SUBMITTED,
+      status: MicroActionInstanceStatus.SUBMITTED,
+      previousStatus: null,
+      executionNotes: dto.executionNotes && dto.executionNotes.length > 0 ? dto.executionNotes : 'El usuario no ingresó notas de ejecución',
+      attemptNumber: instance.attemptNumber,
+      reopenedCount: instance.reopenedCount,
+      changeSummary: `Versión ${nextVersionNumber} enviada`,
+      supersedesVersionNumber: lastVersion?.versionNumber ?? null,
+      canonicalUri: uploadResult.secure_url,
+      createdByUserId: principal.userId,
+    });
+
+    return this.versionRepo.save(version);
+  }
+
+  async resolveVersion(
+    versionId: string,
+    dto: ResolveVersionDto,
+  ): Promise<MicroActionInstanceVersion> {
+    const version = await this.versionRepo.findOne({
+      where: { id: versionId },
+      relations: ['microActionInstance'],
+    });
+
+    if (!version) {
+      throw new NotFoundException(`Versión ${versionId} no encontrada`);
+    }
+
+    const changeType = dto.status;
+    version.changeType = changeType;
+    version.changeSummary = dto.summary ?? 'No se ingresó un resumen';
+
+    if (changeType === MicroActionInstanceChangeType.COMPLETED) {
+      const instance = version.microActionInstance;
+      instance.status = MicroActionInstanceStatus.COMPLETED;
+      instance.validatedAt = new Date();
+      instance.closedAt = new Date();
+      if (instance.startedAt) {
+        const diffDays =
+          (Date.now() - instance.startedAt.getTime()) / (1000 * 60 * 60 * 24);
+        instance.executionWindowDaysSnapshot = Math.floor(diffDays);
+      }
+      await this.repo.save(instance);
+
+      await this.validatePacCompleted(
+        version.microActionInstance.projectId,
+        version.microActionInstance.microActionDefinitionId,
+      );
+    }
+
+    if (changeType === MicroActionInstanceChangeType.REJECTED) {
+      const instance = version.microActionInstance;
+      instance.status = MicroActionInstanceStatus.PENDING;
+      await this.repo.save(instance);
+    }
+
+    return this.versionRepo.save(version);
+  }
+
   // ─── Helpers privados ────────────────────────────────────────────────────────
 
-  private async createVersion(
+  private async createVersionRecord(
     manager: EntityManager,
     instance: MicroActionInstance,
     options: {
@@ -294,8 +338,7 @@ export class MicroActionInstanceService {
     current: MicroActionInstanceStatus,
     next: MicroActionInstanceStatus,
   ): void {
-    const allowed = getAllowedTransitions()[current];
-    if (!allowed.includes(next)) {
+    if (current === MicroActionInstanceStatus.COMPLETED) {
       throw new BadRequestException(
         `Transición inválida: de "${current}" a "${next}" no está permitida`,
       );
@@ -306,26 +349,11 @@ export class MicroActionInstanceService {
     instance: MicroActionInstance,
     newStatus: MicroActionInstanceStatus,
   ): void {
-    const now = new Date();
-    switch (newStatus) {
-      case MicroActionInstanceStatus.IN_PROGRESS:
-        if (!instance.startedAt) instance.startedAt = now;
-        break;
-      case MicroActionInstanceStatus.SUBMITTED:
-        instance.submittedAt = now;
-        break;
-      case MicroActionInstanceStatus.VALIDATED:
-        instance.validatedAt = now;
-        break;
-      case MicroActionInstanceStatus.COMPLETED:
-        instance.completedAt = now;
-        if (instance.executionWindowDaysSnapshot) {
-          instance.isOnTime = this.checkOnTime(instance);
-        }
-        break;
-      case MicroActionInstanceStatus.CLOSED:
-        instance.closedAt = now;
-        break;
+    if (newStatus === MicroActionInstanceStatus.COMPLETED) {
+      instance.completedAt = new Date();
+      if (instance.executionWindowDaysSnapshot) {
+        instance.isOnTime = this.checkOnTime(instance);
+      }
     }
   }
 
@@ -336,5 +364,117 @@ export class MicroActionInstanceService {
     const diffMs = new Date().getTime() - instance.startedAt.getTime();
     const diffDays = diffMs / (1000 * 60 * 60 * 24);
     return diffDays <= instance.executionWindowDaysSnapshot;
+  }
+
+  private async validatePacCompleted(
+    projectId: string,
+    microActionDefinitionId: string,
+  ): Promise<void> {
+    const definition = await this.definitionRepo.findOne({
+      where: { id: microActionDefinitionId },
+    });
+
+    if (!definition) {
+      throw new NotFoundException(
+        `Definición ${microActionDefinitionId} no encontrada`,
+      );
+    }
+
+    const code = definition.code;
+    const lastUnderscoreIndex = code.lastIndexOf('_');
+    const codePrefix = code.substring(0, lastUnderscoreIndex + 1);
+
+    const definitions = await this.definitionRepo.find({
+      where: { code: Like(`${codePrefix}%`) },
+      order: { code: 'ASC' },
+    });
+
+    const instances = await Promise.all(
+      definitions.map((def) =>
+        this.repo.findOne({
+          where: {
+            microActionDefinitionId: def.id,
+            projectId,
+          },
+        }),
+      ),
+    );
+
+    const allCompleted = instances.every(
+      (instance) => instance?.status === MicroActionInstanceStatus.COMPLETED,
+    );
+
+    if (!allCompleted) {
+      return;
+    }
+
+    const projectPac = await this.projectPacRepo.findOne({
+      where: {
+        projectId,
+        pacId: definition.pacId,
+      },
+    });
+
+    if (!projectPac) {
+      throw new NotFoundException(
+        `ProjectPac no encontrado para projectId ${projectId} y pacId ${definition.pacId}`,
+      );
+    }
+
+    projectPac.status = ProjectPacStatus.COMPLETED;
+    projectPac.completedAt = new Date();
+    await this.projectPacRepo.save(projectPac);
+
+    await this.activateNextProjectPac(projectId, definition.pacId);
+  }
+
+  private async activateNextProjectPac(
+    projectId: string,
+    currentPacId: string,
+  ): Promise<void> {
+    const currentPac = await this.pacRepo.findOne({
+      where: { id: currentPacId },
+    });
+
+    if (!currentPac) {
+      return;
+    }
+
+    const parts = currentPac.code.split('_');
+    if (parts.length < 3) {
+      return;
+    }
+
+    const [prefix, tramo, pacNumberStr] = parts;
+    const pacNumber = parseInt(pacNumberStr, 10);
+
+    if (Number.isNaN(pacNumber) || pacNumber >= 7) {
+      return;
+    }
+
+    const nextPacCode = `${prefix}_${tramo}_${pacNumber + 1}_1`;
+
+    const nextPac = await this.pacRepo.findOne({
+      where: { code: nextPacCode },
+    });
+
+    if (!nextPac) {
+      return;
+    }
+
+    const nextProjectPac = await this.projectPacRepo.findOne({
+      where: {
+        projectId,
+        pacId: nextPac.id,
+      },
+    });
+
+    if (!nextProjectPac) {
+      return;
+    }
+
+    nextProjectPac.status = ProjectPacStatus.IN_PROGRESS;
+    nextProjectPac.startedAt = new Date();
+    await this.projectPacRepo.save(nextProjectPac);
   }
 }

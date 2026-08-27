@@ -141,8 +141,6 @@ export class ReputationService {
     const completedInstances = allInstances.filter((i) =>
       [
         MicroActionInstanceStatus.COMPLETED,
-        MicroActionInstanceStatus.VALIDATED,
-        MicroActionInstanceStatus.CLOSED,
       ].includes(i.status),
     );
 
