@@ -21,7 +21,7 @@ export class AuthorizationDenialAudit {
   @Column({ name: 'resource_type' })
   resourceType: string;
 
-  @Column({ name: 'resource_id', nullable: true })
+  @Column({ name: 'resource_id', nullable: true, type: 'varchar'  })
   resourceId: string | null;
 
   @Column()
