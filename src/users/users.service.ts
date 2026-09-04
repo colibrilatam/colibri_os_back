@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ICreateUser } from './interfaces/create-user.interface';
 import { UserRepository } from './user.repository';
-import { User, UserRole } from './entities/user.entity';
+import { User, UserRole, Gender, UserStatus } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserRoleChangeAudit } from './entities/user-role-change-audit.entity';
@@ -16,7 +16,9 @@ import { ChangeUserRoleDto } from './dtos/change-user-role.dto';
 @Injectable()
 export class UsersService {
   constructor(
+    
     private readonly userRepository: UserRepository,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(UserRoleChangeAudit)
     private readonly roleChangeAuditRepository: Repository<UserRoleChangeAudit>,
   ) {}
@@ -122,6 +124,21 @@ export class UsersService {
 
     return this.findOneById(targetUserId);
   }
+
+  async completeProfile(userId: string, role: UserRole, gender: Gender) {
+  const user = await this.userRepository.findOneByID(userId);
+  if (!user) {
+    throw new NotFoundException('Usuario no encontrado');
+  }
+  if (user.status !== UserStatus.PENDING_PROFILE) {
+    throw new BadRequestException('El usuario no está en estado pendiente de perfil');
+  }
+  user.role = role;
+  user.gender = gender;
+  user.status = UserStatus.ACTIVE;
+  await this.userRepo.save(user);
+  return user;
+}
 
   private assertSelfOrAdmin(
     targetUserId: string,
