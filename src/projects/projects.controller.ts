@@ -21,6 +21,7 @@ import { ProjectPacStatus } from './entities/project.pac.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { ProjectAccessService } from './project-access.service';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Projects')
 @Controller('projects')
@@ -30,11 +31,22 @@ export class ProjectsController {
     private readonly projectAccessService: ProjectAccessService,
   ) {}
 
+  // OPS-003: la subida de imagen de proyecto no tenía límite de tamaño ni
+  // rate limit propio — quedaba solo cubierto por el throttle global
+  // (100 req/min). Acá se agrega un límite específico más estricto y un
+  // tope de tamaño de archivo a nivel de Multer.
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image'))
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: {
+        fileSize: Number(process.env.MAX_PROJECT_IMAGE_BYTES ?? 5 * 1024 * 1024), // 5MB por defecto
+      },
+    }),
+  )
   create(
     @CurrentUser('id') ownerUserId: string,
     @Body() dto: CreateProjectDto,

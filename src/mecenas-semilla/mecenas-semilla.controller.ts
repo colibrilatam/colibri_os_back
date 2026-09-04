@@ -9,6 +9,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 // import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Mecenas Aliado Semilla')
 @Controller('mecenas-semilla')
@@ -75,6 +76,7 @@ export class MecenasSemillaController {
     return await this.mecenasService.getDashboard(userId);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('buy-nfts/:userId')
   // @Roles(UserRole.MECENAS_SEMILLA, UserRole.ADMIN)
   @ApiOperation({

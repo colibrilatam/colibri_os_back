@@ -4,7 +4,7 @@ import { createTestApp, cleanDatabase, closeTestApp, E2eContext } from './e2e-se
 import { Fixtures } from './fixtures';
 import { UserRole, UserStatus } from 'src/users/entities/user.entity';
 
-describe.skip('Auth — QA-SEC-001 (escalada de privilegios) (e2e)', () => {
+describe('Auth — QA-SEC-001 (escalada de privilegios) (e2e)', () => {
   let ctx: E2eContext;
   let fixtures: Fixtures;
   let jwtService: JwtService;

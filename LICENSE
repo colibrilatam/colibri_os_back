@@ -1,0 +1,21 @@
+Copyright (c) 2026 Colibrí Latam. Todos los derechos reservados.
+
+Este software y su documentación asociada (el "Software") son propiedad de
+Colibrí Latam y constituyen información confidencial y de uso restringido.
+
+No se concede ningún permiso, expreso o implícito, para usar, copiar,
+modificar, fusionar, publicar, distribuir, sublicenciar y/o vender copias
+del Software, ni para permitir a las personas a quienes se les
+proporcione el Software hacerlo, salvo autorización previa y por escrito
+de Colibrí Latam.
+
+Queda prohibida la redistribución del código fuente, binarios o
+documentación fuera de los canales autorizados por Colibrí Latam.
+
+EL SOFTWARE SE PROPORCIONA "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA
+O IMPLÍCITA, INCLUYENDO, ENTRE OTRAS, LAS GARANTÍAS DE COMERCIABILIDAD,
+IDONEIDAD PARA UN PROPÓSITO PARTICULAR Y NO INFRACCIÓN. EN NINGÚN CASO LOS
+AUTORES O TITULARES DE LOS DERECHOS DE AUTOR SERÁN RESPONSABLES DE
+NINGUNA RECLAMACIÓN, DAÑO U OTRA RESPONSABILIDAD.
+
+Identificador SPDX equivalente: UNLICENSED (coherente con `package.json`).

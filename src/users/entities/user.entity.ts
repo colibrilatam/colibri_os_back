@@ -66,6 +66,12 @@ role: UserRole | null;
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
   status: UserStatus;
 
+  // Se incrementa en cada evento crítico (suspensión, cambio de
+  // contraseña, logout global). Viaja embebida en el JWT: si no coincide
+  // con el valor actual, la sesión quedó revocada.
+  @Column({ name: 'session_version', type: 'int', default: 1 })
+  sessionVersion: number;
+
   @Column({
     type: 'enum',
     enum: AuthProvider,

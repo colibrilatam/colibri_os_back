@@ -2,18 +2,19 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import { IGoogleUser } from './interfaces/googleUser.interface';
-import { AuthProvider, User, UserRole } from 'src/users/entities/user.entity';
+import { AuthProvider, User, UserRole, UserStatus } from 'src/users/entities/user.entity';
 import { ILoginUser } from './interfaces/loginUser.interface';
 import bcrypt from 'bcrypt';
 import { IAuthCreate } from './interfaces/authCreate.interface';
-import { UserStatus } from  '../users/entities/user.entity';
 import { CompleteProfileDto } from './dto/complete-profile.dto';
+import { SessionsService } from './sessions/sessions.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly sessionsService: SessionsService,
   ) {}
 
   private generateToken(user: User) {
@@ -24,6 +25,19 @@ export class AuthService {
       status: user.status,
     };
     return this.jwtService.sign(payload);
+  }
+
+  /** Emite el par access token + refresh token para una sesión nueva. */
+  private async issueSession(user: User) {
+    const token = this.generateToken(user);
+    const refreshToken = await this.sessionsService.issueRefreshToken(user);
+    return { token, refreshToken };
+  }
+
+  private assertActive(user: User) {
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException('La cuenta está inactiva o suspendida');
+    }
   }
 
   async createUser(user: IAuthCreate) {
@@ -125,4 +139,18 @@ async completeProfile(dto: CompleteProfileDto) {
     throw new UnauthorizedException('Token expirado o inválido');
   }
 }
+
+  /** Rota un refresh token válido y emite un nuevo par de tokens. */
+  async refresh(rawRefreshToken: string) {
+    const { user, refreshToken } = await this.sessionsService.rotateRefreshToken(rawRefreshToken);
+    const token = this.generateToken(user);
+    return { token, refreshToken };
+  }
+
+  /** Cierra la sesión actual revocando su refresh token. */
+  async logout(rawRefreshToken: string) {
+    await this.sessionsService.revokeRefreshToken(rawRefreshToken);
+    return { message: 'Sesión cerrada correctamente' };
+  }
+
 }

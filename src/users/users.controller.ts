@@ -14,10 +14,12 @@ import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UpdateUserDto } from './dtos/userUpdate.dto';
 import { RolesGuard } from '../auth/guards/roles.guard';
-// import { Roles } from '../auth/decorators/roles.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from './entities/user.entity';
 import { ChangeUserRoleDto } from './dtos/change-user-role.dto';
+import { ChangeUserStatusDto } from './dtos/change-user-status.dto';
+import { ChangePasswordDto } from './dtos/change-password.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -30,6 +32,16 @@ export class UsersController {
   @ApiBearerAuth()
   getProfile(@CurrentUser() user: JwtPayload): JwtPayload {
     return user;
+  }
+
+  @ApiOperation({ summary: 'Cambiar la contraseña del usuario autenticado' })
+  @ApiBearerAuth()
+  @Patch('me/password')
+  async changePassword(
+    @CurrentUser('id') userId: string,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.usersService.changePassword(userId, dto);
   }
 
   @ApiOperation({ summary: 'Obtener todos los usuarios' })
@@ -74,7 +86,7 @@ export class UsersController {
   }
 
   @Patch(':id/role')
-  // @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Cambiar el rol de un usuario y registrar la auditoría' })
   async changeRole(
     @Param('id', ParseUUIDPipe) id: string,
@@ -83,5 +95,16 @@ export class UsersController {
     @Body() dto: ChangeUserRoleDto,
   ) {
     return this.usersService.changeRole(id, adminUserId, dto, { userId: adminUserId, role });
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Suspender, desactivar o reactivar a un usuario (revoca su sesión)' })
+  async changeStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminUserId: string,
+    @CurrentUser('role') role: UserRole,
+    @Body() dto: ChangeUserStatusDto,
+  ) {
+    return this.usersService.changeStatus(id, dto, { userId: adminUserId, role });
   }
 }
