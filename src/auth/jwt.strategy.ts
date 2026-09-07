@@ -6,16 +6,27 @@ import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { UsersService } from '../users/users.service';
 import { UserRole, UserStatus } from '../users/entities/user.entity';
 
-const extractCookieToken = (request: { headers?: { cookie?: string } }): string | null => {
+const COOKIE_NAME = 'colibri_access_token';
+
+const extractCookieToken = (request: {
+  cookies?: Record<string, string>;
+  headers?: { cookie?: string };
+}): string | null => {
+  // Si cookie-parser está instalado, leer directamente del objeto cookies.
+  if (request?.cookies?.[COOKIE_NAME]) {
+    return request.cookies[COOKIE_NAME];
+  }
+
+  // Fallback: parsear manualmente el header Cookie (útil en tests sin cookie-parser).
   const cookieHeader = request?.headers?.cookie;
   if (!cookieHeader) return null;
 
   const tokenPair = cookieHeader
     .split(';')
     .map((cookie) => cookie.trim())
-    .find((cookie) => cookie.startsWith('colibri_access_token='));
+    .find((cookie) => cookie.startsWith(`${COOKIE_NAME}=`));
 
-  return tokenPair ? decodeURIComponent(tokenPair.substring('colibri_access_token='.length)) : null;
+  return tokenPair ? decodeURIComponent(tokenPair.substring(`${COOKIE_NAME}=`.length)) : null;
 };
 
 @Injectable()

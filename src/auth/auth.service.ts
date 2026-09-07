@@ -56,6 +56,13 @@ export class AuthService {
     return {
       message: 'Usuario registrado con éxito',
       token: this.generateToken(userCreate),
+      user: {
+        id: userCreate.id,
+        email: userCreate.email,
+        fullName: userCreate.fullName,
+        role: userCreate.role,
+        status: userCreate.status,
+      },
     };
   }
 
@@ -73,8 +80,15 @@ export class AuthService {
     } else {
       const token = this.generateToken(userFound);
       return {
-        Message: 'Usuario logueado con éxito',
+        message: 'Usuario logueado con éxito',
         token,
+        user: {
+          id: userFound.id,
+          email: userFound.email,
+          fullName: userFound.fullName,
+          role: userFound.role,
+          status: userFound.status,
+        },
       };
     }
   }
@@ -134,7 +148,7 @@ async completeProfile(dto: CompleteProfileDto) {
       dto.gender,
     );
     const token = this.generateToken(updatedUser);
-    return { token };
+    return { token, user: updatedUser };
   } catch {
     throw new UnauthorizedException('Token expirado o inválido');
   }

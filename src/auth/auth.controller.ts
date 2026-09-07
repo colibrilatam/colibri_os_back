@@ -1,10 +1,11 @@
-import { BadRequestException, Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from './dto/create.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { GoogleExchangeDto } from './dto/google-exchange.dto';
+import { clearAuthCookie, setAuthCookie } from './cookie.helper';
 import type { Request, Response } from 'express';
 import type { IGoogleUser } from './interfaces/googleUser.interface';
 import { CompleteProfileDto } from './dto/complete-profile.dto';
@@ -60,29 +61,39 @@ async getGoogleCallback(@Req() req: GoogleAuthenticatedRequest, @Res() res: Resp
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('signin')
-  async loginUser(@Body() logindto: LoginDto) {
-    return await this.authService.loginUser(logindto);
+  async loginUser(@Body() logindto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.loginUser(logindto);
+    setAuthCookie(res, result.token);
+    return { message: result.message, user: result.user };
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('signup')
-  async createUser(@Body() user: CreateUserDto) {
-    return await this.authService.createUser(user);
+  async createUser(@Body() user: CreateUserDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.createUser(user);
+    setAuthCookie(res, result.token);
+    return { message: result.message, user: result.user };
   }
 
   @Post('complete-profile')
-async completeProfile(@Body() dto: CompleteProfileDto) {
-  return this.authService.completeProfile(dto);
+async completeProfile(@Body() dto: CompleteProfileDto, @Res({ passthrough: true }) res: Response) {
+  const result = await this.authService.completeProfile(dto);
+  setAuthCookie(res, result.token);
+  return { message: "Perfil completado con éxito", user: result.user };
 }
 
   @Post('refresh')
-  async refresh(@Body() dto: RefreshTokenDto) {
-    return await this.authService.refresh(dto.refreshToken);
+  async refresh(@Body() dto: RefreshTokenDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.refresh(dto.refreshToken);
+    setAuthCookie(res, result.token);
+    return { message: 'Tokens renovados correctamente'}
   }
 
   @Post('logout')
-  async logout(@Body() dto: RefreshTokenDto) {
-    return await this.authService.logout(dto.refreshToken);
+  @HttpCode(200)
+  logout(@Res({ passthrough: true }) res: Response) {
+    clearAuthCookie(res);
+    return { message: 'Sesión cerrada con éxito' };
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 solicitudes / min por IP
