@@ -24,6 +24,7 @@ import { NftActor, ActorNftType } from 'src/nfts/entities/nft-actor.entity';
 import { NftProject } from 'src/nfts/entities/nft-project.entity';
 import { MecenasNftPortfolio } from 'src/nfts/entities/mecenas-nft-portfolio.entity';
 import { ProjectPac, ProjectPacStatus } from 'src/projects/entities/project.pac.entity';
+import { SessionsService } from 'src/auth/sessions/sessions.service';
 
 let counter = 0;
 /** Sufijo corto y único por fixture, para no chocar con `unique: true` entre tests. */
@@ -45,6 +46,7 @@ export class Fixtures {
   private readonly nftActorRepo: Repository<NftActor>;
   private readonly nftProjectRepo: Repository<NftProject>;
   private readonly mecenasNftPortfolioRepo: Repository<MecenasNftPortfolio>;
+  private readonly sessionsService: SessionsService;
 
   constructor(private readonly app: INestApplication) {
     this.userRepo = app.get(getRepositoryToken(User));
@@ -63,6 +65,7 @@ export class Fixtures {
     this.mecenasNftPortfolioRepo = app.get(getRepositoryToken(MecenasNftPortfolio));
     this.projectMemberRepo = app.get(getRepositoryToken(ProjectMember));
     this.projectPacRepo = app.get(getRepositoryToken(ProjectPac));
+    this.sessionsService = app.get(SessionsService);
   }
 
   // ─── Usuarios ───────────────────────────────────────────────────────────────
@@ -86,18 +89,24 @@ export class Fixtures {
     await this.userRepo.update({ id: userId }, { status });
   }
 
-  /** Firma un token real (mismo payload que AuthService.generateToken) para el usuario dado. */
+  /** Firma un token real (mismo payload que AuthService.generateAccessToken) para el usuario dado. */
   tokenFor(user: User): string {
     return this.jwtService.sign({
       sub: user.id,
       email: user.email,
       role: user.role,
       status: user.status,
+      sessionVersion: user.sessionVersion,
     });
   }
 
   authHeader(user: User): { Authorization: string } {
     return { Authorization: `Bearer ${this.tokenFor(user)}` };
+  }
+
+  /** Emite un refresh token real (vía SessionsService) para el usuario dado. */
+  async issueRefreshToken(user: User): Promise<string> {
+    return this.sessionsService.issueRefreshToken(user);
   }
 
   // ─── Jerarquía curricular mínima (Tramo → Category → Pac → MicroActionDefinition) ──
@@ -194,7 +203,7 @@ export class Fixtures {
     );
   }
 
-    async createProjectPac(
+  async createProjectPac(
     projectId: string,
     pacId: string,
     overrides: Partial<ProjectPac> = {},

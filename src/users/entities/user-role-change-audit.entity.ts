@@ -12,8 +12,8 @@ export class UserRoleChangeAudit {
   @Column({ name: 'changed_by_user_id' })
   changedByUserId: string;
 
-  @Column({ name: 'previous_role', type: 'varchar' })
-  previousRole: UserRole;
+  @Column({ name: 'previous_role', type: 'varchar', nullable: true })
+  previousRole: UserRole | null;
 
   @Column({ name: 'next_role', type: 'varchar' })
   nextRole: UserRole;

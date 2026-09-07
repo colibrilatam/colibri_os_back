@@ -15,7 +15,7 @@ import { CreateNftProjectDto } from './dto/create-nft-project.dto';
 import { UpdateNftProjectDto } from './dto/update-nft-project.dto';
 import { JwtAuthGuard } from '../../auth/guards/auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
-// import { Roles } from '../../auth/decorators/roles.decorator';
+import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { UserRole } from '../../users/entities/user.entity';
 import { ProjectAccessService } from '../../projects/project-access.service';
@@ -44,7 +44,7 @@ export class NftProjectController {
   }
 
   @Get()
-  // @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Obtener todos los NFTs de proyectos' })
   findAll() {
     return this.nftProjectService.findAll();
@@ -87,7 +87,7 @@ export class NftProjectController {
   }
 
   @Delete(':id')
-  // @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Eliminar un NFT de proyecto' })
   remove(@Param('id') id: string) {
     return this.nftProjectService.remove(id);

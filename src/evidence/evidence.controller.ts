@@ -26,9 +26,10 @@ import { RequestUploadSignatureDto } from './dto/request-upload-signature.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-// import { Roles } from '../auth/decorators/roles.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { Throttle } from '@nestjs/throttler';
 
 const EXAMPLE_EVIDENCE = {
   id: 'ev-uuid-0001',
@@ -79,6 +80,7 @@ export class EvidenceController {
 
   // ─── POST /evidence/request-upload-signature ──────────────────────────────
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('request-upload-signature')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -115,6 +117,7 @@ export class EvidenceController {
 
   // ─── POST /evidence/confirm-upload ───────────────────────────────────────
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('confirm-upload')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -245,6 +248,45 @@ export class EvidenceController {
     return this.service.findVersions(id, { userId, role });
   }
 
+  // ─── GET /evidence/:id/verify-integrity ──────────────────────────────────
+
+  @Get(':id/verify-integrity')
+  @ApiOperation({
+    summary: 'Verificar integridad del archivo contra el hash registrado',
+    description:
+      'Vuelve a descargar el archivo desde storageUri, calcula su SHA-256 y lo compara contra ' +
+      'el hash almacenado en la última versión. Permite detectar sustitución o alteración del ' +
+      'recurso después de confirmado el upload.',
+  })
+  @ApiParam({ name: 'id', description: 'UUID de la evidencia', example: 'ev-uuid-0001' })
+  @ApiResponse({
+    status: 200,
+    description: 'Resultado de la verificación de integridad.',
+    schema: {
+      example: {
+        evidenceId: 'ev-uuid-0001',
+        versionNumber: 1,
+        isValid: true,
+        algorithm: 'sha256',
+        expectedHash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+        calculatedHash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+        expectedByteSize: 10240,
+        calculatedByteSize: 10240,
+        storageUri: 'https://res.cloudinary.com/colibri/raw/upload/v1/evidences/archivo.pdf',
+        verifiedAt: '2026-08-14T15:00:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'La evidencia no tiene un archivo para verificar.' })
+  @ApiResponse({ status: 404, description: 'Evidencia no encontrada.' })
+  verifyIntegrity(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    return this.service.verifyIntegrity(id, { userId, role });
+  }
+
   // ─── GET /evidence/:id ───────────────────────────────────────────────────
 
   @Get(':id')
@@ -312,7 +354,7 @@ export class EvidenceController {
 
   @Post(':id/retry-deletion')
   @UseGuards(RolesGuard)
-  // @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Reintentar borrado pendiente (ADMIN)',

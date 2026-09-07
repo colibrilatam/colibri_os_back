@@ -75,14 +75,17 @@ describe('TramoClosureService — atomicidad e idempotencia (TX-001)', () => {
   }
 
   it('Prueba negativa: fallo después del snapshot revierte todo (no avanza tramo ni evoluciona NFT)', async () => {
-    const { project, tramoActual } = await buildReadyToCloseScenario();
+    const { owner, project, tramoActual } = await buildReadyToCloseScenario();
 
     jest
       .spyOn(nftProjectService, 'checkNftStatus')
       .mockRejectedValueOnce(new Error('Fallo simulado post-snapshot'));
 
     await expect(
-      service.closeTramo({ projectId: project.id, tramoId: tramoActual.id }),
+      service.closeTramo(
+        { projectId: project.id, tramoId: tramoActual.id },
+        owner.id,
+      ),
     ).rejects.toThrow('Fallo simulado post-snapshot');
 
     const projectRepo = ctx.app.get(getRepositoryToken(Project));
@@ -97,7 +100,7 @@ describe('TramoClosureService — atomicidad e idempotencia (TX-001)', () => {
   });
 
   it('Prueba negativa: fallo durante evolución del NFT revierte snapshot y cambio de tramo', async () => {
-    const { project, tramoActual } = await buildReadyToCloseScenario();
+    const { owner, project, tramoActual } = await buildReadyToCloseScenario();
 
     jest
       .spyOn(nftProjectService, 'checkNftStatus')
@@ -108,7 +111,10 @@ describe('TramoClosureService — atomicidad e idempotencia (TX-001)', () => {
       .mockRejectedValueOnce(new Error('Fallo simulado en evolución de NFT'));
 
     await expect(
-      service.closeTramo({ projectId: project.id, tramoId: tramoActual.id }),
+      service.closeTramo(
+        { projectId: project.id, tramoId: tramoActual.id },
+        owner.id,
+      ),
     ).rejects.toThrow();
 
     const projectRepo = ctx.app.get(getRepositoryToken(Project));
@@ -117,14 +123,17 @@ describe('TramoClosureService — atomicidad e idempotencia (TX-001)', () => {
   });
 
   it('Prueba negativa: fallo antes de cambiar el tramo revierte snapshot y NFT', async () => {
-    const { project, tramoActual } = await buildReadyToCloseScenario();
+    const { owner, project, tramoActual } = await buildReadyToCloseScenario();
 
     jest
       .spyOn(tramosService, 'changeTramo')
       .mockRejectedValueOnce(new Error('Fallo simulado antes de cambiar tramo'));
 
     await expect(
-      service.closeTramo({ projectId: project.id, tramoId: tramoActual.id }),
+      service.closeTramo(
+        { projectId: project.id, tramoId: tramoActual.id },
+        owner.id,
+      ),
     ).rejects.toThrow();
 
     // El IC no debería quedar "colgado" apuntando a un cierre que no ocurrió
@@ -136,21 +145,21 @@ describe('TramoClosureService — atomicidad e idempotencia (TX-001)', () => {
   });
 
   it('Prueba negativa: reintentar la misma operación no duplica efectos', async () => {
-    const { project, tramoActual, tramoSiguiente } = await buildReadyToCloseScenario();
+    const { owner, project, tramoActual, tramoSiguiente } = await buildReadyToCloseScenario();
 
-    const first = await service.closeTramo({
-      projectId: project.id,
-      tramoId: tramoActual.id,
-    });
+    const first = await service.closeTramo(
+      { projectId: project.id, tramoId: tramoActual.id },
+      owner.id,
+    );
     expect(first.nextTramoId).toBe(tramoSiguiente.id);
     expect(first.replayed).toBe(false);
 
     const calculateSpy = jest.spyOn(reputationService, 'calculateSnapshot');
 
-    const second = await service.closeTramo({
-      projectId: project.id,
-      tramoId: tramoActual.id,
-    });
+    const second = await service.closeTramo(
+      { projectId: project.id, tramoId: tramoActual.id },
+      owner.id,
+    );
 
     expect(second).toEqual(first); // mismo resultado exacto, sin re-ejecutar
     expect(second.replayed).toBe(true);

@@ -1,0 +1,235 @@
+name: CI Negative Tests (valida el gate de CI-001)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+
+jobs:
+  negative-unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Inyectar test unitario roto (a propósito)
+        run: |
+          cat > src/health/__negative-ci__.spec.ts << 'EOF'
+          describe('Prueba negativa CI-001', () => {
+            it('debe fallar intencionalmente para validar el gate de CI', () => {
+              expect(true).toBe(false);
+            });
+          });
+          EOF
+
+      - name: Ejecutar tests unitarios (se espera que fallen)
+        id: run
+        continue-on-error: true
+        run: npm run test
+
+      - name: Verificar que el pipeline detectó el fallo
+        run: |
+          if [ "${{ steps.run.outcome }}" = "success" ]; then
+            echo "ERROR: un test roto no hizo fallar el pipeline. El gate no está funcionando."
+            exit 1
+          fi
+          echo "OK: un PR con test fallido queda bloqueado."
+
+  negative-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Inyectar error de lint (variable sin usar, a propósito)
+        run: |
+          cat > src/health/__negative-ci-lint__.ts << 'EOF'
+          export function negativeCiLintCheck(): void {
+            const unusedVariable = 'esto debe romper @typescript-eslint/no-unused-vars';
+          }
+          EOF
+
+      - name: Ejecutar lint (se espera que falle)
+        id: run
+        continue-on-error: true
+        run: npm run lint
+
+      - name: Verificar que el pipeline detectó el fallo
+        run: |
+          if [ "${{ steps.run.outcome }}" = "success" ]; then
+            echo "ERROR: un lint roto no hizo fallar el pipeline. El gate no está funcionando."
+            exit 1
+          fi
+          echo "OK: un PR con lint fallido queda bloqueado."
+
+  negative-invalid-migration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: colibri_ci
+          POSTGRES_PASSWORD: colibri_ci
+          POSTGRES_DB: colibri_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U colibri_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://colibri_ci:colibri_ci@localhost:5432/colibri_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Esperar a Postgres
+        run: |
+          until pg_isready -h localhost -p 5432 -U colibri_ci; do sleep 2; done
+
+      - name: Migraciones válidas primero (estado base real)
+        run: npm run migration:run
+
+      - name: Inyectar migración inválida (a propósito)
+        run: |
+          cat > src/database/migrations/9999999999999-NegativeCiInvalidMigration.ts << 'EOF'
+          import { MigrationInterface, QueryRunner } from 'typeorm';
+
+          export class NegativeCiInvalidMigration9999999999999 implements MigrationInterface {
+            name = 'NegativeCiInvalidMigration9999999999999';
+
+            public async up(queryRunner: QueryRunner): Promise<void> {
+              // SQL inválido a propósito: la tabla no existe.
+              await queryRunner.query(`ALTER TABLE "esta_tabla_no_existe" ADD COLUMN "x" INT;`);
+            }
+
+            public async down(): Promise<void> {}
+          }
+          EOF
+
+      - name: Ejecutar migración (se espera que falle)
+        id: run
+        continue-on-error: true
+        run: npm run migration:run
+
+      - name: Verificar que el pipeline detectó el fallo
+        run: |
+          if [ "${{ steps.run.outcome }}" = "success" ]; then
+            echo "ERROR: una migración inválida no hizo fallar el pipeline."
+            exit 1
+          fi
+          echo "OK: una migración inválida queda bloqueada."
+
+  negative-authorization-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: colibri_ci
+          POSTGRES_PASSWORD: colibri_ci
+          POSTGRES_DB: colibri_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U colibri_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://colibri_ci:colibri_ci@localhost:5432/colibri_ci
+      JWT_SECRET: ci-test-secret-not-for-production
+      JWT_EXPIRES_IN: 1h
+      AUTH_COOKIE_MAX_AGE_MS: 3600000
+      SWAGGER_ENABLED: false
+      FRONTEND_URL: http://localhost:3000
+      GOOGLE_CLIENT_ID: ci-dummy-client-id
+      GOOGLE_CLIENT_SECRET: ci-dummy-client-secret
+      GOOGLE_CALLBACK_URL: http://localhost:3000/api/v1/auth/google/callback
+      CLOUDINARY_CLOUD_NAME: ci-dummy
+      CLOUDINARY_API_KEY: ci-dummy
+      CLOUDINARY_API_SECRET: ci-dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Esperar a Postgres
+        run: |
+          until pg_isready -h localhost -p 5432 -U colibri_ci; do sleep 2; done
+
+      - name: Migraciones
+        run: npm run migration:run
+
+      - name: Inyectar prueba de autorización rota (a propósito)
+        run: |
+          cat > test/QA/__negative-ci__.authorization.e2e-spec.ts << 'EOF'
+          import request from 'supertest';
+          import { createTestApp, cleanDatabase, closeTestApp, E2eContext } from '../e2e-setup';
+          import { Fixtures } from '../fixtures';
+          import { UserRole } from 'src/users/entities/user.entity';
+
+          describe('CI-001 — prueba negativa de autorización', () => {
+            let ctx: E2eContext;
+            let fixtures: Fixtures;
+            const server = () => ctx.app.getHttpServer();
+
+            beforeAll(async () => {
+              ctx = await createTestApp();
+              fixtures = new Fixtures(ctx.app);
+            });
+
+            afterEach(async () => {
+              await cleanDatabase(ctx.dataSource);
+            });
+
+            afterAll(async () => {
+              await closeTestApp(ctx);
+            });
+
+            it('[NEGATIVA] espera 200 donde lo correcto es 403 (IDOR)', async () => {
+              const userA = await fixtures.createUser(UserRole.ENTREPRENEUR);
+              const userB = await fixtures.createUser(UserRole.ENTREPRENEUR);
+
+              // Expectativa intencionalmente incorrecta: el sistema responde 403.
+              // Ver test/user-authorization.e2e-spec.ts para el comportamiento real.
+              await request(server())
+                .patch(`/api/v1/users/${userA.id}`)
+                .set(fixtures.authHeader(userB))
+                .send({ fullName: 'Hackeado por B' })
+                .expect(200);
+            });
+          });
+          EOF
+
+      - name: Ejecutar e2e (se espera que falle)
+        id: run
+        continue-on-error: true
+        run: npm run test:e2e -- --ci
+
+      - name: Verificar que el pipeline detectó el fallo
+        run: |
+          if [ "${{ steps.run.outcome }}" = "success" ]; then
+            echo "ERROR: una regresión de autorización no hizo fallar el pipeline."
+            exit 1
+          fi
+          echo "OK: una prueba de autorización fallida queda bloqueada."
