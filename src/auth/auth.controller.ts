@@ -47,7 +47,6 @@ async getGoogleCallback(@Req() req: GoogleAuthenticatedRequest, @Res() res: Resp
     const redirectUrl = `${process.env.FRONTEND_URL}/login/google-callback?tempToken=${result.tempToken}`;
     return res.redirect(redirectUrl);
   }
-  console.log(result)
   res.cookie('colibri_access_token', result.token, {
     httpOnly: true,
     secure: isProduction,

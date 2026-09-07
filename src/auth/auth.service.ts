@@ -23,6 +23,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       status: user.status,
+      sessionVersion: user.sessionVersion,
     };
     return this.jwtService.sign(payload);
   }
@@ -96,7 +97,6 @@ export class AuthService {
       role: null,
       status: UserStatus.PENDING_PROFILE,
     });
-    console.log(userFound)
     const tempToken = this.jwtService.sign(
       { sub: userFound.id, purpose: 'profile-completion' },
       { expiresIn: '1h' }
