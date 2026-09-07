@@ -148,7 +148,7 @@ async completeProfile(dto: CompleteProfileDto) {
       dto.gender,
     );
     const token = this.generateToken(updatedUser);
-    return { token };
+    return { token, user: updatedUser };
   } catch {
     throw new UnauthorizedException('Token expirado o inválido');
   }

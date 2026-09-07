@@ -69,18 +69,24 @@ async getGoogleCallback(@Req() req: GoogleAuthenticatedRequest, @Res() res: Resp
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('signup')
-  async createUser(@Body() user: CreateUserDto) {
-    return await this.authService.createUser(user);
+  async createUser(@Body() user: CreateUserDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.createUser(user);
+    setAuthCookie(res, result.token);
+    return { message: result.message, user: result.user };
   }
 
   @Post('complete-profile')
-async completeProfile(@Body() dto: CompleteProfileDto) {
-  return this.authService.completeProfile(dto);
+async completeProfile(@Body() dto: CompleteProfileDto, @Res({ passthrough: true }) res: Response) {
+  const result = await this.authService.completeProfile(dto);
+  setAuthCookie(res, result.token);
+  return { message: "Perfil completado con éxito", user: result.user };
 }
 
   @Post('refresh')
-  async refresh(@Body() dto: RefreshTokenDto) {
-    return await this.authService.refresh(dto.refreshToken);
+  async refresh(@Body() dto: RefreshTokenDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.refresh(dto.refreshToken);
+    setAuthCookie(res, result.token);
+    return { message: 'Tokens renovados correctamente'}
   }
 
   @Post('logout')
