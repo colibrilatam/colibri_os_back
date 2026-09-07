@@ -6,6 +6,7 @@ import { AuthProvider, User, UserRole, UserStatus } from 'src/users/entities/use
 import { ILoginUser } from './interfaces/loginUser.interface';
 import bcrypt from 'bcrypt';
 import { IAuthCreate } from './interfaces/authCreate.interface';
+import { CompleteProfileDto } from './dto/complete-profile.dto';
 import { SessionsService } from './sessions/sessions.service';
 
 @Injectable()
@@ -22,6 +23,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       status: user.status,
+      sessionVersion: user.sessionVersion,
     };
     return this.jwtService.sign(payload);
   }
@@ -77,38 +79,66 @@ export class AuthService {
     }
   }
 
-  /**
-   * Busca o crea el usuario de Google, pero NO emite tokens todavía.
-   * OAUTH-001: la emisión se posterga hasta que el frontend canjea el
-   * código de un solo uso (`OAuthExchangeService.consume`), para que el
-   * JWT nunca viaje en la URL de redirección.
-   */
-  async resolveGoogleUser(user: IGoogleUser): Promise<User> {
-    let userFound = await this.userService.findByEmail(user.email);
-    if (!userFound) {
+  async googleLogin(user: IGoogleUser): Promise<{ token?: string; tempToken?: string; requiresProfileCompletion: boolean, role?: UserRole | null }> {
+    
+  let userFound = await this.userService.findByEmail(user.email);
+  
+
+  if (!userFound) {
+    // Crear usuario pendiente
+    try{
       userFound = await this.userService.create({
-        email: user.email,
-        fullName: user.fullName,
-        googleId: user.googleId,
-        password: null,
-        avatar: user.avatar,
-        provider: AuthProvider.GOOGLE,
-        role: UserRole.ENTREPRENEUR,
-      });
+      email: user.email,
+      fullName: user.fullName,
+      googleId: user.googleId,
+      password: null,
+      avatar: user.avatar,
+      provider: AuthProvider.GOOGLE,
+      role: null,
+      status: UserStatus.PENDING_PROFILE,
+    });
+    const tempToken = this.jwtService.sign(
+      { sub: userFound.id, purpose: 'profile-completion' },
+      { expiresIn: '1h' }
+    );
+    return { tempToken, requiresProfileCompletion: true };
     }
-    this.assertActive(userFound);
-    return userFound;
+    catch(e){
+      console.log(e)
+      }
+    return { requiresProfileCompletion: true, tempToken: undefined };
   }
 
-  /** Emite el par access token + refresh token para un usuario ya resuelto (login local, Google o canje de código). */
-  async issueSessionForUser(user: User) {
-    const { token, refreshToken } = await this.issueSession(user);
-    return {
-      Message: 'Usuario logueado con éxito',
-      token,
-      refreshToken,
-    };
+  if (userFound.status === UserStatus.PENDING_PROFILE) {
+    const tempToken = this.jwtService.sign(
+      { sub: userFound.id, purpose: 'profile-completion' },
+      { expiresIn: '1h' }
+    );
+    return { tempToken, requiresProfileCompletion: true };
   }
+
+  // Usuario activo → login normal
+  const token = this.generateToken(userFound);
+  return { token, requiresProfileCompletion: false, role:userFound.role };
+}
+
+async completeProfile(dto: CompleteProfileDto) {
+  try {
+    const payload = this.jwtService.verify(dto.tempToken);
+    if (payload.purpose !== 'profile-completion') {
+      throw new UnauthorizedException('Token inválido');
+    }
+    const updatedUser = await this.userService.completeProfile(
+      payload.sub,
+      dto.role,
+      dto.gender,
+    );
+    const token = this.generateToken(updatedUser);
+    return { token };
+  } catch {
+    throw new UnauthorizedException('Token expirado o inválido');
+  }
+}
 
   /** Rota un refresh token válido y emite un nuevo par de tokens. */
   async refresh(rawRefreshToken: string) {
@@ -122,4 +152,5 @@ export class AuthService {
     await this.sessionsService.revokeRefreshToken(rawRefreshToken);
     return { message: 'Sesión cerrada correctamente' };
   }
+
 }

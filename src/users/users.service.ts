@@ -9,7 +9,7 @@ import {
 import bcrypt from 'bcrypt';
 import { ICreateUser } from './interfaces/create-user.interface';
 import { UserRepository } from './user.repository';
-import { User, UserRole, UserStatus } from './entities/user.entity';
+import { User, UserRole, Gender, UserStatus } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserRoleChangeAudit } from './entities/user-role-change-audit.entity';
@@ -21,7 +21,9 @@ import { SessionsService } from '../auth/sessions/sessions.service';
 @Injectable()
 export class UsersService {
   constructor(
+    
     private readonly userRepository: UserRepository,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(UserRoleChangeAudit)
     private readonly roleChangeAuditRepository: Repository<UserRoleChangeAudit>,
     private readonly sessionsService: SessionsService,
@@ -134,6 +136,21 @@ export class UsersService {
 
     return this.findOneById(targetUserId);
   }
+
+  async completeProfile(userId: string, role: UserRole, gender: Gender) {
+  const user = await this.userRepository.findOneByID(userId);
+  if (!user) {
+    throw new NotFoundException('Usuario no encontrado');
+  }
+  if (user.status !== UserStatus.PENDING_PROFILE) {
+    throw new BadRequestException('El usuario no está en estado pendiente de perfil');
+  }
+  user.role = role;
+  user.gender = gender;
+  user.status = UserStatus.ACTIVE;
+  await this.userRepo.save(user);
+  return user;
+}
 
   /**
    * Suspende, desactiva o reactiva a un usuario. Cambiar el estado a algo

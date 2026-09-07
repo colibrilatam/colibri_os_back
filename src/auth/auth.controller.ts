@@ -7,6 +7,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { GoogleExchangeDto } from './dto/google-exchange.dto';
 import type { Request, Response } from 'express';
 import type { IGoogleUser } from './interfaces/googleUser.interface';
+import { CompleteProfileDto } from './dto/complete-profile.dto';
 import { OAuthExchangeService } from './oauth/oauth-exchange.service';
 import { Throttle } from '@nestjs/throttler';
 import { Ip } from '@nestjs/common';
@@ -36,44 +37,26 @@ export class AuthController {
    * en POST /auth/google/exchange.
    */
   @UseGuards(AuthGuard('google'))
-  @Get('google/callback')
-  async getGoogleCallback(@Req() req: GoogleAuthenticatedRequest, @Res() res: Response) {
-    const user = await this.authService.resolveGoogleUser(req.user);
-    const code = await this.oauthExchangeService.issue(user);
+@Get('google/callback')
+async getGoogleCallback(@Req() req: GoogleAuthenticatedRequest, @Res() res: Response) {
+  
+  const result = await this.authService.googleLogin(req.user);
+  const isProduction = process.env.NODE_ENV === 'production';
 
-    const redirectUrl = new URL('/login/google-callback', process.env.FRONTEND_URL);
-    redirectUrl.searchParams.set('code', code);
-
-    return res.redirect(redirectUrl.toString());
+  if (result.requiresProfileCompletion) {
+    const redirectUrl = `${process.env.FRONTEND_URL}/login/google-callback?tempToken=${result.tempToken}`;
+    return res.redirect(redirectUrl);
   }
+  res.cookie('colibri_access_token', result.token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: Number(process.env.AUTH_COOKIE_MAX_AGE_MS ?? 3_600_000),
+    path: '/',
+  });
 
-  /**
-   * Canjea el código de un solo uso emitido tras el login con Google por
-   * la sesión real. El access token se entrega vía cookie HttpOnly +
-   * Secure + SameSite (igual que en signin/signup); el refresh token va en
-   * el body, como en el resto de los endpoints de auth.
-   */
-  @Post('google/exchange')
-  async exchangeGoogleCode(@Body() dto: GoogleExchangeDto, @Res() res: Response) {
-    const user = await this.oauthExchangeService.consume(dto.code);
-    const result = await this.authService.issueSessionForUser(user);
-
-    const isProduction = process.env.NODE_ENV === 'production';
-    const cookieMaxAge = Number(process.env.AUTH_COOKIE_MAX_AGE_MS ?? 3_600_000);
-
-    res.cookie('colibri_access_token', result.token, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      maxAge: cookieMaxAge,
-      path: '/',
-    });
-
-    return res.json({
-      Message: result.Message,
-      refreshToken: result.refreshToken,
-    });
-  }
+  return res.redirect(`${process.env.FRONTEND_URL}/login/google-callback?role=${result.role}`);
+}
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('signin')
@@ -86,6 +69,11 @@ export class AuthController {
   async createUser(@Body() user: CreateUserDto) {
     return await this.authService.createUser(user);
   }
+
+  @Post('complete-profile')
+async completeProfile(@Body() dto: CompleteProfileDto) {
+  return this.authService.completeProfile(dto);
+}
 
   @Post('refresh')
   async refresh(@Body() dto: RefreshTokenDto) {

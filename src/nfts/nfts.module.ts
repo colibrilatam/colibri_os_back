@@ -13,7 +13,6 @@ import { NftActorService } from './nft-actor/nft-actor.service';
 import { NftActorController } from './nft-actor/nft-actor.controller';
 
 import { UsersModule } from 'src/users/users.module';
-import { User } from 'src/users/entities/user.entity';
 
 import { MecenasNftPortfolioController } from './mecenas-nft-portfolio/mecenas-nft-portfolio.controller';
 import { MecenasNftPortfolioService } from './mecenas-nft-portfolio/mecenas-nft-portfolio.service';

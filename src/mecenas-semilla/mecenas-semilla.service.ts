@@ -60,7 +60,7 @@ export class MecenasSemillaService {
 
   const principal = {
     userId: changedByUserId,
-    role: changedByUser.role,
+    role: changedByUser.role as UserRole,
   };
 
   await this.usersService.changeRole(

@@ -6,7 +6,7 @@ export interface ICreateUser {
   provider: AuthProvider;
   password?: string | null;
   googleId?: string;
-  role?: UserRole;
+  role?: UserRole | null;
   status?: UserStatus;
   linkedinId?: string;
   cryptoWallet?: string;
