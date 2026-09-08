@@ -1,0 +1,86 @@
+name: SCA (Software Composition Analysis)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: sca-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  npm-audit-report:
+    name: npm audit (reporte + bloqueo por críticas)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Generar reporte SCA (evidencia técnica)
+        if: always()
+        run: npm audit --json > npm-audit-report.json || true
+
+      - name: Subir reporte SCA
+        uses: actions/upload-artifact@v4
+        with:
+          name: sca-npm-audit-report-${{ github.sha }}
+          path: npm-audit-report.json
+          retention-days: 90
+
+      - name: Bloquear si hay vulnerabilidades críticas/altas en producción
+        run: npm run audit:prod
+
+  osv-scanner:
+    name: OSV-Scanner (SCA ampliado, todos los ecosistemas)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ejecutar OSV-Scanner
+        uses: google/osv-scanner-action/osv-scanner-action@v2
+        with:
+          scan-args: |-
+            --lockfile=package-lock.json
+            --format=sarif
+            --output=osv-results.sarif
+          fail-on-vuln: true
+
+      - name: Subir reporte SARIF a Code Scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: osv-results.sarif
+
+      - name: Subir reporte SCA como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sca-osv-scanner-report-${{ github.sha }}
+          path: osv-results.sarif
+          retention-days: 90
+
+  dependency-review:
+    name: Dependency Review (solo PRs, requiere GHAS en repos privados)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Revisar dependencias nuevas del PR
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: critical
+          comment-summary-in-pr: always

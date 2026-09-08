@@ -4,18 +4,29 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { UsersService } from '../users/users.service';
-import { UserStatus } from '../users/entities/user.entity';
+import { UserRole, UserStatus } from '../users/entities/user.entity';
 
-const extractCookieToken = (request: { headers?: { cookie?: string } }): string | null => {
+const COOKIE_NAME = 'colibri_access_token';
+
+const extractCookieToken = (request: {
+  cookies?: Record<string, string>;
+  headers?: { cookie?: string };
+}): string | null => {
+  // Si cookie-parser está instalado, leer directamente del objeto cookies.
+  if (request?.cookies?.[COOKIE_NAME]) {
+    return request.cookies[COOKIE_NAME];
+  }
+
+  // Fallback: parsear manualmente el header Cookie (útil en tests sin cookie-parser).
   const cookieHeader = request?.headers?.cookie;
   if (!cookieHeader) return null;
 
   const tokenPair = cookieHeader
     .split(';')
     .map((cookie) => cookie.trim())
-    .find((cookie) => cookie.startsWith('colibri_access_token='));
+    .find((cookie) => cookie.startsWith(`${COOKIE_NAME}=`));
 
-  return tokenPair ? decodeURIComponent(tokenPair.substring('colibri_access_token='.length)) : null;
+  return tokenPair ? decodeURIComponent(tokenPair.substring(`${COOKIE_NAME}=`.length)) : null;
 };
 
 @Injectable()
@@ -36,15 +47,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload): Promise<JwtPayload> {
     try {
       const user = await this.usersService.findOneById(payload.sub);
+
       if (user.status !== UserStatus.ACTIVE) {
         throw new UnauthorizedException('Usuario inactivo');
+      }
+
+      // La sessionVersion del token debe coincidir con la actual del
+      // usuario. Cambia en cada suspensión, cambio de contraseña o logout
+      // global, invalidando de inmediato cualquier JWT emitido antes,
+      // sin esperar a que expire.
+      if (payload.sessionVersion !== user.sessionVersion) {
+        throw new UnauthorizedException('Sesión revocada');
       }
 
       return {
         sub: user.id,
         email: user.email,
-        role: user.role,
+        role: user.role as UserRole,
         status: user.status,
+        sessionVersion: user.sessionVersion,
       };
     } catch {
       throw new UnauthorizedException('Sesión no válida');

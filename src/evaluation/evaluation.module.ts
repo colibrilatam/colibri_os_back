@@ -13,6 +13,10 @@ import { Evidence } from '../evidence/entities/evidence.entity';
 import { DigitalCredentialsModule } from 'src/digital-credentials/digital-credentials.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { EvaluationDecisionAudit } from './entities/evaluation-decision-audit.entity';
+import { AuthorizationDenialAudit } from '../authorization-audit/entities/authorization-denial-audit.entity';
+import { AuthorizationAuditModule } from '../authorization-audit/authorization-audit.module';
+
+
 
 @Module({
   imports: [
@@ -23,10 +27,12 @@ import { EvaluationDecisionAudit } from './entities/evaluation-decision-audit.en
       Rubric,
       Evidence,
       EvaluationDecisionAudit,
+      AuthorizationDenialAudit,
     ]),
     EvidenceModule,
     DigitalCredentialsModule,
     ProjectsModule,
+    AuthorizationAuditModule
   ],
   controllers: [EvaluationController],
   providers: [EvaluationService],

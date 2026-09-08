@@ -1,0 +1,40 @@
+version: 2
+
+updates:
+  # Dependencias npm del backend
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      nestjs:
+        patterns:
+          - "@nestjs/*"
+      dev-dependencies:
+        dependency-type: "development"
+    labels:
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "chore(deps)"
+    # Las actualizaciones de seguridad se abren igual aunque estén fuera de este rango,
+    # pero evitamos ruido de majors automáticos en libs core del framework.
+    ignore:
+      - dependency-name: "@nestjs/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typeorm"
+        update-types: ["version-update:semver-major"]
+
+  # Acciones de GitHub usadas en los workflows (también es superficie de ataque)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "chore(ci)"

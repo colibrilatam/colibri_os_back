@@ -25,6 +25,8 @@ import { UserRole } from '../users/entities/user.entity';
 import { DigitalCredentialsService } from '../digital-credentials/digital-credentials.service';
 import { ProjectAccessService, ProjectPrincipal } from '../projects/project-access.service';
 import { EvaluationDecisionAudit } from './entities/evaluation-decision-audit.entity';
+import { AuthorizationAuditService } from '../authorization-audit/authorization-audit.service';
+import { DenialReason } from '../authorization-audit/entities/authorization-denial-audit.entity';
 
 @Injectable()
 export class EvaluationService {
@@ -54,6 +56,8 @@ export class EvaluationService {
     private readonly projectAccessService: ProjectAccessService,
 
     private readonly dataSource: DataSource,
+    
+    private readonly authAuditService: AuthorizationAuditService,
   ) {}
 
   // ─── EVALUACIONES ─────────────────────────────────────────────────────────────
@@ -187,11 +191,16 @@ export class EvaluationService {
     this.assertReviewerRole(reviewerRole);
 
     const evaluation = await this.findOneEvaluation(dto.evaluationId);
+    const principal: ProjectPrincipal = { userId: reviewerUserId, role: reviewerRole };
 
     await this.projectAccessService.assertCanAccessProject(
-      { userId: reviewerUserId, role: reviewerRole },
+      principal,
       evaluation.evidence.projectId,
     );
+
+    // SEC-003: tener acceso al proyecto no alcanza — solo el evaluador
+    // asignado (quien creó la evaluación) o un admin puede revisarla.
+    this.assertAssignedEvaluator(principal, evaluation);
 
     if (evaluation.isFinal) {
       throw new BadRequestException('No se puede modificar una evaluación finalizada');
@@ -476,7 +485,7 @@ export class EvaluationService {
     }
   }
 
-  private assertAssignedEvaluator(principal: ProjectPrincipal, evaluation: Evaluation): void {
+private assertAssignedEvaluator(principal: ProjectPrincipal, evaluation: Evaluation): void {
     if (principal.role === UserRole.ADMIN) {
       return;
     }
@@ -485,8 +494,17 @@ export class EvaluationService {
       return;
     }
 
+    void this.authAuditService.logDenial({
+      resourceType: 'evaluation',
+      resourceId: evaluation.id,
+      action: 'assigned_evaluator_check',
+      attemptedByUserId: principal.userId,
+      attemptedByRole: principal.role,
+      reason: DenialReason.NOT_ASSIGNED_EVALUATOR,
+    });
+
     throw new ForbiddenException(
-      'Solo el evaluador asignado a esta evaluación (o un admin) puede finalizarla',
+      'Solo el evaluador asignado a esta evaluación (o un admin) puede realizar esta acción',
     );
   }
 

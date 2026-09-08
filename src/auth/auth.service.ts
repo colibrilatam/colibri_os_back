@@ -2,16 +2,19 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import { IGoogleUser } from './interfaces/googleUser.interface';
-import { AuthProvider, User, UserRole } from 'src/users/entities/user.entity';
+import { AuthProvider, User, UserRole, UserStatus } from 'src/users/entities/user.entity';
 import { ILoginUser } from './interfaces/loginUser.interface';
 import bcrypt from 'bcrypt';
 import { IAuthCreate } from './interfaces/authCreate.interface';
+import { CompleteProfileDto } from './dto/complete-profile.dto';
+import { SessionsService } from './sessions/sessions.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly sessionsService: SessionsService,
   ) {}
 
   private generateToken(user: User) {
@@ -20,8 +23,22 @@ export class AuthService {
       email: user.email,
       role: user.role,
       status: user.status,
+      sessionVersion: user.sessionVersion,
     };
     return this.jwtService.sign(payload);
+  }
+
+  /** Emite el par access token + refresh token para una sesión nueva. */
+  private async issueSession(user: User) {
+    const token = this.generateToken(user);
+    const refreshToken = await this.sessionsService.issueRefreshToken(user);
+    return { token, refreshToken };
+  }
+
+  private assertActive(user: User) {
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException('La cuenta está inactiva o suspendida');
+    }
   }
 
   async createUser(user: IAuthCreate) {
@@ -39,6 +56,13 @@ export class AuthService {
     return {
       message: 'Usuario registrado con éxito',
       token: this.generateToken(userCreate),
+      user: {
+        id: userCreate.id,
+        email: userCreate.email,
+        fullName: userCreate.fullName,
+        role: userCreate.role,
+        status: userCreate.status,
+      },
     };
   }
 
@@ -56,29 +80,91 @@ export class AuthService {
     } else {
       const token = this.generateToken(userFound);
       return {
-        Message: 'Usuario logueado con éxito',
+        message: 'Usuario logueado con éxito',
         token,
+        user: {
+          id: userFound.id,
+          email: userFound.email,
+          fullName: userFound.fullName,
+          role: userFound.role,
+          status: userFound.status,
+        },
       };
     }
   }
 
-  async googleLogin(user: IGoogleUser) {
-    let userFound = await this.userService.findByEmail(user.email);
-    if (!userFound) {
+  async googleLogin(user: IGoogleUser): Promise<{ token?: string; tempToken?: string; requiresProfileCompletion: boolean, role?: UserRole | null }> {
+    
+  let userFound = await this.userService.findByEmail(user.email);
+  
+
+  if (!userFound) {
+    // Crear usuario pendiente
+    try{
       userFound = await this.userService.create({
-        email: user.email,
-        fullName: user.fullName,
-        googleId: user.googleId,
-        password: null,
-        avatar: user.avatar,
-        provider: AuthProvider.GOOGLE,
-        role: UserRole.ENTREPRENEUR,
-      });
+      email: user.email,
+      fullName: user.fullName,
+      googleId: user.googleId,
+      password: null,
+      avatar: user.avatar,
+      provider: AuthProvider.GOOGLE,
+      role: null,
+      status: UserStatus.PENDING_PROFILE,
+    });
+    const tempToken = this.jwtService.sign(
+      { sub: userFound.id, purpose: 'profile-completion' },
+      { expiresIn: '1h' }
+    );
+    return { tempToken, requiresProfileCompletion: true };
     }
-    const token = this.generateToken(userFound);
-    return {
-      Message: 'Usuario logueado con éxito',
-      token,
-    };
+    catch(e){
+      console.log(e)
+      }
+    return { requiresProfileCompletion: true, tempToken: undefined };
   }
+
+  if (userFound.status === UserStatus.PENDING_PROFILE) {
+    const tempToken = this.jwtService.sign(
+      { sub: userFound.id, purpose: 'profile-completion' },
+      { expiresIn: '1h' }
+    );
+    return { tempToken, requiresProfileCompletion: true };
+  }
+
+  // Usuario activo → login normal
+  const token = this.generateToken(userFound);
+  return { token, requiresProfileCompletion: false, role:userFound.role };
+}
+
+async completeProfile(dto: CompleteProfileDto) {
+  try {
+    const payload = this.jwtService.verify(dto.tempToken);
+    if (payload.purpose !== 'profile-completion') {
+      throw new UnauthorizedException('Token inválido');
+    }
+    const updatedUser = await this.userService.completeProfile(
+      payload.sub,
+      dto.role,
+      dto.gender,
+    );
+    const token = this.generateToken(updatedUser);
+    return { token, user: updatedUser };
+  } catch {
+    throw new UnauthorizedException('Token expirado o inválido');
+  }
+}
+
+  /** Rota un refresh token válido y emite un nuevo par de tokens. */
+  async refresh(rawRefreshToken: string) {
+    const { user, refreshToken } = await this.sessionsService.rotateRefreshToken(rawRefreshToken);
+    const token = this.generateToken(user);
+    return { token, refreshToken };
+  }
+
+  /** Cierra la sesión actual revocando su refresh token. */
+  async logout(rawRefreshToken: string) {
+    await this.sessionsService.revokeRefreshToken(rawRefreshToken);
+    return { message: 'Sesión cerrada correctamente' };
+  }
+
 }

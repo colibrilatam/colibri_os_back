@@ -37,6 +37,7 @@ export enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   SUSPENDED = 'suspended',
+  PENDING_PROFILE = 'pending_profile', // rol temporal para usuario que se registran con Google y aún no han completado su perfil
 }
 
 export enum AuthProvider {
@@ -59,11 +60,17 @@ export class User {
   @Column({ name: 'full_name' })
   fullName: string;
 
-  @Column({ type: 'enum', enum: UserRole })
-  role: UserRole;
+  @Column({ type: 'enum', enum: UserRole, nullable: true })
+role: UserRole | null;
 
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
   status: UserStatus;
+
+  // Se incrementa en cada evento crítico (suspensión, cambio de
+  // contraseña, logout global). Viaja embebida en el JWT: si no coincide
+  // con el valor actual, la sesión quedó revocada.
+  @Column({ name: 'session_version', type: 'int', default: 1 })
+  sessionVersion: number;
 
   @Column({
     type: 'enum',

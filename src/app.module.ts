@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectsModule } from './projects/projects.module';
@@ -22,6 +22,10 @@ import { MecenasSemillaModule } from './mecenas-semilla/mecenas-semilla.module';
 import { DigitalCredentialsModule } from './digital-credentials/digital-credentials.module';
 import { TramoClosureModule } from './tramo-closure/tramo-closure.module';
 import { HealthModule } from './health/health.module';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { MaintenanceModeMiddleware } from './common/middleware/maintenance-mode.middleware';
+import { validateEnv } from './config/env.validation';
 
 @Module({
   imports: [
@@ -29,6 +33,7 @@ import { HealthModule } from './health/health.module';
       isGlobal: true,
       envFilePath: '.env',
       load: [cloudinaryConfig],
+      validate: validateEnv,
     }),
 
     TypeOrmModule.forRootAsync({
@@ -45,6 +50,17 @@ import { HealthModule } from './health/health.module';
         //dropSchema: true,
       }),
     }),
+
+    // QA-002: rate limiting global. 100 req / 60s por IP como default general;
+    // los endpoints sensibles (signin/signup) tienen su propio límite más
+    // estricto vía @Throttle en el controller correspondiente.
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 100,
+      },
+    ]),
+
     AuthModule,
     UsersModule,
     ProjectsModule,
@@ -66,5 +82,13 @@ import { HealthModule } from './health/health.module';
     TramoClosureModule,
     HealthModule,
   ],
+  providers: [
+    // QA-002: aplica el throttling a nivel global, a todos los controllers.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(MaintenanceModeMiddleware).forRoutes('*');
+  }
+}

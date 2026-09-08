@@ -1,0 +1,124 @@
+name: CI Negative Tests - Security (valida el gate de CI-002)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/sca.yml'
+      - '.github/workflows/codeql.yml'
+      - '.github/workflows/secret-scanning.yml'
+
+jobs:
+  negative-secret:
+    name: Inyectar secreto de prueba (debe bloquear)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Inyectar secreto de prueba (AWS key de ejemplo, inválida)
+        run: |
+          cat > src/health/__negative-ci-secret__.ts << 'EOF'
+          // Archivo generado a propósito para validar el gate de secret scanning (CI-002)
+          export const NEGATIVE_CI_TEST_KEY = "AKIAABCDEFGHIJKLMNOP";
+          EOF
+
+      - name: Ejecutar Gitleaks (se espera que falle)
+        id: run
+        continue-on-error: true
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Limpiar archivo inyectado
+        if: always()
+        run: rm -f src/health/__negative-ci-secret__.ts
+
+      - name: Verificar que el secreto fue detectado
+        run: |
+          if [ "${{ steps.run.outcome }}" = "success" ]; then
+            echo "ERROR: un secreto de prueba no hizo fallar el pipeline. El gate no está funcionando."
+            exit 1
+          fi
+          echo "OK: un secreto en el código queda bloqueado."
+
+  negative-dependency:
+    name: Añadir dependencia vulnerable controlada (debe bloquear)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Instalar dependencia con CVE conocida (versión vieja a propósito)
+        run: npm install --no-save event-stream@3.3.6
+
+      - name: Ejecutar audit (se espera que falle)
+        id: run
+        continue-on-error: true
+        run: npm audit --audit-level=critical
+
+      - name: Verificar que la vulnerabilidad fue detectada
+        run: |
+          if [ "${{ steps.run.outcome }}" = "success" ]; then
+            echo "ERROR: una dependencia vulnerable no hizo fallar el pipeline. El gate no está funcionando."
+            exit 1
+          fi
+          echo "OK: una dependencia vulnerable queda bloqueada."
+
+  negative-codeql-pattern:
+    name: Introducir patrón inseguro (debe ser detectado por CodeQL)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inyectar patrón inseguro (inyección de comandos, a propósito)
+        run: |
+          cat > src/health/__negative-ci-codeql__.ts << 'EOF'
+          // Archivo generado a propósito para validar el gate de CodeQL (CI-002)
+          import { exec } from 'child_process';
+
+          export function negativeCiCodeqlCheck(userInput: string): void {
+            // Patrón intencionalmente inseguro: ejecución de comando con input no sanitizado
+            exec('echo ' + userInput);
+          }
+          EOF
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        id: run
+        continue-on-error: true
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
+          upload: false
+          output: sarif-results
+
+      - name: Limpiar archivo inyectado
+        if: always()
+        run: rm -f src/health/__negative-ci-codeql__.ts
+
+      - name: Verificar que CodeQL encontró el hallazgo
+        run: |
+          if ! grep -q '"results"' sarif-results/javascript-typescript.sarif 2>/dev/null; then
+            echo "Revisar manualmente sarif-results/ si este paso no encuentra el archivo esperado."
+          fi
+          RESULT_COUNT=$(grep -o '"ruleId"' sarif-results/javascript-typescript.sarif 2>/dev/null | wc -l || echo 0)
+          if [ "$RESULT_COUNT" -eq 0 ]; then
+            echo "ERROR: CodeQL no detectó el patrón inseguro inyectado. El gate no está funcionando."
+            exit 1
+          fi
+          echo "OK: CodeQL detectó $RESULT_COUNT hallazgo(s) en el patrón inseguro."

@@ -7,8 +7,16 @@ export class ConfirmUploadDto {
   evidenceId: string;
 
   @ApiProperty({
+    description:
+      'ID de la sesión de carga devuelta por request-upload-signature. Es de un solo uso.',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  @IsUUID()
+  uploadSessionId: string;
+
+  @ApiProperty({
     description: 'Public ID exacto autorizado por la sesión de carga',
-    example: 'colibri/evidences/project_abcd1234/ev_efgh5678_1712000000',
+    example: 'colibri/evidences/project_abcd1234/ev_efgh5678_1712000000.pdf',
   })
   @IsString()
   cloudinaryPublicId: string;
