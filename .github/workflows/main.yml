@@ -56,7 +56,7 @@ jobs:
         run: npm run test -- --ci --coverage
 
       - name: Subir reporte de cobertura (evidencia técnica)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: unit-coverage-${{ github.sha }}
           path: coverage/
@@ -199,7 +199,7 @@ jobs:
           sha256sum "release/colibri-os-back-${GITHUB_SHA}.tar.gz" > "release/colibri-os-back-${GITHUB_SHA}.tar.gz.sha256"
 
       - name: Subir artefacto de release
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-${{ github.sha }}
           path: |
