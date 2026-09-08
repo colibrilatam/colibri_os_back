@@ -13,7 +13,7 @@ jobs:
     name: Inyectar secreto de prueba (debe bloquear)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -47,7 +47,7 @@ jobs:
     name: Añadir dependencia vulnerable controlada (debe bloquear)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -78,7 +78,7 @@ jobs:
       security-events: write
       actions: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Inyectar patrón inseguro (inyección de comandos, a propósito)
         run: |
