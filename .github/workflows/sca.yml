@@ -17,7 +17,7 @@ jobs:
     name: npm audit (reporte + bloqueo por críticas)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -45,7 +45,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Ejecutar OSV-Scanner
         uses: google/osv-scanner-action/osv-scanner-action@v2
@@ -78,7 +78,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Revisar dependencias nuevas del PR
         uses: actions/dependency-review-action@v4
         with:
