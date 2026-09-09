@@ -26,6 +26,7 @@ services:
     env_file:
       - .env
     environment:
+      NODE_ENV: production 
       # Sobrescribe lo que traiga el .env para que el backend hable con el
       # contenedor "db" de esta red en lugar de "localhost".
       #DB_HOST: db
@@ -55,7 +56,8 @@ services:
       NODE_ENV: development # evita que data-source.ts pida SSL contra el Postgres local
       #DB_HOST: db
       #DB_PORT: 5432
-      DATABASE_URL: postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-postgres}@DB_HOST:DB_PORT/${DB_NAME:-colibri_db}
+      DATABASE_URL: postgresql://postgres:movimientocolibrilatamjesus@db.konerpsbihgobpqgeqgq.supabase.co:5432/postgres
+
     #depends_on:
       #db:
         #condition: service_healthy
@@ -73,7 +75,8 @@ services:
       NODE_ENV: development
       #DB_HOST: db
       #DB_PORT: 5432
-      DATABASE_URL: postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-postgres}@DB_HOST:DB_PORT/${DB_NAME:-colibri_db}
+      DATABASE_URL: potgresql://postgres:movimientocolibrilatamjesus@db.konerpsbihgobpqgeqgq.supabase.co:5432/postgres
+
     #depends_on:
       #db:
         #condition: service_healthy
