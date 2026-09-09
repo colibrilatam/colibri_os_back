@@ -31,6 +31,6 @@ COPY --from=builder /app/package.json ./package.json
 
 USER nestjs
 
-EXPOSE 3000
+EXPOSE 3030
 
 CMD ["node", "dist/main"]
