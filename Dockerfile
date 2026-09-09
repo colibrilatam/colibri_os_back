@@ -1,4 +1,5 @@
 # ---------- Etapa 1: dependencias + build ----------
+#
 FROM node:22-alpine AS builder
 
 WORKDIR /app
@@ -8,6 +9,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # Copia el resto del código y compila
+#
 COPY . .
 RUN npm run build
 
