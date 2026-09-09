@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+.git
+.github
+.vscode
+.idea
+*.log
+npm-debug.log*
+.env
+.env.back
+.env.local
+.env.production
+.env.*.local
+test
+.skill-test-doc-issues
