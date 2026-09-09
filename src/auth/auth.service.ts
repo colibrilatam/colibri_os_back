@@ -107,7 +107,7 @@ export class AuthService {
     }
   }
 
-  async googleLogin(user: IGoogleUser): Promise<{ user?: User; tempToken?: string; requiresProfileCompletion: boolean }> {
+  async googleLogin(user: IGoogleUser): Promise<{ token?: string; tempToken?: string; requiresProfileCompletion: boolean, role?: UserRole | null }> {
     
   let userFound = await this.userService.findByEmail(user.email);
   
@@ -146,7 +146,8 @@ export class AuthService {
   }
 
   // Usuario activo → login normal
-  return { user: userFound, requiresProfileCompletion: false };
+  const token = this.generateToken(userFound);
+  return { token, requiresProfileCompletion: false, role:userFound.role };
 }
 
 async completeProfile(dto: CompleteProfileDto) {
