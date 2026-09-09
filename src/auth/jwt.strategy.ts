@@ -67,7 +67,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         status: user.status,
         sessionVersion: user.sessionVersion,
       };
-    } catch {
+    } catch (error){
+      console.error('Error validating JWT payload:', error);
       throw new UnauthorizedException('Sesión no válida');
     }
   }
