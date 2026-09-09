@@ -27,6 +27,7 @@ services:
       - .env
     environment:
       NODE_ENV: production 
+      NODE_OPTIONS: "--dns-result-order=ipv4first"
       # Sobrescribe lo que traiga el .env para que el backend hable con el
       # contenedor "db" de esta red en lugar de "localhost".
       #DB_HOST: db
@@ -54,6 +55,7 @@ services:
       - .env
     environment:
       NODE_ENV: development # evita que data-source.ts pida SSL contra el Postgres local
+      NODE_OPTIONS: "--dns-result-order=ipv4first"
       #DB_HOST: db
       #DB_PORT: 5432
       DATABASE_URL: postgresql://postgres:movimientocolibrilatamjesus@db.konerpsbihgobpqgeqgq.supabase.co:5432/postgres
@@ -73,6 +75,7 @@ services:
       - .env
     environment:
       NODE_ENV: development
+      NODE_OPTIONS: "--dns-result-order=ipv4first"
       #DB_HOST: db
       #DB_PORT: 5432
       DATABASE_URL: potgresql://postgres:movimientocolibrilatamjesus@db.konerpsbihgobpqgeqgq.supabase.co:5432/postgres
