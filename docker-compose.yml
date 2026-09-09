@@ -21,7 +21,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: colibri-back
+    #container_name: colibri-back
     restart: unless-stopped
     env_file:
       - .env
@@ -50,12 +50,12 @@ services:
       - .env
     environment:
       NODE_ENV: development # evita que data-source.ts pida SSL contra el Postgres local
-      DB_HOST: db
-      DB_PORT: 5432
+      #DB_HOST: db
+      #DB_PORT: 5432
       DATABASE_URL: postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-postgres}@DB_HOST:DB_PORT/${DB_NAME:-colibri_db}
-    depends_on:
-      db:
-        condition: service_healthy
+    #depends_on:
+      #db:
+        #condition: service_healthy
     command: ["npm", "run", "migration:run"]
 
   seed:
@@ -68,12 +68,12 @@ services:
       - .env
     environment:
       NODE_ENV: development
-      DB_HOST: db
-      DB_PORT: 5432
+      #DB_HOST: db
+      #DB_PORT: 5432
       DATABASE_URL: postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-postgres}@DB_HOST:DB_PORT/${DB_NAME:-colibri_db}
-    depends_on:
-      db:
-        condition: service_healthy
+    #depends_on:
+      #db:
+        #condition: service_healthy
     command: ["npm", "run", "seed"]
 
 volumes:
