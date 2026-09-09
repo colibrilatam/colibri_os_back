@@ -30,7 +30,10 @@ services:
       # contenedor "db" de esta red en lugar de "localhost".
       #DB_HOST: db
       #DB_PORT: 5432
-      DATABASE_URL: postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-postgres}@DB_HOST:DB_PORT/${DB_NAME:-colibri_db}
+      #DATABASE_URL: postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-postgres}@DB_HOST:DB_PORT/${DB_NAME:-colibri_db}
+      #direct connection string
+      DATABASE_URL: postgresql://postgres:movimientocolibrilatamjesus@db.konerpsbihgobpqgeqgq.supabase.co:5432/postgres
+
     ports:
       - "${PORT:-3030}:3030"
     #depends_on:
