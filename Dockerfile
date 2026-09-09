@@ -1,5 +1,3 @@
-syntax=docker/dockerfile:1
-
 # ---------- Etapa 1: dependencias + build ----------
 FROM node:22-alpine AS builder
 
