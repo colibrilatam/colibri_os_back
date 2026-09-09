@@ -38,26 +38,35 @@ export class AuthController {
    * en POST /auth/google/exchange.
    */
   @UseGuards(AuthGuard('google'))
-@Get('google/callback')
-async getGoogleCallback(@Req() req: GoogleAuthenticatedRequest, @Res() res: Response) {
-  
-  const result = await this.authService.googleLogin(req.user);
-  const isProduction = process.env.NODE_ENV === 'production';
+  @Get('google/callback')
+  async getGoogleCallback(@Req() req: GoogleAuthenticatedRequest, @Res() res: Response) {
+    const result = await this.authService.googleLogin(req.user);
 
-  if (result.requiresProfileCompletion) {
-    const redirectUrl = `${process.env.FRONTEND_URL}/login/google-callback?tempToken=${result.tempToken}`;
-    return res.redirect(redirectUrl);
+    if (result.requiresProfileCompletion) {
+      const redirectUrl = `${process.env.FRONTEND_URL}/login/google-callback?tempToken=${result.tempToken}`;
+      return res.redirect(redirectUrl);
+    }
+
+    // OAUTH-001: nunca seteamos la cookie ni emitimos el JWT acá (esta
+    // respuesta es un redirect top-level, no algo que el frontend pueda leer
+    // de forma segura). Emitimos un código opaco de un solo uso y el
+    // frontend lo canjea por los tokens reales vía POST /auth/google/exchange.
+    const code = await this.oauthExchangeService.issue(result.user!);
+    return res.redirect(`${process.env.FRONTEND_URL}/login/google-callback?code=${code}`);
   }
-  res.cookie('colibri_access_token', result.token, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
-    maxAge: Number(process.env.AUTH_COOKIE_MAX_AGE_MS ?? 3_600_000),
-    path: '/',
-  });
 
-  return res.redirect(`${process.env.FRONTEND_URL}/login/google-callback?role=${result.role}`);
-}
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('google/exchange')
+  @HttpCode(200)
+  async exchangeGoogleCode(
+    @Body() dto: GoogleExchangeDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const user = await this.oauthExchangeService.consume(dto.code);
+    const result = this.authService.buildAuthResult(user);
+    setAuthCookie(res, result.token);
+    return { message: 'Sesión iniciada con éxito', user: result.user };
+  }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('signin')

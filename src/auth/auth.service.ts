@@ -41,6 +41,20 @@ export class AuthService {
     }
   }
 
+  /** Arma la respuesta pública (token + datos del usuario) para un usuario ya resuelto. */
+  buildAuthResult(user: User) {
+    return {
+      token: this.generateToken(user),
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        status: user.status,
+      },
+    };
+  }
+
   async createUser(user: IAuthCreate) {
     if (user.password !== user.confirmPassword) {
       throw new BadRequestException('Las contraseñas deben ser iguales');
@@ -93,7 +107,7 @@ export class AuthService {
     }
   }
 
-  async googleLogin(user: IGoogleUser): Promise<{ token?: string; tempToken?: string; requiresProfileCompletion: boolean, role?: UserRole | null }> {
+  async googleLogin(user: IGoogleUser): Promise<{ user?: User; tempToken?: string; requiresProfileCompletion: boolean }> {
     
   let userFound = await this.userService.findByEmail(user.email);
   
@@ -132,8 +146,7 @@ export class AuthService {
   }
 
   // Usuario activo → login normal
-  const token = this.generateToken(userFound);
-  return { token, requiresProfileCompletion: false, role:userFound.role };
+  return { user: userFound, requiresProfileCompletion: false };
 }
 
 async completeProfile(dto: CompleteProfileDto) {
