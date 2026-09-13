@@ -1,28 +1,31 @@
-Plan de Acción para Reducción de Riesgo Técnico y Deuda Técnica
-Visión General
+# Plan de Acción para Reducción de Riesgo Técnico y Deuda Técnica
+
+## Visión General
 Este documento establece un plan priorizado para abordar los problemas técnicos identificados en el código base, ordenados por nivel de riesgo y impacto potencial. El enfoque se centra en mitigar riesgos críticos primero, seguido de mejoras de mantenibilidad y rendimiento.
 
-Orden de Prioridad
-🔴 Prioridad 1: Crítico (Abordar Inmediatamente - Semana 1)
-Riesgo: Fallos directos en funcionalidad crítica que afectan a usuarios y podrían provocar pérdida de confianza o brechas de seguridad.
+## Orden de Prioridad
 
-1. Flujo de Autenticación con Google (Condición de Carrera)
-Problema: En src/auth/auth.service.ts, el método googleLogin retorna tempToken: undefined cuando falla la creación de usuario por condición de carrera, causando fallos en redirección frontend.
-Acción:
-// Reemplazar el bloque catch actual con:
-catch(e){
-  console.log('Error creating user during Google login:', e);
-  // Reintentar búsqueda del usuario (posiblemente creado por otra solicitud)
-  userFound = await this.userService.findByEmail(user.email);
-  if (userFound && userFound.status === UserStatus.PENDING_PROFILE) {
-    const tempToken = this.jwtService.sign(
-      { sub: userFound.id, purpose: 'profile-completion' },
-      { expiresIn: '1h' }
-    );
-    return { tempToken, requiresProfileCompletion: true };
+### 🔴 Prioridad 1: Crítico (Abordar Inmediatamente - Semana 1)
+**Riesgo**: Fallos directos en funcionalidad crítica que afectan a usuarios y podrían provocar pérdida de confianza o brechas de seguridad.
+
+#### 1. Flujo de Autenticación con Google (Condición de Carrera)
+- **Problema**: En `src/auth/auth.service.ts`, el método `googleLogin` retorna `tempToken: undefined` cuando falla la creación de usuario por condición de carrera, causando fallos en redirección frontend.
+- **Acción**: 
+  ```typescript
+  // Reemplazar el bloque catch actual con:
+  catch(e){
+    console.log('Error creating user during Google login:', e);
+    // Reintentar búsqueda del usuario (posiblemente creado por otra solicitud)
+    userFound = await this.userService.findByEmail(user.email);
+    if (userFound && userFound.status === UserStatus.PENDING_PROFILE) {
+      const tempToken = this.jwtService.sign(
+        { sub: userFound.id, purpose: 'profile-completion' },
+        { expiresIn: '1h' }
+      );
+      return { tempToken, requiresProfileCompletion: true };
+    }
+    throw new InternalServerErrorException('Error durante la autenticación con Google');
   }
-  throw new InternalServerErrorException('Error durante la autenticación con Google');
-}
 Esfuerzo: 2-4 horas
 Validación: Pruebas de carga concurrentes simulando condiciones de carrera
 2. Método createUser (169 aristas - Posible Cuello de Botella)
