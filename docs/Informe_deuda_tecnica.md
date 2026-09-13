@@ -1,7 +1,7 @@
 <p align="center">
-  <img src="assets/logo-norug.jpeg" alt="norug.es" height="70">
+  <img src="logo-norug.jpeg" alt="norug.es" height="70">
   &nbsp;&nbsp;&nbsp;
-  <img src="assets/logo-swat.jpeg" alt="SWAT — Security Watch for Adversarial Threats" height="70">
+  <img src="logo-swat.jpeg" alt="SWAT — Security Watch for Adversarial Threats" height="70">
 </p>
 
 <h1 align="center">📋 Reporte de Deuda Técnica — Colibri OS Backend</h1>
@@ -34,17 +34,17 @@ Se ha identificado una deuda técnica significativa en el códigobase de Colibri
 El análisis fue generado sobre un grafo de **4,231 nodos** y **8,982 edges**, visualizado en tres proyecciones que evidencian la densidad de acoplamiento del sistema:
 
 <p align="center">
-  <img src="assets/nexus-radial-layout.png" alt="Nexus AI — Radial Layout" width="100%">
+  <img src="nexus-radial-layout.png" alt="Nexus AI — Radial Layout" width="100%">
   <br><em>Vista radial: concentración de dependencias entre entidades, evaluación y documentación.</em>
 </p>
 
 <p align="center">
-  <img src="assets/nexus-sequential-layout.png" alt="Nexus AI — Sequential Layout" width="100%">
+  <img src="nexus-sequential-layout.png" alt="Nexus AI — Sequential Layout" width="100%">
   <br><em>Vista secuencial: estratificación por capas (folders, clases, funciones) y su interconexión.</em>
 </p>
 
 <p align="center">
-  <img src="assets/nexus-force-graph.png" alt="Nexus AI — Force Graph" width="100%">
+  <img src="nexus-force-graph.png" alt="Nexus AI — Force Graph" width="100%">
   <br><em>Force Graph: clusters de módulos (auth, seeders, evaluation, nft, micro-action-*) y su grado de cohesión.</em>
 </p>
 
@@ -258,9 +258,9 @@ Se recomienda un enfoque por fases: primero resolver los bloqueos de funcionalid
 ---
 
 <p align="center">
-  <img src="assets/logo-norug.jpeg" alt="norug.es" height="40">
+  <img src="logo-norug.jpeg" alt="norug.es" height="40">
   &nbsp;&nbsp;&nbsp;
-  <img src="assets/logo-swat.jpeg" alt="SWAT" height="40">
+  <img src="logo-swat.jpeg" alt="SWAT" height="40">
 </p>
 
 <p align="center">
