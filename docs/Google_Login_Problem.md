@@ -1,4 +1,203 @@
-```JavaScript
+# Informe de Problema: Login con Google - Token Undefined
+
+```script
+Input
+google login
+Result
+Found 10 matches grouped by process:
+
+NO PROCESS (10 matches)
+[1] File: auth.controller.ts [score: 12.12]
+    ID: 
+    File: src/auth/auth.controller.ts
+    Cluster: Unclustered
+    Found by: hybrid
+[2] File: google-exchange.dto.ts [score: 12.11]
+    ID: 
+    File: src/auth/dto/google-exchange.dto.ts
+    Cluster: Unclustered
+    Found by: hybrid
+[3] File: env.validation.ts [score: 8.36]
+    ID: 
+    File: src/config/env.validation.ts
+    Cluster: Unclustered
+    Found by: hybrid
+[4] File: google.strategy.ts [score: 7.73]
+    ID: 
+    File: src/auth/google/google.strategy.ts
+    Cluster: Unclustered
+    Found by: hybrid
+[5] File: auth.service.ts [score: 7.32]
+    ID: 
+    File: src/auth/auth.service.ts
+    Cluster: Unclustered
+    Found by: hybrid
+[6] File: oauth-exchange-code.entity.ts [score: 7.21]
+    ID: 
+    File: src/auth/oauth/oauth-exchange-code.entity.ts
+    Cluster: Unclustered
+    Found by: hybrid
+[7] File: refresh-token.dto.ts [score: 7.05]
+    ID: 
+    File: src/auth/dto/refresh-token.dto.ts
+    Cluster: Unclustered
+    Found by: hybrid
+[8] File: oauth-state.store.ts [score: 4.17]
+    ID: 
+    File: src/auth/google/oauth-state.store.ts
+    Cluster: Unclustered
+    Found by: hybrid
+[9] File: README.md [score: 3.79]
+    ID: 
+    File: test/QA/README.md
+    Cluster: Unclustered
+    Found by: hybrid
+[10] File: user.entity.ts [score: 3.16]
+    ID: 
+    File: src/users/entities/user.entity.ts
+    Cluster: Unclustered
+    Found by: hybrid
+Input
+{
+  "filePath": "src/auth/google/google.strategy.ts"
+}
+
+---
+Result
+File: src/auth/google/google.strategy.ts (32 lines)
+
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import { Profile, Strategy } from 'passport-google-oauth20';
+import { AuthProvider } from 'src/users/entities/user.entity';
+import type { IGoogleUser } from '../interfaces/googleUser.interface';
+import { OAuthStateStore } from './oauth-state.store';
+
+@Injectable()
+export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+  constructor(configService: ConfigService) {
+    super({
+      clientID: configService.get<string>('GOOGLE_CLIENT_ID')!,
+      clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET')!,
+      callbackURL: configService.get<string>('GOOGLE_CALLBACK_URL')!,
+      scope: ['profile', 'email'],
+      // OAUTH-001: state anti-CSRF sin depender de express-session.
+      state: true,
+      store: new OAuthStateStore(),
+    });
+  }
+
+  validate(accessToken: string, refreshToken: string, profile: Profile): IGoogleUser {
+    return {
+      email: profile.emails![0].value,
+      fullName: profile.displayName,
+      googleId: profile.id,
+      avatar: profile.photos![0].value,
+      provider: AuthProvider.GOOGLE,
+    };
+  }
+}
+Input
+{
+  "filePath": "src/auth/auth.controller.ts"
+}
+Result
+File: src/auth/auth.controller.ts (127 lines)
+
+import { BadRequestException, Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
+import { CreateUserDto } from './dto/create.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { GoogleExchangeDto } from './dto/google-exchange.dto';
+import { clearAuthCookie, setAuthCookie } from './cookie.helper';
+import type { Request, Response } from 'express';
+import type { IGoogleUser } from './interfaces/googleUser.interface';
+import { CompleteProfileDto } from './dto/complete-profile.dto';
+import { OAuthExchangeService } from './oauth/oauth-exchange.service';
+import { Throttle } from '@nestjs/throttler';
+import { Ip } from '@nestjs/common';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { PasswordResetService } from './password-reset/password-reset.service';
+
+type GoogleAuthenticatedRequest = Request & { user: IGoogleUser };
+
+@Controller('auth')
+export class AuthController {
+  constructor(
+    private readonly authService: AuthService,
+    private readonly oauthExchangeService: OAuthExchangeService,
+    private readonly passwordResetService: PasswordResetService,
+  ) {}
+
+  @UseGuards(AuthGuard('google'))
+  @Get('google')
+  async getGoogle() {}
+
+  /**
+   * OAUTH-001: ya no emite el JWT acá. El guard de passport valida el
+   * `state` (ver OAuthStateStore) antes de llegar a este handler. Si es
+   * válido, resolvemos el usuario y solo redirigimos con un código opaco
+   * de un solo uso; el JWT se emite recién cuando el frontend lo canjea
+   * en POST /auth/google/exchange.
+   */
+  @UseGuards(AuthGuard('google'))
+  @Get('google/callback')
+  async getGoogleCallback(@Req() req: GoogleAuthenticatedRequest, @Res() res: Response) {
+  
+  const result = await this.authService.googleLogin(req.user);
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (result.requiresProfileCompletion) {
+    const redirectUrl = `${process.env.FRONTEND_URL}/login/google-callback?tempToken=${result.tempToken}`;
+    return res.redirect(redirectUrl);
+  }
+  res.cookie('colibri_access_token', result.token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: Number(process.env.AUTH_COOKIE_MAX_AGE_MS ?? 3_600_000),
+    path: '/',
+  });
+
+  return res.redirect(`${process.env.FRONTEND_URL}/login/google-callback?role=${result.role}`);
+}
+
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('google/exchange')
+  @HttpCode(200)
+  async exchangeGoogleCode(
+    @Body() dto: GoogleExchangeDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const user = await this.oauthExchangeService.consume(dto.code);
+    const result = this.authService.buildAuthResult(user);
+    setAuthCookie(res, result.token);
+    ret
+
+... (truncated)
+Input
+googleLogin
+Result
+Found 2 matches grouped by process:
+
+NO PROCESS (2 matches)
+[1] File: auth.service.ts [score: 4.88]
+    ID: 
+    File: src/auth/auth.service.ts
+    Cluster: Unclustered
+    Found by: hybrid
+[2] File: auth.controller.ts [score: 4.47]
+    ID: 
+    File: src/auth/auth.controller.ts
+    Cluster: Unclustered
+    Found by: hybrid
+
+---
+
 Input
 {
   "filePath": "src/auth/auth.service.ts"
