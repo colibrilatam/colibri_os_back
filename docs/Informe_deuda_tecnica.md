@@ -348,155 +348,213 @@ test/QA/qa-002-pentest-negative.e2e-spec.ts:154: .set(fx.authHeader(attacker))
 test/QA/qa-002-pentest-negative.e2e-spec.ts:163: .set(fx.authHeader(user))
 
 (Showing first 10 results)
-Reporte de Deuda Técnica - Colibri OS Backend
-Resumen Ejecutivo
+
+---
+
+# Reporte de Deuda Técnica - Colibri OS Backend
+
+## Resumen Ejecutivo
+
 Se ha identificado una deuda técnica significativa en el códigobase de Colibri OS Backend, principalmente concentrada en:
+1. **Implementaciones incompletas** (stubs, TODOs sin resolver)
+2. **Complejidad excesiva** en métodos críticos y cadenas de llamadas profundas
+3. **Fragmentación de responsabilidades** y falta de cohesión en varios módulos
+4. **Migraciones de base de datos complejas** con riesgos de rollback
+5. **Uso disperso de funcionalidades transversales** (como autenticación)
 
-Implementaciones incompletas (stubs, TODOs sin resolver)
-Complejidad excesiva en métodos críticos y cadenas de llamadas profundas
-Fragmentación de responsabilidades y falta de cohesión en varios módulos
-Migraciones de base de datos complejas con riesgos de rollback
-Uso disperso de funcionalidades transversales (como autenticación)
-El análisis revela 49 instancias de comentarios TODO/FIXME/HACK, métodos con alto acoplamiento (como createUser con 169 conexiones), y rutas críticas con más de 40 pasos que indican fragilidad arquitectónica.
+El análisis revela 49 instancias de comentarios TODO/FIXME/HACK, métodos con alto acoplamiento (como `createUser` con 169 conexiones), y rutas críticas con más de 40 pasos que indican fragilidad arquitectónica.
 
-Hallazgos Detallados
-1. Implementaciones Incompletas (Stubs y TODOs Críticos)
-1.1 Servicio de Correo Electrónico para Reset de Contraseña
-Ubicación: src/auth/password-reset/password-reset-mailer.ts:19
-Problema: Implementación stub que solo registra logs, no envía emails reales
-Impacto: Bloquea funcionalidad crítica en producción (recuperación de cuentas)
-Evidence: // TODO: integrar proveedor real de email antes de ir a producción. this.logger.warn( `[STUB] Envío de email de reset NO implementado. ` + `Se hubiera enviado a ${email}: ${resetUrl}`, );
-1.2 Otros TODOs Significativos
-Migración de Estado: Comentarios en migraciones indican migraciones de datos incompletas
-Documentación API: Comentarios marcados como TODO en controllers que describen comportamiento esperado
-Pruebas: TODOs en pruebas de penetración indicando vulnerabilidades conocidas no resueltas
-Total: 49 instancias de TODO/FIXME/HACK encontradas
-2. Complejidad y Acoplamiento Excesivo
-2.1 Método createUser - Punto Crítico de Acoplamiento
-Ubicación: Múltiple (auth.controller.ts, auth.service.ts, fixtures.ts)
-Problema: 169 conexiones (edges) indicando alto acoplamiento
-Impacto: Cambios en este método afectan gran parte del sistema
-Evidence: Hotspots (most connected): - createUser (Method) — 169 edges
-2.2 Rutas Críticas Profundas
-Problema: Cadenas de llamadas excesivamente largas
-Ejemplos críticos:
-Update → FindOne: 42 pasos
-Remove → FindOne: 33 pasos
-FindOne → LogDenial: 22 pasos
-Impacto: Difícil de mantener, testear, y depurar; propagación de fallos
-2.3 Baja Cohesión en Clusters
-Problema: Varios clusters muestran baja cohesión (<0.5)
-Ejemplos:
-Micro-action-instance: 0.49 cohesión
-Micro-action-instance (otro): 0.50 cohesión
-Projects: 0.51 cohesión
-Impacto: Módulos con responsabilidades poco definidas, difícil de reutilizar
-3. Complejidad en Migraciones de Base de Datos
-3.1 Migración de Estado de Micro Action Instance
-Ubicación: src/database/migrations/1700000008000-SimplifyMicroActionInstanceStatus.ts
-Problema: Migración compleja con múltiples pasos, incluyendo:
-Transformaciones de datos en múltiples tablas
-Creación y eliminación de tipos ENUM
-Lógica de rollback igualmente compleja
-Impacto: Alto riesgo en despliegues, dificultad para verificar corrección
-Evidence: // Migrar datos: completed/validated/closed → completed, todo lo demás → pending // ... 173 líneas de SQL complejo
-4. Uso Disperso de Funcionalidades Transversales
-4.1 Extracción de Header de Autenticación
-Problema: La función authHeader se usa en 148 lugares (principalmente tests)
-Ubicación: src/auth/jwt.strategy.ts:40 y múltiples archivos de test
-Impacto: Duplicación de lógica, dificultad para cambiar implementación
-Evidence: authHeader (Method) — 148 edges
-4.2 Manejo de Errores y Logging
-Problema: Patrones inconsistentes de manejo de errores y logging
-Ejemplo: Uso mixto de logger.warn, logger.error, y console.log en algunos casos
-Plan de Acción y Soluciones
-Fase 1: Resolución Inmediata (Semana 1-2)
-1.1 Implementar Servicio de Email Real
-Acciones:
- Seleccionar proveedor de email (SendGrid, SES, etc.)
- Configurar credenciales vía variables de entorno
- Reemplazar stub en PasswordResetMailer con implementación real
- Agregar pruebas de integración para envío de email
- Implementar manejo de errores y reintentos
-Responsable: Equipo de Infraestructura
-Dependencias: Configuración de variables de entorno en producción
-1.2 Resolver TODOs de Alta Prioridad
-Acciones:
- Revisar todos los TODOs marcados como críticos (seguridad, funcionalidad core)
- Asignar responsables para cada TODO
- Establecer fecha límite de resolución
- Agregar a definición de "Done" que no queden TODOs sin resolver
-Responsable: Tech Leads por módulo
-Fase 2: Mejora Arquitectónica (Semana 3-6)
-2.1 Reducir Acoplamiento en createUser
-Acciones:
- Aplicar Facade Pattern para encapsular lógica de creación de usuario
- Extraer responsabilidades a servicios específicos (validación, persistencia, notificación)
- Aplicar Dependency Injection para reducir acoplamiento directo
- Escribir pruebas unitarias para cada responsabilidad separada
-Métrica de éxito: Reducir edges de createUser de 169 a <50
-Responsable: Equipo de Autenticación
-2.2 Simplificar Rutas Críticas
-Acciones:
- Mapear las 5 rutas críticas más largas
- Aplicar Command Query Responsibility Segregation (CQRS) donde corresponda
- Introducir capas de aplicación (Application Services) para reducir profundidad
- Implementar circuit breakers en llamadas externas
- Agregar logging estructurado para tracing
-Métrica de éxito: Reducir ruta crítica más larga de 42 a <15 pasos
-Responsable: Equipo de Arquitectura
-2.3 Mejorar Cohesión de Clusters
-Acciones:
- Enfocarse inicialmente en Micro-action-instance (cohesión 0.49)
- Aplicar principios de Single Responsibility y Domain-Driven Design
- Extraer entidades anémicas a servicios de dominio
- Revisar y refactorizar dependencias circulares
- Establecer métricas de cohesión mínima (>0.7) en CI
-Responsable: Equipos de dominio correspondiente
-Fase 3: Calidad y Mantenibilidad (Semana 7-12)
-3.1 Estándarizar Migraciones de Base de Datos
-Acciones:
- Crear plantilla estándar para migraciones
- Limitar cada migration a un cambio conceptual
- Implementar pruebas automatizadas de migración (up/down)
- Usar herramientas de migración tipo-aware (como TypeORM con mejor soporte)
- Documentar procedimientos de rollback de emergencia
-Responsable: Equipo de Base de Datos
-3.2 Centralizar Funcionalidades Transversales
-Acciones:
- Crear módulo compartido para utilidades de autenticación (authHeader, etc.)
- Establecer servicio centralizado de logging y manejo de errores
- Implementar interceptors para preocupaciones transversales (logging, validation)
- Crear biblioteca interna de componentes reutilizables
-Responsable: Equipo de Plataforma
-3.3 Mejorar Cobertura de Pruebas y Calidad de Código
-Acciones:
- Establecer umbral mínimo de cobertura de pruebas (80%)
- Implementar revisión automática de TODOs en CI (fallar build si hay TODOs sin ticket)
- Agregar análisis estático de código (SonarQube o similar)
- Crear dashboards de deuda técnica visible para todo el equipo
-Responsable: Equipo de Calidad
-Métricas de Éxito
-Métrica	Estado Actual	Objetivo	Plazo
-TODOs críticos sin resolver	12+	0	4 semanas
-Cohesión promedio de clusters	~0.65	>0.75	8 semanas
-Longitud máxima de ruta crítica	42 pasos	<15 pasos	6 semanas
-Edges en métodos críticos (createUser)	169	<50	4 semanas
-Complejidad de migraciones (líneas SQL)	173 por migración	<50	3 semanas
-Conclusión
+---
+
+## Hallazgos Detallados
+
+### 1. Implementaciones Incompletas (Stubs y TODOs Críticos)
+
+#### 1.1 Servicio de Correo Electrónico para Reset de Contraseña
+- **Ubicación**: `src/auth/password-reset/password-reset-mailer.ts:19`
+- **Problema**: Implementación stub que solo registra logs, no envía emails reales
+- **Impacto**: Bloquea funcionalidad crítica en producción (recuperación de cuentas)
+- **Evidence**: 
+  ```
+  // TODO: integrar proveedor real de email antes de ir a producción.
+  this.logger.warn(
+    `[STUB] Envío de email de reset NO implementado. ` +
+    `Se hubiera enviado a ${email}: ${resetUrl}`,
+  );
+  ```
+
+#### 1.2 Otros TODOs Significativos
+- **Migración de Estado**: Comentarios en migraciones indican migraciones de datos incompletas
+- **Documentación API**: Comentarios marcados como TODO en controllers que describen comportamiento esperado
+- **Pruebas**: TODOs en pruebas de penetración indicando vulnerabilidades conocidas no resueltas
+- **Total**: 49 instancias de TODO/FIXME/HACK encontradas
+
+### 2. Complejidad y Acoplamiento Excesivo
+
+#### 2.1 Método `createUser` - Punto Crítico de Acoplamiento
+- **Ubicación**: Múltiple (auth.controller.ts, auth.service.ts, fixtures.ts)
+- **Problema**: 169 conexiones (edges) indicando alto acoplamiento
+- **Impacto**: Cambios en este método afectan gran parte del sistema
+- **Evidence**: 
+  ```
+  Hotspots (most connected):
+  - createUser (Method) — 169 edges
+  ```
+
+#### 2.2 Rutas Críticas Profundas
+- **Problema**: Cadenas de llamadas excesivamente largas
+- **Ejemplos críticos**:
+  - `Update → FindOne`: 42 pasos
+  - `Remove → FindOne`: 33 pasos
+  - `FindOne → LogDenial`: 22 pasos
+- **Impacto**: Difícil de mantener, testear, y depurar; propagación de fallos
+
+#### 2.3 Baja Cohesión en Clusters
+- **Problema**: Varios clusters muestran baja cohesión (<0.5)
+- **Ejemplos**:
+  - Micro-action-instance: 0.49 cohesión
+  - Micro-action-instance (otro): 0.50 cohesión
+  - Projects: 0.51 cohesión
+- **Impacto**: Módulos con responsabilidades poco definidas, difícil de reutilizar
+
+### 3. Complejidad en Migraciones de Base de Datos
+
+#### 3.1 Migración de Estado de Micro Action Instance
+- **Ubicación**: `src/database/migrations/1700000008000-SimplifyMicroActionInstanceStatus.ts`
+- **Problema**: Migración compleja con múltiples pasos, incluyendo:
+  - Transformaciones de datos en múltiples tablas
+  - Creación y eliminación de tipos ENUM
+  - Lógica de rollback igualmente compleja
+- **Impacto**: Alto riesgo en despliegues, dificultad para verificar corrección
+- **Evidence**: 
+  ```
+  // Migrar datos: completed/validated/closed → completed, todo lo demás → pending
+  // ... 173 líneas de SQL complejo
+  ```
+
+### 4. Uso Disperso de Funcionalidades Transversales
+
+#### 4.1 Extracción de Header de Autenticación
+- **Problema**: La función `authHeader` se usa en 148 lugares (principalmente tests)
+- **Ubicación**: `src/auth/jwt.strategy.ts:40` y múltiples archivos de test
+- **Impacto**: Duplicación de lógica, dificultad para cambiar implementación
+- **Evidence**: 
+  ```
+  authHeader (Method) — 148 edges
+  ```
+
+#### 4.2 Manejo de Errores y Logging
+- **Problema**: Patrones inconsistentes de manejo de errores y logging
+- **Ejemplo**: Uso mixto de `logger.warn`, `logger.error`, y `console.log` en algunos casos
+
+---
+
+## Plan de Acción y Soluciones
+
+### Fase 1: Resolución Inmediata (Semana 1-2)
+
+#### 1.1 Implementar Servicio de Email Real
+- **Acciones**:
+  - [ ] Seleccionar proveedor de email (SendGrid, SES, etc.)
+  - [ ] Configurar credenciales vía variables de entorno
+  - [ ] Reemplazar stub en `PasswordResetMailer` con implementación real
+  - [ ] Agregar pruebas de integración para envío de email
+  - [ ] Implementar manejo de errores y reintentos
+- **Responsable**: Equipo de Infraestructura
+- **Dependencias**: Configuración de variables de entorno en producción
+
+#### 1.2 Resolver TODOs de Alta Prioridad
+- **Acciones**:
+  - [ ] Revisar todos los TODOs marcados como críticos (seguridad, funcionalidad core)
+  - [ ] Asignar responsables para cada TODO
+  - [ ] Establecer fecha límite de resolución
+  - [ ] Agregar a definición de "Done" que no queden TODOs sin resolver
+- **Responsable**: Tech Leads por módulo
+
+### Fase 2: Mejora Arquitectónica (Semana 3-6)
+
+#### 2.1 Reducir Acoplamiento en `createUser`
+- **Acciones**:
+  - [ ] Aplicar Facade Pattern para encapsular lógica de creación de usuario
+  - [ ] Extraer responsabilidades a servicios específicos (validación, persistencia, notificación)
+  - [ ] Aplicar Dependency Injection para reducir acoplamiento directo
+  - [ ] Escribir pruebas unitarias para cada responsabilidad separada
+- **Métrica de éxito**: Reducir edges de `createUser` de 169 a <50
+- **Responsable**: Equipo de Autenticación
+
+#### 2.2 Simplificar Rutas Críticas
+- **Acciones**:
+  - [ ] Mapear las 5 rutas críticas más largas
+  - [ ] Aplicar Command Query Responsibility Segregation (CQRS) donde corresponda
+  - [ ] Introducir capas de aplicación (Application Services) para reducir profundidad
+  - [ ] Implementar circuit breakers en llamadas externas
+  - [ ] Agregar logging estructurado para tracing
+- **Métrica de éxito**: Reducir ruta crítica más larga de 42 a <15 pasos
+- **Responsable**: Equipo de Arquitectura
+
+#### 2.3 Mejorar Cohesión de Clusters
+- **Acciones**:
+  - [ ] Enfocarse inicialmente en Micro-action-instance (cohesión 0.49)
+  - [ ] Aplicar principios de Single Responsibility y Domain-Driven Design
+  - [ ] Extraer entidades anémicas a servicios de dominio
+  - [ ] Revisar y refactorizar dependencias circulares
+  - [ ] Establecer métricas de cohesión mínima (>0.7) en CI
+- **Responsable**: Equipos de dominio correspondiente
+
+### Fase 3: Calidad y Mantenibilidad (Semana 7-12)
+
+#### 3.1 Estándarizar Migraciones de Base de Datos
+- **Acciones**:
+  - [ ] Crear plantilla estándar para migraciones
+  - [ ] Limitar cada migration a un cambio conceptual
+  - [ ] Implementar pruebas automatizadas de migración (up/down)
+  - [ ] Usar herramientas de migración tipo-aware (como TypeORM con mejor soporte)
+  - [ ] Documentar procedimientos de rollback de emergencia
+- **Responsable**: Equipo de Base de Datos
+
+#### 3.2 Centralizar Funcionalidades Transversales
+- **Acciones**:
+  - [ ] Crear módulo compartido para utilidades de autenticación (authHeader, etc.)
+  - [ ] Establecer servicio centralizado de logging y manejo de errores
+  - [ ] Implementar interceptors para preocupaciones transversales (logging, validation)
+  - [ ] Crear biblioteca interna de componentes reutilizables
+- **Responsable**: Equipo de Plataforma
+
+#### 3.3 Mejorar Cobertura de Pruebas y Calidad de Código
+- **Acciones**:
+  - [ ] Establecer umbral mínimo de cobertura de pruebas (80%)
+  - [ ] Implementar revisión automática de TODOs en CI (fallar build si hay TODOs sin ticket)
+  - [ ] Agregar análisis estático de código (SonarQube o similar)
+  - [ ] Crear dashboards de deuda técnica visible para todo el equipo
+- **Responsable**: Equipo de Calidad
+
+## Métricas de Éxito
+
+| Métrica | Estado Actual | Objetivo | Plazo |
+|---------|---------------|----------|-------|
+| TODOs críticos sin resolver | 12+ | 0 | 4 semanas |
+| Cohesión promedio de clusters | ~0.65 | >0.75 | 8 semanas |
+| Longitud máxima de ruta crítica | 42 pasos | <15 pasos | 6 semanas |
+| Edges en métodos críticos (createUser) | 169 | <50 | 4 semanas |
+| Complejidad de migraciones (líneas SQL) | 173 por migración | <50 | 3 semanas |
+
+## Conclusión
+
 La deuda técnica en Colibri OS Backend es manejable pero requiere atención inmediata en áreas críticas. Los problemas más urgentes son:
+1. La implementación stub de email que bloquea funcionalidad esencial en producción
+2. El alto acoplamiento en métodos centrales como `createUser`
+3. Las rutas críticas excesivamente largas que aumentan el riesgo de fallos en cascada
 
-La implementación stub de email que bloquea funcionalidad esencial en producción
-El alto acoplamiento en métodos centrales como createUser
-Las rutas críticas excesivamente largas que aumentan el riesgo de fallos en cascada
 Se recomienda un enfoque por fases que primero resuelva los bloqueos de funcionalidad, luego mejore la arquitectura para reducir el acoplamiento, y finalmente establezca prácticas que eviten la acumulación futura de deuda técnica. La inversión estimada es de 12 semanas de esfuerzo enfocado de un equipo de 4-5 desarrolladores, con un retorno esperado en reducción de incidentes, mayor velocidad de desarrollo, y mejor mantenibilidad.
 
-Próximos Pasos Reunión de Planificación
+---
 
-Revisar este reporte con líderes técnicos (mañana)
-Definir equipo tiger para resolver TODOs críticos (esta semana)
-Estimar esfuerzo detallado para cada fase (próximos 2 días)
-Presentar plan ejecutivo a stakeholders (fin de semana)
-Este reporte se basa en análisis estático del códigobase utilizando las herramientas de conocimiento gráfico disponibles. Se recomienda validar los hallazgos con revisión de código manual en áreas críticas.
+**Próximos Pasos Reunión de Planificación**
+1. Revisar este reporte con líderes técnicos (mañana)
+2. Definir equipo tiger para resolver TODOs críticos (esta semana)
+3. Estimar esfuerzo detallado para cada fase (próximos 2 días)
+4. Presentar plan ejecutivo a stakeholders (fin de semana)
+
+*Este reporte se basa en análisis estático del códigobase utilizando las herramientas de conocimiento gráfico disponibles. Se recomienda validar los hallazgos con revisión de código manual en áreas críticas.*
 
 
