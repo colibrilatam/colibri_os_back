@@ -28,10 +28,12 @@
     "migration:revert": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:revert -d src/database/data-source.ts",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts",
     "sync:doc-issues": "node scripts/sync-doc-issues.mjs",
-    "contract:export": "npm run export-spec -w packages/contracts",
-    "contract:generate": "npm run generate-zod -w packages/contracts",
-    "contract:check": "npm run breaking-check -w packages/contracts",
-    "contract:test": "npm run test -w packages/contracts"
+    "contract:export": "nest build && node dist/scripts/export-openapi.js",
+"contract:generate": "npm run contract:export && npm run generate-zod -w packages/contracts",
+"contract:copy": "npm run copy-contracts -w packages/contracts",
+"contract:sync": "npm run contract:generate && npm run contract:copy",
+"contract:check": "npm run breaking-check -w packages/contracts",
+"contract:test": "npm run test -w packages/contracts"
   },
   "overrides": {
     "qs": "^6.15.3",
