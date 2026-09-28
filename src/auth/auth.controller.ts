@@ -1,11 +1,21 @@
 import { BadRequestException, Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import {
+  ApiTags,
+  ApiOkResponse,
+  ApiCreatedResponse,
+  ApiUnauthorizedResponse,
+  ApiBadRequestResponse,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from './dto/create.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { GoogleExchangeDto } from './dto/google-exchange.dto';
 import { clearAuthCookie, setAuthCookie } from './cookie.helper';
+import { AuthResponseDto } from './dto/auth-response.dto';
+import { RegisterResponseDto } from './dto/register-response.dto';
 import type { Request, Response } from 'express';
 import type { IGoogleUser } from './interfaces/googleUser.interface';
 import { CompleteProfileDto } from './dto/complete-profile.dto';
@@ -18,6 +28,7 @@ import { PasswordResetService } from './password-reset/password-reset.service';
 
 type GoogleAuthenticatedRequest = Request & { user: IGoogleUser };
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -28,6 +39,7 @@ export class AuthController {
 
   @UseGuards(AuthGuard('google'))
   @Get('google')
+  @ApiResponse({ status: 302, description: 'Redirect a Google OAuth' })
   async getGoogle() {}
 
   /**
@@ -39,6 +51,10 @@ export class AuthController {
    */
   @UseGuards(AuthGuard('google'))
   @Get('google/callback')
+  @ApiResponse({
+    status: 302,
+    description: 'Redirect al frontend con cookie HttpOnly colibri_access_token',
+  })
   async getGoogleCallback(@Req() req: GoogleAuthenticatedRequest, @Res() res: Response) {
   
   const result = await this.authService.googleLogin(req.user);
@@ -74,6 +90,8 @@ export class AuthController {
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('signin')
+  @ApiOkResponse({ type: AuthResponseDto, description: 'Login exitoso' })
+  @ApiUnauthorizedResponse({ description: 'Credenciales inválidas' })
   async loginUser(@Body() logindto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.loginUser(logindto);
     setAuthCookie(res, result.token);
@@ -82,6 +100,8 @@ export class AuthController {
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('signup')
+  @ApiCreatedResponse({ type: RegisterResponseDto, description: 'Registro exitoso' })
+  @ApiBadRequestResponse({ description: 'Datos inválidos o email ya en uso' })
   async createUser(@Body() user: CreateUserDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.createUser(user);
     setAuthCookie(res, result.token);
