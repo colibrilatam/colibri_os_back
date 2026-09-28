@@ -11,13 +11,14 @@
   "scripts": {
     "export-spec": "tsx scripts/export-spec.ts",
     "generate-zod": "tsx scripts/generate-zod.ts",
+    "copy-contracts": "tsx scripts/copy-contracts.ts",
     "breaking-check": "tsx scripts/breaking-check.ts",
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "zod": "^3.24.0",
+    "zod": "^4.0.0",
     "@faker-js/faker": "^9.0.0"
   },
   "devDependencies": {

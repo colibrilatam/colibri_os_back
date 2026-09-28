@@ -4,5 +4,4 @@ export {
   mockAuthResponse,
   mockRegisterResponse,
   mockErrorResponse,
-  mockPaginatedProjects,
 } from './factories';

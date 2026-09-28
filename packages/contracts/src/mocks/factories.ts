@@ -5,7 +5,6 @@ import type {
   AuthResponse,
   RegisterResponse,
   ErrorResponse,
-  PaginatedProjects,
   UserRole,
   ProjectStatus,
   TrajectoryStatus,
@@ -89,17 +88,6 @@ export function mockErrorResponse(overrides?: Partial<ErrorResponse>): ErrorResp
     statusCode: faker.number.int({ min: 400, max: 599 }),
     message: faker.lorem.sentence(),
     error: 'Bad Request',
-    ...overrides,
-  };
-}
-
-export function mockPaginatedProjects(overrides?: Partial<PaginatedProjects>): PaginatedProjects {
-  const count = faker.number.int({ min: 1, max: 10 });
-  return {
-    data: Array.from({ length: count }, () => mockProject()),
-    total: faker.number.int({ min: count, max: 100 }),
-    page: 1,
-    limit: 10,
     ...overrides,
   };
 }
