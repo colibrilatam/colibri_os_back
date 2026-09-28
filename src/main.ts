@@ -7,6 +7,7 @@ import express from 'express';
 import { AppModule } from './app.module';
 import { PayloadTooLargeFilter } from './common/filters/payload-too-large.filter';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import { buildSwaggerConfig } from './config/swagger.config';
 
 const logger = new Logger('Bootstrap');
 
@@ -87,14 +88,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new PayloadTooLargeFilter(app.getHttpAdapter()));
 
   if (process.env.SWAGGER_ENABLED === 'true') {
-    const config = new DocumentBuilder()
-      .setTitle('Colibrí OS API')
-      .setDescription('API del sistema Colibrí OS — RaaS (Reputación como Servicio)')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
-
-    const document = SwaggerModule.createDocument(app, config);
+    const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
     SwaggerModule.setup('docs', app, document);
 
     logger.log(`📚 Swagger: http://localhost:${process.env.PORT ?? 3000}/docs`);
