@@ -16,6 +16,8 @@ import { GoogleExchangeDto } from './dto/google-exchange.dto';
 import { clearAuthCookie, setAuthCookie } from './cookie.helper';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
+import { CompleteProfileResponseDto } from './dto/complete-profile-response.dto';
+import { MessageResponseDto } from './dto/message-response.dto';
 import type { Request, Response } from 'express';
 import type { IGoogleUser } from './interfaces/googleUser.interface';
 import { CompleteProfileDto } from './dto/complete-profile.dto';
@@ -108,12 +110,13 @@ export class AuthController {
     return { message: result.message, user: result.user };
   }
 
-  @Post('complete-profile')
-async completeProfile(@Body() dto: CompleteProfileDto, @Res({ passthrough: true }) res: Response) {
-  const result = await this.authService.completeProfile(dto);
-  setAuthCookie(res, result.token);
-  return { message: "Perfil completado con éxito", user: result.user };
-}
+@Post('complete-profile')
+  @ApiOkResponse({ type: CompleteProfileResponseDto, description: 'Perfil completado exitosamente' })
+  async completeProfile(@Body() dto: CompleteProfileDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.completeProfile(dto);
+    setAuthCookie(res, result.token);
+    return { message: "Perfil completado con éxito", user: result.user };
+  }
 
   @Post('refresh')
   async refresh(@Body() dto: RefreshTokenDto, @Res({ passthrough: true }) res: Response) {
@@ -124,6 +127,7 @@ async completeProfile(@Body() dto: CompleteProfileDto, @Res({ passthrough: true 
 
   @Post('logout')
   @HttpCode(200)
+  @ApiOkResponse({ type: MessageResponseDto, description: 'Sesión cerrada exitosamente' })
   logout(@Res({ passthrough: true }) res: Response) {
     clearAuthCookie(res);
     return { message: 'Sesión cerrada con éxito' };

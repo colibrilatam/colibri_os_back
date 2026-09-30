@@ -42,6 +42,8 @@ const RENAME: Record<string, string> = {
   ProjectResponseDto: 'Project',
   CreateProjectDto: 'CreateProjectRequest',
   UpdateProjectDto: 'UpdateProjectRequest',
+  CompleteProfileResponseDto: 'CompleteProfileResponse',
+  MessageResponseDto: 'MessageResponse',
 };
 
 // Enums que exportamos con nombre propio. Los mas especificos primero
@@ -167,13 +169,15 @@ out.push('');
 // y los que referencian otros DTOs van despues de esos DTOs.
 const ORDER = [
   'LoginDto',
+  'UserResponseDto',
   'AuthResponseDto',
   'CreateUserDto',
   'RegisterResponseDto',
-  'UserResponseDto',
   'ProjectResponseDto',
   'CreateProjectDto',
   'UpdateProjectDto',
+  'CompleteProfileResponseDto',
+  'MessageResponseDto',
 ];
 
 for (const dtoName of ORDER) {
@@ -195,6 +199,8 @@ const TYPES: [string, string][] = [
   ['Project', 'ProjectSchema'],
   ['CreateProjectRequest', 'CreateProjectRequestSchema'],
   ['UpdateProjectRequest', 'UpdateProjectRequestSchema'],
+  ['CompleteProfileResponse', 'CompleteProfileResponseSchema'],
+  ['MessageResponse', 'MessageResponseSchema'],
 ];
 
 for (const [typeName, schemaName] of TYPES) {

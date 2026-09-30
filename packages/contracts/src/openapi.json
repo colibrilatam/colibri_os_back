@@ -29,6 +29,30 @@
         ]
       }
     },
+    "/auth/google/exchange": {
+      "post": {
+        "operationId": "AuthController_exchangeGoogleCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleExchangeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/auth/signin": {
       "post": {
         "operationId": "AuthController_loginUser",
@@ -97,6 +121,130 @@
         ]
       }
     },
+    "/auth/complete-profile": {
+      "post": {
+        "operationId": "AuthController_completeProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Perfil completado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompleteProfileResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Sesión cerrada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "operationId": "AuthController_forgotPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/users/profile": {
       "get": {
         "operationId": "UsersController_getProfile",
@@ -119,6 +267,36 @@
           }
         ],
         "summary": "Obtener el perfil del usuario autenticado",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/me/password": {
+      "patch": {
+        "operationId": "UsersController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambiar la contraseña del usuario autenticado",
         "tags": [
           "Users"
         ]
@@ -266,6 +444,40 @@
           }
         },
         "summary": "Cambiar el rol de un usuario y registrar la auditoría",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/{id}/status": {
+      "patch": {
+        "operationId": "UsersController_changeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeUserStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Suspender, desactivar o reactivar a un usuario (revoca su sesión)",
         "tags": [
           "Users"
         ]
@@ -546,6 +758,19 @@
       }
     },
     "schemas": {
+      "GoogleExchangeDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Código de un solo uso recibido en /login/google-callback?code=...",
+            "example": "a1b2c3..."
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
       "LoginDto": {
         "type": "object",
         "properties": {
@@ -565,74 +790,6 @@
         "required": [
           "email",
           "password"
-        ]
-      },
-      "AuthResponseDto": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "Usuario logueado con éxito"
-          },
-          "token": {
-            "type": "string",
-            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-          }
-        },
-        "required": [
-          "message",
-          "token"
-        ]
-      },
-      "CreateUserDto": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "description": "Correo electrónico del usuario (único)",
-            "example": "juanperez@mail.com",
-            "format": "email"
-          },
-          "password": {
-            "type": "string",
-            "description": "Contraseña del usuario (debe ser fuerte)",
-            "example": "MiPass@123",
-            "minLength": 8,
-            "maxLength": 15
-          },
-          "confirmPassword": {
-            "type": "string",
-            "description": "Confirmación de la contraseña",
-            "example": "MiPass@123"
-          },
-          "fullName": {
-            "type": "string",
-            "description": "Nombre completo del usuario",
-            "example": "Juan Perez"
-          }
-        },
-        "required": [
-          "email",
-          "password",
-          "confirmPassword",
-          "fullName"
-        ]
-      },
-      "RegisterResponseDto": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "Usuario registrado con éxito"
-          },
-          "token": {
-            "type": "string",
-            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-          }
-        },
-        "required": [
-          "message",
-          "token"
         ]
       },
       "UserResponseDto": {
@@ -667,7 +824,8 @@
             "enum": [
               "active",
               "inactive",
-              "suspended"
+              "suspended",
+              "pending_profile"
             ]
           },
           "provider": {
@@ -734,6 +892,173 @@
           "provider",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "AuthResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Usuario logueado con éxito"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponseDto"
+          }
+        },
+        "required": [
+          "message",
+          "user"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Correo electrónico del usuario (único)",
+            "example": "juanperez@mail.com",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "description": "Contraseña del usuario (debe ser fuerte)",
+            "example": "MiPass@123",
+            "minLength": 8,
+            "maxLength": 15
+          },
+          "confirmPassword": {
+            "type": "string",
+            "description": "Confirmación de la contraseña",
+            "example": "MiPass@123"
+          },
+          "fullName": {
+            "type": "string",
+            "description": "Nombre completo del usuario",
+            "example": "Juan Perez"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "confirmPassword",
+          "fullName"
+        ]
+      },
+      "RegisterResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Usuario registrado con éxito"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponseDto"
+          }
+        },
+        "required": [
+          "message",
+          "user"
+        ]
+      },
+      "CompleteProfileDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CompleteProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Perfil completado con éxito"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponseDto"
+          }
+        },
+        "required": [
+          "message",
+          "user"
+        ]
+      },
+      "RefreshTokenDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh token emitido en el login",
+            "example": "a1b2c3..."
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "MessageResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Operación exitosa"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ForgotPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "usuario@ejemplo.com"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token recibido por email"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "NuevaPass@456"
+          },
+          "confirmNewPassword": {
+            "type": "string",
+            "example": "NuevaPass@456"
+          }
+        },
+        "required": [
+          "token",
+          "newPassword",
+          "confirmNewPassword"
+        ]
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "example": "MiPass@123"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "NuevaPass@456"
+          },
+          "confirmNewPassword": {
+            "type": "string",
+            "example": "NuevaPass@456"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword",
+          "confirmNewPassword"
         ]
       },
       "UpdateUserDto": {
@@ -816,6 +1141,30 @@
         },
         "required": [
           "role",
+          "reason"
+        ]
+      },
+      "ChangeUserStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "suspended",
+              "pending_profile"
+            ],
+            "example": "suspended"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Motivo auditable del cambio de estado",
+            "example": "Incumplimiento de las normas de la comunidad."
+          }
+        },
+        "required": [
+          "status",
           "reason"
         ]
       },

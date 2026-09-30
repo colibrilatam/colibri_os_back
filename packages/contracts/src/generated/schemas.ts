@@ -15,29 +15,12 @@ export const LoginRequestSchema = z.strictObject({
   password: z.string().min(1),
 });
 
-export const AuthResponseSchema = z.strictObject({
-  message: z.string(),
-  token: z.string(),
-});
-
-export const RegisterRequestSchema = z.strictObject({
-  email: z.email(),
-  password: z.string().min(8).max(15),
-  confirmPassword: z.string(),
-  fullName: z.string(),
-});
-
-export const RegisterResponseSchema = z.strictObject({
-  message: z.string(),
-  token: z.string(),
-});
-
 export const UserSchema = z.strictObject({
   id: z.uuid(),
   email: z.email(),
   fullName: z.string(),
   role: UserRoleSchema,
-  status: UserStatusSchema,
+  status: z.enum(["active", "inactive", "suspended", "pending_profile"]),
   provider: AuthProviderSchema,
   linkedinId: z.string().nullable().optional(),
   googleId: z.string().nullable().optional(),
@@ -49,6 +32,23 @@ export const UserSchema = z.strictObject({
   gender: z.enum(["male", "female", "non_binary", "other", "prefer_not_to_say"]).nullable().optional(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
+});
+
+export const AuthResponseSchema = z.strictObject({
+  message: z.string(),
+  user: UserSchema,
+});
+
+export const RegisterRequestSchema = z.strictObject({
+  email: z.email(),
+  password: z.string().min(8).max(15),
+  confirmPassword: z.string(),
+  fullName: z.string(),
+});
+
+export const RegisterResponseSchema = z.strictObject({
+  message: z.string(),
+  user: UserSchema,
 });
 
 export const ProjectSchema = z.strictObject({
@@ -104,6 +104,15 @@ export const UpdateProjectRequestSchema = z.strictObject({
   trajectoryStatus: TrajectoryStatusSchema.optional(),
 });
 
+export const CompleteProfileResponseSchema = z.strictObject({
+  message: z.string(),
+  user: UserSchema,
+});
+
+export const MessageResponseSchema = z.strictObject({
+  message: z.string(),
+});
+
 export type UserRole = z.infer<typeof UserRoleSchema>;
 export type UserStatus = z.infer<typeof UserStatusSchema>;
 export type AuthProvider = z.infer<typeof AuthProviderSchema>;
@@ -117,3 +126,5 @@ export type User = z.infer<typeof UserSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type CreateProjectRequest = z.infer<typeof CreateProjectRequestSchema>;
 export type UpdateProjectRequest = z.infer<typeof UpdateProjectRequestSchema>;
+export type CompleteProfileResponse = z.infer<typeof CompleteProfileResponseSchema>;
+export type MessageResponse = z.infer<typeof MessageResponseSchema>;

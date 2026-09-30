@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserResponseDto } from '../../users/dtos/user-response.dto';
 
-export class RegisterResponseDto {
-  @ApiProperty({ example: 'Usuario registrado con éxito' })
+export class CompleteProfileResponseDto {
+  @ApiProperty({ example: 'Perfil completado con éxito' })
   message: string;
 
   @ApiProperty({ type: UserResponseDto })
