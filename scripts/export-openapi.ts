@@ -5,7 +5,7 @@ import { AppModule } from '../src/app.module';
 import { buildContractSwaggerDocument } from '../src/config/swagger.config';
 
 async function exportOpenApi(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { logger: false });
+  const app = await NestFactory.create(AppModule, { abortOnError: false, });
   try {
     const document = buildContractSwaggerDocument(app);
     const outPath = resolve(

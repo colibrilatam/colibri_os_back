@@ -7,6 +7,22 @@ on:
 jobs:
   contracts:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dummy
+          POSTGRES_PASSWORD: dummy
+          POSTGRES_DB: dummy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dummy -d dummy"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+          
     steps:
       - uses: actions/checkout@v4
         with:
