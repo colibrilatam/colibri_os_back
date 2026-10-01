@@ -8,11 +8,16 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UpdateUserDto } from './dtos/userUpdate.dto';
+import { UserResponseDto } from './dtos/user-response.dto';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -30,8 +35,9 @@ export class UsersController {
   @Get('profile')
   @ApiOperation({ summary: 'Obtener el perfil del usuario autenticado' })
   @ApiBearerAuth()
-  getProfile(@CurrentUser() user: JwtPayload): JwtPayload {
-    return user;
+  @ApiOkResponse({ type: UserResponseDto, description: 'Perfil del usuario autenticado' })
+  async getProfile(@CurrentUser('id') userId: string) {
+    return this.usersService.findOneById(userId);
   }
 
   @ApiOperation({ summary: 'Cambiar la contraseña del usuario autenticado' })

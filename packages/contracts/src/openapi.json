@@ -1,0 +1,1425 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/auth/google": {
+      "get": {
+        "operationId": "AuthController_getGoogle",
+        "parameters": [],
+        "responses": {
+          "302": {
+            "description": "Redirect a Google OAuth"
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/google/callback": {
+      "get": {
+        "operationId": "AuthController_getGoogleCallback",
+        "parameters": [],
+        "responses": {
+          "302": {
+            "description": "Redirect al frontend con cookie HttpOnly colibri_access_token"
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/google/exchange": {
+      "post": {
+        "operationId": "AuthController_exchangeGoogleCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleExchangeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/signin": {
+      "post": {
+        "operationId": "AuthController_loginUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login exitoso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales inválidas"
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/signup": {
+      "post": {
+        "operationId": "AuthController_createUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registro exitoso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos o email ya en uso"
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/complete-profile": {
+      "post": {
+        "operationId": "AuthController_completeProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Perfil completado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompleteProfileResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Sesión cerrada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "operationId": "AuthController_forgotPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/users/profile": {
+      "get": {
+        "operationId": "UsersController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Perfil del usuario autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener el perfil del usuario autenticado",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/me/password": {
+      "patch": {
+        "operationId": "UsersController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambiar la contraseña del usuario autenticado",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "UsersController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener todos los usuarios",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "operationId": "UsersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener un usuario por ID",
+        "tags": [
+          "Users"
+        ]
+      },
+      "patch": {
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Actualizar un usuario",
+        "tags": [
+          "Users"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Desactivar un usuario",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/{id}/role": {
+      "patch": {
+        "operationId": "UsersController_changeRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeUserRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Cambiar el rol de un usuario y registrar la auditoría",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/{id}/status": {
+      "patch": {
+        "operationId": "UsersController_changeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeUserStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Suspender, desactivar o reactivar a un usuario (revoca su sesión)",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/projects": {
+      "post": {
+        "operationId": "ProjectsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Proyecto creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Projects"
+        ]
+      },
+      "get": {
+        "operationId": "ProjectsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Lista de proyectos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Obtener todos los proyectos",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "operationId": "ProjectsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Proyecto encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Proyecto no encontrado"
+          }
+        },
+        "summary": "Obtener un proyecto por ID",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "patch": {
+        "operationId": "ProjectsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Proyecto actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Actualizar un proyecto",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Proyecto eliminado"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Eliminar un proyecto",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/pac/{id}": {
+      "patch": {
+        "operationId": "ProjectsController_updateProjectPac",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Actualizar el estado de un PAC de un proyecto",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectsController_removeProjectPac",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Eliminar un PAC de un proyecto",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{projectId}/pac/{pacId}": {
+      "post": {
+        "operationId": "ProjectsController_createProjectPac",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pacId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear un ProjectPac",
+        "tags": [
+          "Projects"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Colibrí OS API",
+    "description": "API del sistema Colibrí OS — RaaS (Reputación como Servicio)",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "GoogleExchangeDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Código de un solo uso recibido en /login/google-callback?code=...",
+            "example": "a1b2c3..."
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Correo electrónico del usuario registrado",
+            "example": "juanperez@mail.com",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "description": "Contraseña del usuario",
+            "example": "MiPass@123",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "UserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "entrepreneur",
+              "mentor",
+              "evaluator",
+              "mecenas_semilla",
+              "mecenas_fundacional",
+              "mecenas_cambio",
+              "admin",
+              "guest"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "suspended",
+              "pending_profile"
+            ]
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "local",
+              "google"
+            ]
+          },
+          "linkedinId": {
+            "type": "string",
+            "nullable": true
+          },
+          "googleId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cryptoWallet": {
+            "type": "string",
+            "nullable": true
+          },
+          "credentialsWallet": {
+            "type": "string",
+            "nullable": true
+          },
+          "adnHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female",
+              "non_binary",
+              "other",
+              "prefer_not_to_say"
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "fullName",
+          "role",
+          "status",
+          "provider",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "AuthResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Usuario logueado con éxito"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponseDto"
+          }
+        },
+        "required": [
+          "message",
+          "user"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Correo electrónico del usuario (único)",
+            "example": "juanperez@mail.com",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "description": "Contraseña del usuario (debe ser fuerte)",
+            "example": "MiPass@123",
+            "minLength": 8,
+            "maxLength": 15
+          },
+          "confirmPassword": {
+            "type": "string",
+            "description": "Confirmación de la contraseña",
+            "example": "MiPass@123"
+          },
+          "fullName": {
+            "type": "string",
+            "description": "Nombre completo del usuario",
+            "example": "Juan Perez"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "confirmPassword",
+          "fullName"
+        ]
+      },
+      "RegisterResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Usuario registrado con éxito"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponseDto"
+          }
+        },
+        "required": [
+          "message",
+          "user"
+        ]
+      },
+      "CompleteProfileDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CompleteProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Perfil completado con éxito"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponseDto"
+          }
+        },
+        "required": [
+          "message",
+          "user"
+        ]
+      },
+      "RefreshTokenDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh token emitido en el login",
+            "example": "a1b2c3..."
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "MessageResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Operación exitosa"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ForgotPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "usuario@ejemplo.com"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token recibido por email"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "NuevaPass@456"
+          },
+          "confirmNewPassword": {
+            "type": "string",
+            "example": "NuevaPass@456"
+          }
+        },
+        "required": [
+          "token",
+          "newPassword",
+          "confirmNewPassword"
+        ]
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "example": "MiPass@123"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "NuevaPass@456"
+          },
+          "confirmNewPassword": {
+            "type": "string",
+            "example": "NuevaPass@456"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword",
+          "confirmNewPassword"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Correo electrónico del usuario (único)",
+            "example": "juanperez@mail.com"
+          },
+          "fullName": {
+            "type": "string",
+            "description": "Nombre completo del usuario",
+            "example": "Juan Perez"
+          },
+          "linkedinId": {
+            "type": "string",
+            "description": "ID de LinkedIn del usuario",
+            "example": "https://www.linkedin.com/in/juanperez"
+          },
+          "cryptoWallet": {
+            "type": "string",
+            "description": "Dirección de billetera cripto del usuario",
+            "example": "0x1234567890abcdef"
+          },
+          "credentialsWallet": {
+            "type": "string",
+            "description": "Dirección de billetera de credenciales del usuario",
+            "example": "0x1234567890abcdef"
+          },
+          "adnHash": {
+            "type": "string",
+            "description": "Hash del ADN del usuario",
+            "example": "0x1234567890abcdef"
+          },
+          "bio": {
+            "type": "string",
+            "description": "Biografía del usuario",
+            "example": " Ingeniero de software con 5 años de experiencia"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "URL del avatar del usuario",
+            "example": "https://www.example.com/avatar.jpg"
+          }
+        },
+        "required": [
+          "email",
+          "fullName",
+          "linkedinId",
+          "cryptoWallet",
+          "credentialsWallet",
+          "adnHash",
+          "bio",
+          "avatar"
+        ]
+      },
+      "ChangeUserRoleDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "entrepreneur",
+              "mentor",
+              "evaluator",
+              "mecenas_semilla",
+              "mecenas_fundacional",
+              "mecenas_cambio",
+              "admin",
+              "guest"
+            ],
+            "example": "evaluator"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Motivo auditable del cambio de rol",
+            "example": "Designación formal como evaluador del piloto."
+          }
+        },
+        "required": [
+          "role",
+          "reason"
+        ]
+      },
+      "ChangeUserStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "suspended",
+              "pending_profile"
+            ],
+            "example": "suspended"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Motivo auditable del cambio de estado",
+            "example": "Incumplimiento de las normas de la comunidad."
+          }
+        },
+        "required": [
+          "status",
+          "reason"
+        ]
+      },
+      "CreateProjectDto": {
+        "type": "object",
+        "properties": {
+          "projectName": {
+            "type": "string",
+            "example": "Mi Startup",
+            "minLength": 1
+          },
+          "image": {
+            "type": "string",
+            "format": "binary",
+            "description": "Imagen del proyecto"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "closed",
+              "suspended"
+            ]
+          },
+          "country": {
+            "type": "string",
+            "example": "Argentina"
+          },
+          "industry": {
+            "type": "string",
+            "example": "Tecnología"
+          },
+          "tagline": {
+            "type": "string",
+            "example": "La mejor solución para X"
+          },
+          "shortDescription": {
+            "type": "string",
+            "example": "Descripción corta del proyecto"
+          },
+          "startupLinkedinUrl": {
+            "type": "string",
+            "example": "https://linkedin.com/company/mi-startup",
+            "format": "uri"
+          },
+          "websiteUrl": {
+            "type": "string",
+            "example": "https://mistartup.com",
+            "format": "uri"
+          },
+          "rlabProfileUrl": {
+            "type": "string",
+            "example": "https://rlab.com/mi-startup",
+            "format": "uri"
+          },
+          "trajectoryStatus": {
+            "type": "string",
+            "enum": [
+              "on_track",
+              "at_risk",
+              "stalled",
+              "completed"
+            ]
+          }
+        },
+        "required": [
+          "projectName"
+        ]
+      },
+      "ProjectResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ownerUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectName": {
+            "type": "string",
+            "example": "Mi Startup",
+            "minLength": 1
+          },
+          "projectImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "closed",
+              "suspended"
+            ]
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "industry": {
+            "type": "string",
+            "nullable": true
+          },
+          "tagline": {
+            "type": "string",
+            "nullable": true
+          },
+          "shortDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "startupLinkedinUrl": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri"
+          },
+          "websiteUrl": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri"
+          },
+          "rlabProfileUrl": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri"
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "closeReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentTramoId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "currentPacId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "trajectoryStatus": {
+            "type": "string",
+            "enum": [
+              "on_track",
+              "at_risk",
+              "stalled",
+              "completed"
+            ],
+            "nullable": true
+          },
+          "nftImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastActivityAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "ownerUserId",
+          "projectName",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateProjectDto": {
+        "type": "object",
+        "properties": {
+          "projectName": {
+            "type": "string",
+            "example": "Mi Startup",
+            "minLength": 1
+          },
+          "image": {
+            "type": "string",
+            "format": "binary",
+            "description": "Imagen del proyecto"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "closed",
+              "suspended"
+            ]
+          },
+          "country": {
+            "type": "string",
+            "example": "Argentina"
+          },
+          "industry": {
+            "type": "string",
+            "example": "Tecnología"
+          },
+          "tagline": {
+            "type": "string",
+            "example": "La mejor solución para X"
+          },
+          "shortDescription": {
+            "type": "string",
+            "example": "Descripción corta del proyecto"
+          },
+          "startupLinkedinUrl": {
+            "type": "string",
+            "example": "https://linkedin.com/company/mi-startup",
+            "format": "uri"
+          },
+          "websiteUrl": {
+            "type": "string",
+            "example": "https://mistartup.com",
+            "format": "uri"
+          },
+          "rlabProfileUrl": {
+            "type": "string",
+            "example": "https://rlab.com/mi-startup",
+            "format": "uri"
+          },
+          "trajectoryStatus": {
+            "type": "string",
+            "enum": [
+              "on_track",
+              "at_risk",
+              "stalled",
+              "completed"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -10,10 +11,20 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiTags,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOkResponse,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiNoContentResponse,
+} from '@nestjs/swagger';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { ProjectResponseDto } from './dto/project-response.dto';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Express } from 'express';
@@ -47,6 +58,7 @@ export class ProjectsController {
       },
     }),
   )
+  @ApiCreatedResponse({ type: ProjectResponseDto, description: 'Proyecto creado' })
   create(
     @CurrentUser('id') ownerUserId: string,
     @Body() dto: CreateProjectDto,
@@ -57,12 +69,15 @@ export class ProjectsController {
 
   @Get()
   @ApiOperation({ summary: 'Obtener todos los proyectos' })
+  @ApiOkResponse({ type: [ProjectResponseDto], description: 'Lista de proyectos' })
   findAll() {
     return this.projectsService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un proyecto por ID' })
+  @ApiOkResponse({ type: ProjectResponseDto, description: 'Proyecto encontrado' })
+  @ApiNotFoundResponse({ description: 'Proyecto no encontrado' })
   findOne(@Param('id') id: string) {
     return this.projectsService.findOne(id);
   }
@@ -71,6 +86,7 @@ export class ProjectsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar un proyecto' })
+  @ApiOkResponse({ type: ProjectResponseDto, description: 'Proyecto actualizado' })
   async update(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,
@@ -84,7 +100,9 @@ export class ProjectsController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @HttpCode(204)
   @ApiOperation({ summary: 'Eliminar un proyecto' })
+  @ApiNoContentResponse({ description: 'Proyecto eliminado' })
   async remove(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,
@@ -112,15 +130,13 @@ export class ProjectsController {
   @Delete('pac/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @HttpCode(204)
   @ApiOperation({ summary: 'Eliminar un PAC de un proyecto' })
   async removeProjectPac(
     @Param('id') projectPacId: string,
     @CurrentUser('id') userId: string,
     @CurrentUser('role') role: UserRole,
   ) {
-    // OJO: el projectId sale del ProjectPac encontrado en base (no del input del
-    // usuario), así que no hay forma de "apuntar" a un proyecto propio para
-    // colarse y borrar el PAC de un proyecto ajeno.
     const projectPac = await this.projectsService.findProjectPac(projectPacId);
     await this.projectAccessService.assertCanManageProject({ userId, role }, projectPac.projectId);
     await this.projectsService.removeProjectPac(projectPacId, { userId, role });

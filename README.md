@@ -40,14 +40,19 @@ Está construida con NestJS, TypeScript, PostgreSQL y TypeORM. La API se publica
 
 | Variable | Uso |
 | --- | --- |
-| `NODE_ENV`, `PORT` | Entorno y puerto de la aplicación. |
+| `NODE_ENV`, `PORT` | Entorno y puerto de la aplicación (default: `3000`). |
 | `DATABASE_URL` | Conexión PostgreSQL para la aplicación, scripts y migraciones. |
 | `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | Referencia de conexión local; `DATABASE_URL` es la variable utilizada por TypeORM. |
 | `JWT_SECRET`, `JWT_EXPIRES_IN` | Firma y vencimiento de los tokens de sesión. |
+| `AUTH_COOKIE_MAX_AGE_MS` | Duración de la cookie HttpOnly tras Google OAuth (en milisegundos). |
 | `FRONTEND_URL` | Origen permitido por CORS y destino posterior al login con Google. |
+| `FRONTEND_URLS` | Lista separada por comas de orígenes CORS permitidos. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` | OAuth de Google. Necesarias cuando se habilita ese método de acceso. |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Firma, carga y gestión de archivos de evidencia en Cloudinary. |
 | `SWAGGER_ENABLED` | Habilita la UI Swagger cuando vale `true`. |
+| `BLOCKCHAIN_RPC_URLS` | JSON map de `chainId` → RPC URL (ej: `{"137":"https://polygon-rpc.com"}`). |
+| `BLOCKCHAIN_CONFIRMATIONS` | JSON map de `chainId` → confirmaciones requeridas para validación on-chain. |
+| `BLOCKCHAIN_DEFAULT_CONFIRMATIONS` | Fallback de confirmaciones cuando una red no está en `BLOCKCHAIN_CONFIRMATIONS`. |
 
 Use valores diferentes por ambiente y cárguelos desde el gestor de secretos de la plataforma de despliegue. Las credenciales de Cloudinary, Google, JWT y PostgreSQL no deben exponerse en tickets, logs ni código cliente.
 
@@ -90,6 +95,61 @@ npm run test:cov
 # Pruebas e2e (requieren variables de entorno y PostgreSQL disponibles)
 npm run test:e2e
 ```
+
+## Testing
+
+El backend usa **Jest 30** para pruebas unitarias y **Supertest 7** para pruebas e2e.
+
+| Comando | Descripción |
+| --- | --- |
+| `npm run test` | Ejecutar todas las pruebas unitarias |
+| `npm run test:cov` | Ejecutar pruebas con reporte de cobertura |
+| `npm run test:e2e` | Ejecutar pruebas de integración (requiere DB) |
+
+### Contract Testing
+
+El paquete `@colibri/contracts` (en `packages/contracts`) define esquemas Zod compartidos entre backend y frontend para detectar breaking changes en la API.
+
+```powershell
+# Exportar spec de la API
+npm run contract:export
+
+# Generar esquemas Zod desde la spec
+npm run contract:generate
+
+# Detectar breaking changes
+npm run contract:check
+
+# Ejecutar tests de contrato
+npm run contract:test
+```
+
+### Linting
+
+```powershell
+npm run lint       # Verificar reglas ESLint
+npm run lint:fix   # Auto-corregir errores
+```
+
+### Auditoría de seguridad
+
+```powershell
+npm run audit:prod  # better-npm-audit contra dependencias de producción
+```
+
+## Troubleshooting
+
+| Error | Causa probable | Solución |
+| --- | --- | --- |
+| `ECONNREFUSED 127.0.0.1:5432` | PostgreSQL no está corriendo o `DB_PORT` incorrecto. | Verificar que PostgreSQL esté activo y el puerto coincida con `DB_PORT` en `.env`. |
+| `password authentication failed` | Credenciales de DB incorrectas. | Verificar `DB_USERNAME`, `DB_PASSWORD` y que el usuario exista en PostgreSQL. |
+| `jwt malformed` | Token JWT corrupto o inexistente. | Re-login o verificar que el frontend envíe `Authorization: Bearer <token>`. |
+| `CORS error` / `blocked by CORS policy` | Origen no permitido. | Verificar que `FRONTEND_URL` o `FRONTEND_URLS` incluya el origen del frontend. |
+| `Google OAuth redirect mismatch` | `GOOGLE_CALLBACK_URL` no coincide con Google Cloud Console. | Verificar que la URL en `.env` coincida con la configurada en Google Cloud Console. |
+| `Cloudinary upload failed` | Credenciales de Cloudinary inválidas. | Verificar `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`. |
+| `Cannot find module` tras `npm ci` | Workspaces no resueltos. | Ejecutar `npm ci` desde la raíz del backend; verificar que `packages/contracts` exista. |
+| `TypeORMError: Table ... does not exist` | Migraciones no ejecutadas. | Ejecutar `npm run migration:run` antes de iniciar la app. |
+| Puerto 3000 en uso | Otro proceso usa el puerto. | Cambiar `PORT` en `.env` o matar el proceso que bloquea el puerto. |
 
 ## Arquitectura, seguridad y operación
 

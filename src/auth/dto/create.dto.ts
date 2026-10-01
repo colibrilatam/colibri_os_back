@@ -5,6 +5,7 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'Correo electrónico del usuario (único)',
     example: 'juanperez@mail.com',
+    format: 'email'
   })
   @IsEmail()
   @IsString()
@@ -14,6 +15,7 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'Contraseña del usuario (debe ser fuerte)',
     example: 'MiPass@123',
+    minLength: 8, maxLength: 15
   })
   @IsString()
   @Length(3, 15)

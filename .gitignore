@@ -28,3 +28,6 @@ Thumbs.db
 
 # Testing
 /coverage
+
+# Contract CI temp file
+packages/contracts/src/.previous-openapi.json

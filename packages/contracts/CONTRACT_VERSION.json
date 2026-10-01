@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "lastBreakingChange": "2026-08-22",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-08-22",
+      "changes": [
+        "Initial contract: Auth (login, register)",
+        "Initial contract: Projects (CRUD)",
+        "Schemas: User, Project, AuthResponse, ErrorResponse",
+        "Enums: UserRole, UserStatus, ProjectStatus, TrajectoryStatus"
+      ]
+    }
+  ]
+}
