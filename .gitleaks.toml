@@ -1,0 +1,16 @@
+# .gitleaks.toml
+# Configuración de gitleaks para el repo.
+# Extiende las reglas por defecto y agrega un allowlist para falsos positivos
+# detectados en tests (tokens de ejemplo que no son secretos reales).
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Tokens de ejemplo en tests de contratos (no son secretos reales)"
+paths = [
+  '''packages/contracts/tests/contracts\.test\.ts$''',
+]
+regexes = [
+  '''eyJhbGciOiJIUzI1NiJ9\.test''',
+]
