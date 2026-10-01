@@ -1,11 +1,35 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { resolve, dirname, isAbsolute } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const srcDir = resolve(__dirname, '..', 'src');
+const contractsRoot = resolve(__dirname, '..');
+const backendRoot = resolve(contractsRoot, '..', '..');
+const srcDir = resolve(contractsRoot, 'src');
 const specPath = resolve(srcDir, 'openapi.json');
-const previousPath = resolve(srcDir, '.previous-openapi.json');
+const defaultPreviousPath = resolve(srcDir, '.previous-openapi.json');
+
+function parsePreviousPath(): string {
+  const args = process.argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--previous') {
+      return resolvePath(args[i + 1] || defaultPreviousPath);
+    }
+    if (args[i].startsWith('--previous=')) {
+      return resolvePath(args[i].split('=')[1] || defaultPreviousPath);
+    }
+  }
+  return defaultPreviousPath;
+}
+
+function resolvePath(inputPath: string): string {
+  if (isAbsolute(inputPath)) {
+    return inputPath;
+  }
+  return resolve(backendRoot, inputPath);
+}
+
+const previousPath = parsePreviousPath();
 
 function compareSchemas(oldSpec: any, newSpec: any): string[] {
   const breaking: string[] = [];
@@ -45,13 +69,22 @@ function compareSchemas(oldSpec: any, newSpec: any): string[] {
 
     for (const prop of oldProps) {
       if (!newProps.includes(prop)) continue;
-      const oldEnum = oldSchemas[name].properties[prop].enum;
-      const newEnum = newSchemas[name].properties[prop].enum;
+      const oldProp = oldSchemas[name].properties[prop];
+      const newProp = newSchemas[name].properties[prop];
+
+      const oldEnum = oldProp.enum;
+      const newEnum = newProp.enum;
       if (oldEnum && newEnum) {
         const removed = oldEnum.filter((v: string) => !newEnum.includes(v));
         if (removed.length > 0) {
           breaking.push(`${name}.${prop}: valores de enum eliminados: ${removed.join(', ')}`);
         }
+      }
+
+      const oldType = oldProp.type;
+      const newType = newProp.type;
+      if (oldType && newType && oldType !== newType) {
+        breaking.push(`${name}.${prop}: tipo cambiado de '${oldType}' a '${newType}'`);
       }
     }
   }
@@ -61,6 +94,14 @@ function compareSchemas(oldSpec: any, newSpec: any): string[] {
   for (const path of oldPaths) {
     if (!newPaths.includes(path)) {
       breaking.push(`Endpoint eliminado: ${path}`);
+    } else {
+      const oldMethods = Object.keys(oldSpec.paths[path] || {});
+      const newMethods = Object.keys(newSpec.paths[path] || {});
+      for (const method of oldMethods) {
+        if (!newMethods.includes(method)) {
+          breaking.push(`Endpoint ${method.toUpperCase()} ${path}: método HTTP eliminado`);
+        }
+      }
     }
   }
 
@@ -68,8 +109,9 @@ function compareSchemas(oldSpec: any, newSpec: any): string[] {
 }
 
 if (!existsSync(previousPath)) {
-  console.log('No hay spec anterior. Skipping breaking check.');
-  process.exit(0);
+  console.error(`No se encontró el spec previo en ${previousPath}.`);
+  console.error('En CI, generarlo con: git show origin/<base_ref>:packages/contracts/src/openapi.json');
+  process.exit(1);
 }
 
 if (!existsSync(specPath)) {
