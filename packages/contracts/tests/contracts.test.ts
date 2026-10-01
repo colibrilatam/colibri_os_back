@@ -81,10 +81,21 @@ describe('Auth Contracts', () => {
   });
 
   describe('AuthResponse', () => {
+    const validUser = {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      email: 'test@mail.com',
+      fullName: 'Test User',
+      role: 'entrepreneur',
+      status: 'active',
+      provider: 'local',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    };
+
     it('accepts valid auth response', () => {
       const result = AuthResponseSchema.safeParse({
         message: 'Usuario logueado con exito',
-        token: 'eyJhbGciOiJIUzI1NiJ9.test',
+        user: validUser,
       });
       expect(result.success).toBe(true);
     });
@@ -92,12 +103,12 @@ describe('Auth Contracts', () => {
     it('rejects response with capital M (backend bug)', () => {
       const result = AuthResponseSchema.safeParse({
         Message: 'Usuario logueado con exito',
-        token: 'eyJhbGciOiJIUzI1NiJ9.test',
+        user: validUser,
       });
       expect(result.success).toBe(false);
     });
 
-    it('rejects missing token', () => {
+    it('rejects missing user', () => {
       const result = AuthResponseSchema.safeParse({
         message: 'Login exitoso',
       });
@@ -256,9 +267,19 @@ describe('Negative Tests - Contract Divergence', () => {
   });
 
   it('incompatible contract version -> frontend detects structural mismatch', () => {
+    const validUser = {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      email: 'test@mail.com',
+      fullName: 'Test User',
+      role: 'entrepreneur',
+      status: 'active',
+      provider: 'local',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    };
     const v1Response = {
       message: 'Exito',
-      token: 'abc123',
+      user: validUser,
     };
     const v2Response = {
       success: true,
