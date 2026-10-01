@@ -1,0 +1,74 @@
+name: Contracts
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Fetch base ref and prepare previous specs
+        run: |
+          BASE_REF="${{ github.base_ref }}"
+          if [ -z "$BASE_REF" ]; then
+            echo "workflow_dispatch sin base_ref; usando 'dev' como fallback"
+            BASE_REF="dev"
+          fi
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          git show "origin/$BASE_REF:packages/contracts/src/openapi.json" \
+            > packages/contracts/src/.previous-openapi.json
+          git show "origin/$BASE_REF:packages/contracts/CONTRACT_VERSION.json" \
+            > /tmp/old-contract-version.json
+
+      - name: Regenerate contract
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          JWT_SECRET: ci-test-secret-not-for-production-minimum-32-chars-long
+          JWT_EXPIRES_IN: 1h
+          AUTH_COOKIE_MAX_AGE_MS: 3600000
+          SWAGGER_ENABLED: "false"
+          FRONTEND_URL: http://localhost:3000
+          GOOGLE_CLIENT_ID: ci-dummy-client-id
+          GOOGLE_CLIENT_SECRET: ci-dummy-client-secret
+          GOOGLE_CALLBACK_URL: http://localhost:3000/api/v1/auth/google/callback
+          CLOUDINARY_CLOUD_NAME: ci-dummy
+          CLOUDINARY_API_KEY: ci-dummy
+          CLOUDINARY_API_SECRET: ci-dummy
+        run: npm run contract:generate
+
+      - name: Breaking change check
+        id: breaking
+        continue-on-error: true
+        run: npm run contract:check
+
+      - name: Version bump check
+        id: version
+        if: steps.breaking.outcome == 'failure'
+        continue-on-error: true
+        env:
+          BREAKING: "true"
+        run: npm run check-version-bump -w packages/contracts -- --old=/tmp/old-contract-version.json --new=packages/contracts/CONTRACT_VERSION.json --breaking=true
+
+      - name: Fail on breaking without version bump
+        if: steps.breaking.outcome == 'failure' && steps.version.outcome == 'failure'
+        run: |
+          echo "::error::Breaking changes detectados y CONTRACT_VERSION.json no bumpeó MAJOR."
+          exit 1
+
+      - name: Drift check (committed vs generated)
+        run: |
+          git diff --exit-code packages/contracts/src/openapi.json \
+                         packages/contracts/src/generated/schemas.ts
