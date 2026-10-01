@@ -7,6 +7,7 @@ import express from 'express';
 import { AppModule } from './app.module';
 import { PayloadTooLargeFilter } from './common/filters/payload-too-large.filter';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import { ContractVersionInterceptor } from './common/interceptors/contract-version.interceptor';
 import { buildSwaggerConfig } from './config/swagger.config';
 
 const logger = new Logger('Bootstrap');
@@ -82,6 +83,11 @@ async function bootstrap(): Promise<void> {
   // REQUEST_TIMEOUT_MS, se corta y se responde 408 en vez de dejar la
   // conexión colgada indefinidamente.
   app.useGlobalInterceptors(new TimeoutInterceptor());
+
+  // ARCH-003: agrega header X-Contract-Version a cada response exitosa.
+  // Se registra después de TimeoutInterceptor para que el header esté
+  // presente incluso en responses de timeout (aunque timeout lanza excepción).
+  app.useGlobalInterceptors(new ContractVersionInterceptor());
 
   // OPS-003: si el payload excede el límite configurado arriba, responder
   // 413 de forma prolija en vez de un 500 genérico.
