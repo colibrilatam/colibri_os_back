@@ -3,6 +3,14 @@ import { createTestApp, cleanDatabase, closeTestApp, E2eContext } from '../e2e-s
 import { Fixtures } from '../fixtures';
 import { UserRole, UserStatus } from 'src/users/entities/user.entity';
 
+function extractCookie(res: request.Response, name: string): string | null {
+  const cookies = res.headers['set-cookie'];
+  if (!cookies) return null;
+  const cookie = cookies.find((c: string) => c.startsWith(`${name}=`));
+  if (!cookie) return null;
+  return cookie.split(';')[0].split('=')[1];
+}
+
 describe('IAM-001 — Revocación de sesión (e2e)', () => {
   let ctx: E2eContext;
   let fixtures: Fixtures;
@@ -44,7 +52,7 @@ describe('IAM-001 — Revocación de sesión (e2e)', () => {
         .expect(401);
     });
 
-    it('un usuario activo recibe token + refreshToken', async () => {
+    it('un usuario activo recibe user + cookie de sesión', async () => {
       const user = await fixtures.createUser(UserRole.ENTREPRENEUR);
 
       const res = await request(server())
@@ -52,8 +60,10 @@ describe('IAM-001 — Revocación de sesión (e2e)', () => {
         .send({ email: user.email, password: 'Test@1234' })
         .expect(201);
 
-      expect(res.body.token).toBeDefined();
-      expect(res.body.refreshToken).toBeDefined();
+      expect(res.body.user).toBeDefined();
+      expect(res.body.user.id).toBe(user.id);
+      expect(res.body.user.email).toBe(user.email);
+      expect(extractCookie(res, 'colibri_access_token')).not.toBeNull();
     });
   });
 
@@ -157,7 +167,7 @@ describe('IAM-001 — Revocación de sesión (e2e)', () => {
   });
 
   describe('POST /api/v1/auth/refresh', () => {
-    it('emite un nuevo par de tokens y rota el refresh token', async () => {
+    it('emite un nuevo access token en cookie y rota el refresh token', async () => {
       const user = await fixtures.createUser(UserRole.ENTREPRENEUR);
       const refreshToken = await fixtures.issueRefreshToken(user);
 
@@ -166,9 +176,8 @@ describe('IAM-001 — Revocación de sesión (e2e)', () => {
         .send({ refreshToken })
         .expect(201);
 
-      expect(res.body.token).toBeDefined();
-      expect(res.body.refreshToken).toBeDefined();
-      expect(res.body.refreshToken).not.toBe(refreshToken);
+      expect(res.body.message).toBeDefined();
+      expect(extractCookie(res, 'colibri_access_token')).not.toBeNull();
     });
 
     it('rechaza la reutilización de un refresh token ya rotado', async () => {
@@ -201,7 +210,7 @@ describe('IAM-001 — Revocación de sesión (e2e)', () => {
       const user = await fixtures.createUser(UserRole.ENTREPRENEUR);
       const refreshToken = await fixtures.issueRefreshToken(user);
 
-      await request(server()).post('/api/v1/auth/logout').send({ refreshToken }).expect(201);
+      await request(server()).post('/api/v1/auth/logout').send({ refreshToken }).expect(200);
       await request(server()).post('/api/v1/auth/refresh').send({ refreshToken }).expect(401);
     });
   });
