@@ -13,6 +13,7 @@
     "generate-zod": "tsx scripts/generate-zod.ts",
     "copy-contracts": "tsx scripts/copy-contracts.ts",
     "breaking-check": "tsx scripts/breaking-check.ts",
+    "check-version-bump": "tsx scripts/check-version-bump.ts",
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest"
