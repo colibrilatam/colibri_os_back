@@ -27,10 +27,23 @@ jobs:
             BASE_REF="dev"
           fi
           git fetch --no-tags --depth=1 origin "$BASE_REF"
-          git show "origin/$BASE_REF:packages/contracts/src/openapi.json" \
-            > packages/contracts/src/.previous-openapi.json
-          git show "origin/$BASE_REF:packages/contracts/CONTRACT_VERSION.json" \
-            > /tmp/old-contract-version.json
+
+          # Si la rama base no tiene el contrato, no hay contra qué comparar.
+          # Se salta el breaking check hasta el próximo PR que modifique el contrato.
+          if git cat-file -e "origin/$BASE_REF:packages/contracts/src/openapi.json" 2>/dev/null; then
+            git show "origin/$BASE_REF:packages/contracts/src/openapi.json" \
+              > packages/contracts/src/.previous-openapi.json
+            echo "PREVIOUS_EXISTS=true" >> "$GITHUB_ENV"
+            echo "Se encontró openapi.json en origin/$BASE_REF."
+          else
+            echo "PREVIOUS_EXISTS=false" >> "$GITHUB_ENV"
+            echo "::warning::origin/$BASE_REF no tiene openapi.json todavía. Se salta el breaking check (primera vez)."
+          fi
+
+          if git cat-file -e "origin/$BASE_REF:packages/contracts/CONTRACT_VERSION.json" 2>/dev/null; then
+            git show "origin/$BASE_REF:packages/contracts/CONTRACT_VERSION.json" \
+              > /tmp/old-contract-version.json
+          fi
 
       - name: Regenerate contract
         env:
@@ -51,12 +64,13 @@ jobs:
 
       - name: Breaking change check
         id: breaking
+        if: env.PREVIOUS_EXISTS == 'true'
         continue-on-error: true
         run: npm run contract:check
 
       - name: Version bump check
         id: version
-        if: steps.breaking.outcome == 'failure'
+        if: env.PREVIOUS_EXISTS == 'true' && steps.breaking.outcome == 'failure'
         continue-on-error: true
         env:
           BREAKING: "true"
