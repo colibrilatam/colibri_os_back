@@ -62,7 +62,7 @@ const ENUMS: { name: string; values: string[] }[] = [
       'guest',
     ],
   },
-  { name: 'UserStatus', values: ['active', 'inactive', 'suspended'] },
+  { name: 'UserStatus', values: ['active', 'inactive', 'suspended', 'pending_profile'] },
   { name: 'AuthProvider', values: ['local', 'google'] },
   { name: 'ProjectStatus', values: ['active', 'inactive', 'closed', 'suspended'] },
   { name: 'TrajectoryStatus', values: ['on_track', 'at_risk', 'stalled', 'completed'] },

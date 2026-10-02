@@ -5,7 +5,7 @@
 import { z } from 'zod';
 
 export const UserRoleSchema = z.enum(['entrepreneur', 'mentor', 'evaluator', 'mecenas_semilla', 'mecenas_fundacional', 'mecenas_cambio', 'admin', 'guest']);
-export const UserStatusSchema = z.enum(['active', 'inactive', 'suspended']);
+export const UserStatusSchema = z.enum(['active', 'inactive', 'suspended', 'pending_profile']);
 export const AuthProviderSchema = z.enum(['local', 'google']);
 export const ProjectStatusSchema = z.enum(['active', 'inactive', 'closed', 'suspended']);
 export const TrajectoryStatusSchema = z.enum(['on_track', 'at_risk', 'stalled', 'completed']);
@@ -20,7 +20,7 @@ export const UserSchema = z.strictObject({
   email: z.email(),
   fullName: z.string(),
   role: UserRoleSchema,
-  status: z.enum(["active", "inactive", "suspended", "pending_profile"]),
+  status: UserStatusSchema,
   provider: AuthProviderSchema,
   linkedinId: z.string().nullable().optional(),
   googleId: z.string().nullable().optional(),
