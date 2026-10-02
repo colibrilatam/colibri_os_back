@@ -58,8 +58,7 @@ export class UsersService {
     if (!userFound) {
       throw new NotFoundException('Usuario no encontrado');
     }
-    const { password, ...userData } = userFound;
-    return userData;
+    return userFound;
   }
 
   async update(
