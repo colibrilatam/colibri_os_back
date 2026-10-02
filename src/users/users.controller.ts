@@ -7,6 +7,8 @@ import {
   Delete,
   UseGuards,
   ParseUUIDPipe,
+  ClassSerializerInterceptor,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
@@ -26,6 +28,7 @@ import { ChangeUserRoleDto } from './dtos/change-user-role.dto';
 import { ChangeUserStatusDto } from './dtos/change-user-status.dto';
 import { ChangePasswordDto } from './dtos/change-password.dto';
 
+@UseInterceptors(ClassSerializerInterceptor)
 @ApiTags('Users')
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
