@@ -45,7 +45,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleExchangeResponseDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -771,27 +778,6 @@
           "code"
         ]
       },
-      "LoginDto": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "description": "Correo electrónico del usuario registrado",
-            "example": "juanperez@mail.com",
-            "format": "email"
-          },
-          "password": {
-            "type": "string",
-            "description": "Contraseña del usuario",
-            "example": "MiPass@123",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "email",
-          "password"
-        ]
-      },
       "UserResponseDto": {
         "type": "object",
         "properties": {
@@ -892,6 +878,51 @@
           "provider",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "GoogleExchangeResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Sesión iniciada con éxito"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponseDto"
+          },
+          "requiresProfileCompletion": {
+            "type": "boolean"
+          },
+          "profileCompletionToken": {
+            "type": "string",
+            "description": "Solo presente cuando requiresProfileCompletion=true. Usar solo en memoria, nunca persistir."
+          }
+        },
+        "required": [
+          "message",
+          "user",
+          "requiresProfileCompletion"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Correo electrónico del usuario registrado",
+            "example": "juanperez@mail.com",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "description": "Contraseña del usuario",
+            "example": "MiPass@123",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email",
+          "password"
         ]
       },
       "AuthResponseDto": {

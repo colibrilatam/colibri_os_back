@@ -109,6 +109,17 @@ export const CompleteProfileResponseSchema = z.strictObject({
   user: UserSchema,
 });
 
+export const GoogleExchangeRequestSchema = z.strictObject({
+  code: z.string(),
+});
+
+export const GoogleExchangeResponseSchema = z.strictObject({
+  message: z.string(),
+  user: UserSchema,
+  requiresProfileCompletion: z.boolean(),
+  profileCompletionToken: z.string().optional(),
+});
+
 export const MessageResponseSchema = z.strictObject({
   message: z.string(),
 });
@@ -127,4 +138,6 @@ export type Project = z.infer<typeof ProjectSchema>;
 export type CreateProjectRequest = z.infer<typeof CreateProjectRequestSchema>;
 export type UpdateProjectRequest = z.infer<typeof UpdateProjectRequestSchema>;
 export type CompleteProfileResponse = z.infer<typeof CompleteProfileResponseSchema>;
+export type GoogleExchangeRequest = z.infer<typeof GoogleExchangeRequestSchema>;
+export type GoogleExchangeResponse = z.infer<typeof GoogleExchangeResponseSchema>;
 export type MessageResponse = z.infer<typeof MessageResponseSchema>;

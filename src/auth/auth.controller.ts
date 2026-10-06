@@ -17,6 +17,7 @@ import { clearAuthCookie, setAuthCookie } from './cookie.helper';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { CompleteProfileResponseDto } from './dto/complete-profile-response.dto';
+import { GoogleExchangeResponseDto } from './dto/google-exchange-response.dto';
 import { MessageResponseDto } from './dto/message-response.dto';
 import type { Request, Response } from 'express';
 import type { IGoogleUser } from './interfaces/googleUser.interface';
@@ -80,6 +81,7 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('google/exchange')
   @HttpCode(200)
+  @ApiOkResponse({ type: GoogleExchangeResponseDto })
   async exchangeGoogleCode(
     @Body() dto: GoogleExchangeDto,
     @Res({ passthrough: true }) res: Response,
