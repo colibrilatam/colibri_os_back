@@ -25,6 +25,7 @@ import { CompleteProfileDto } from './dto/complete-profile.dto';
 import { OAuthExchangeService } from './oauth/oauth-exchange.service';
 import { Throttle } from '@nestjs/throttler';
 import { Ip } from '@nestjs/common';
+import { UserStatus } from '../users/entities/user.entity';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { PasswordResetService } from './password-reset/password-reset.service';
@@ -56,27 +57,15 @@ export class AuthController {
   @Get('google/callback')
   @ApiResponse({
     status: 302,
-    description: 'Redirect al frontend con cookie HttpOnly colibri_access_token',
+    description: 'Redirect al frontend con un código de intercambio opaco de un solo uso',
   })
   async getGoogleCallback(@Req() req: GoogleAuthenticatedRequest, @Res() res: Response) {
-  
-  const result = await this.authService.googleLogin(req.user);
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  if (result.requiresProfileCompletion) {
-    const redirectUrl = `${process.env.FRONTEND_URL}/login/google-callback?tempToken=${result.tempToken}`;
-    return res.redirect(redirectUrl);
+    const { user } = await this.authService.googleLogin(req.user);
+    const code = await this.oauthExchangeService.issue(user);
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/login/google-callback?code=${encodeURIComponent(code)}`,
+    );
   }
-  res.cookie('colibri_access_token', result.token, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
-    maxAge: Number(process.env.AUTH_COOKIE_MAX_AGE_MS ?? 3_600_000),
-    path: '/',
-  });
-
-  return res.redirect(`${process.env.FRONTEND_URL}/login/google-callback?role=${result.role}`);
-}
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('google/exchange')
@@ -87,9 +76,23 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const user = await this.oauthExchangeService.consume(dto.code);
+
+    if (user.status === UserStatus.PENDING_PROFILE) {
+      return {
+        message: 'Perfil pendiente de completar',
+        user: this.authService.toPublicUser(user),
+        requiresProfileCompletion: true,
+        profileCompletionToken: this.authService.issueProfileCompletionToken(user),
+      };
+    }
+
     const result = this.authService.buildAuthResult(user);
     setAuthCookie(res, result.token);
-    return { message: 'Sesión iniciada con éxito', user: result.user };
+    return {
+      message: 'Sesión iniciada con éxito',
+      user: result.user,
+      requiresProfileCompletion: false,
+    };
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })

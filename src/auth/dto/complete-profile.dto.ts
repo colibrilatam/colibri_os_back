@@ -1,4 +1,4 @@
-import { IsEnum, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { UserRole, Gender } from '../../users/entities/user.entity';
 
 export class CompleteProfileDto {
@@ -9,5 +9,6 @@ export class CompleteProfileDto {
   gender: Gender;
 
   @IsString()
-  tempToken: string;
+  @IsNotEmpty()
+  profileCompletionToken: string;
 }
