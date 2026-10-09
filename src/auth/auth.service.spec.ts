@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import { UnauthorizedException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { UnauthorizedException, InternalServerErrorException, Logger, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UsersService } from 'src/users/users.service';
 import { SessionsService } from './sessions/sessions.service';
@@ -242,6 +242,54 @@ describe('AuthService — CODE-006', () => {
       expect(jwtService.sign).toHaveBeenCalled();
       expect(result.token).toBe('new-access-token');
       expect(result.user).toEqual(service.toPublicUser(updatedUser));
+    });
+  });
+
+  describe('createUser — role whitelist', () => {
+    const baseCreate = {
+      email: 'new@colibri.com',
+      password: 'Abcdef1!',
+      confirmPassword: 'Abcdef1!',
+      fullName: 'New User',
+    };
+
+    it('sin role → crea con ENTREPRENEUR', async () => {
+      usersService.create.mockResolvedValue({ ...mockUser, email: baseCreate.email, role: UserRole.ENTREPRENEUR });
+      jwtService.sign.mockReturnValue('token');
+
+      const result = await service.createUser(baseCreate as any);
+
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ role: UserRole.ENTREPRENEUR }),
+      );
+      expect(result.user.role).toBe(UserRole.ENTREPRENEUR);
+    });
+
+    it('con role: EVALUATOR → crea con EVALUATOR', async () => {
+      usersService.create.mockResolvedValue({ ...mockUser, email: baseCreate.email, role: UserRole.EVALUATOR });
+      jwtService.sign.mockReturnValue('token');
+
+      const result = await service.createUser({ ...baseCreate, role: UserRole.EVALUATOR });
+
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ role: UserRole.EVALUATOR }),
+      );
+      expect(result.user.role).toBe(UserRole.EVALUATOR);
+    });
+
+    it('con role: ADMIN → lanza BadRequestException y NO llama a userService.create', async () => {
+      await expect(service.createUser({ ...baseCreate, role: UserRole.ADMIN })).rejects.toBeInstanceOf(BadRequestException);
+      expect(usersService.create).not.toHaveBeenCalled();
+    });
+
+    it('con role: MENTOR → lanza BadRequestException y NO llama a userService.create', async () => {
+      await expect(service.createUser({ ...baseCreate, role: UserRole.MENTOR })).rejects.toBeInstanceOf(BadRequestException);
+      expect(usersService.create).not.toHaveBeenCalled();
+    });
+
+    it('con role: MECENAS_SEMILLA → lanza BadRequestException', async () => {
+      await expect(service.createUser({ ...baseCreate, role: UserRole.MECENAS_SEMILLA })).rejects.toBeInstanceOf(BadRequestException);
+      expect(usersService.create).not.toHaveBeenCalled();
     });
   });
 });

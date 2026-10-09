@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, IsStrongPassword, Length } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsStrongPassword, Length, IsOptional, IsIn } from 'class-validator';
 import { UserRole } from '../../users/entities/user.entity';
 
 export class CreateUserDto {
@@ -41,11 +41,16 @@ export class CreateUserDto {
   fullName: string;
 
   @ApiProperty({
-    enum: UserRole,
-    description: 'Rol del usuario',
-    example: 'ENTREPRENEUR',
-    nullable: false,
+    enum: [UserRole.ENTREPRENEUR, UserRole.EVALUATOR],
+    description:
+      'Rol con el que se registra el usuario. Solo se permiten roles no privilegiados. Default: entrepreneur.',
+    example: UserRole.ENTREPRENEUR,
+    required: false,
+    nullable: true,
   })
-  @IsString()
-  role: UserRole;
+  @IsOptional()
+  @IsIn([UserRole.ENTREPRENEUR, UserRole.EVALUATOR], {
+    message: `role debe ser uno de: ${UserRole.ENTREPRENEUR}, ${UserRole.EVALUATOR}`,
+  })
+  role?: UserRole;
 }

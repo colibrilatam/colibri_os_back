@@ -44,7 +44,7 @@ export const RegisterRequestSchema = z.strictObject({
   password: z.string().min(8).max(15),
   confirmPassword: z.string(),
   fullName: z.string(),
-  role: UserRoleSchema,
+  role: z.enum(["entrepreneur", "evaluator"]).nullable().optional(),
 });
 
 export const RegisterResponseSchema = z.strictObject({

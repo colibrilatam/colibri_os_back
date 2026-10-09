@@ -5,5 +5,5 @@ export interface IAuthCreate {
   fullName: string;
   password: string;
   confirmPassword: string;
-  role: UserRole;
+  role?: UserRole;
 }

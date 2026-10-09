@@ -13,6 +13,11 @@ import { SessionsService } from './sessions/sessions.service';
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
+  private static readonly ALLOWED_SIGNUP_ROLES = new Set<UserRole>([
+    UserRole.ENTREPRENEUR,
+    UserRole.EVALUATOR,
+  ]);
+
   constructor(
     private readonly userService: UsersService,
     private readonly jwtService: JwtService,
@@ -55,13 +60,19 @@ export class AuthService {
     if (user.password !== user.confirmPassword) {
       throw new BadRequestException('Las contraseñas deben ser iguales');
     }
+
+    const requestedRole = user.role ?? UserRole.ENTREPRENEUR;
+    if (!AuthService.ALLOWED_SIGNUP_ROLES.has(requestedRole)) {
+      throw new BadRequestException('Rol no permitido en registro');
+    }
+
     const passwordHash = await bcrypt.hash(user.password, 10);
     const userCreate = await this.userService.create({
       email: user.email,
       password: passwordHash,
       fullName: user.fullName,
       provider: AuthProvider.LOCAL,
-      role: user.role || UserRole.ENTREPRENEUR,
+      role: requestedRole,
     });
     return {
       message: 'Usuario registrado con éxito',

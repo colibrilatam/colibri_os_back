@@ -751,7 +751,7 @@
   "info": {
     "title": "Colibrí OS API",
     "description": "API del sistema Colibrí OS — RaaS (Reputación como Servicio)",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "contact": {}
   },
   "tags": [],
@@ -973,25 +973,18 @@
             "type": "string",
             "enum": [
               "entrepreneur",
-              "mentor",
-              "evaluator",
-              "mecenas_semilla",
-              "mecenas_fundacional",
-              "mecenas_cambio",
-              "admin",
-              "guest"
+              "evaluator"
             ],
-            "description": "Rol del usuario",
-            "example": "ENTREPRENEUR",
-            "nullable": false
+            "description": "Rol con el que se registra el usuario. Solo se permiten roles no privilegiados. Default: entrepreneur.",
+            "example": "entrepreneur",
+            "nullable": true
           }
         },
         "required": [
           "email",
           "password",
           "confirmPassword",
-          "fullName",
-          "role"
+          "fullName"
         ]
       },
       "RegisterResponseDto": {
