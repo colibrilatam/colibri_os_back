@@ -61,18 +61,12 @@ export class AuthService {
       password: passwordHash,
       fullName: user.fullName,
       provider: AuthProvider.LOCAL,
-      role: UserRole.ENTREPRENEUR,
+      role: user.role || UserRole.ENTREPRENEUR,
     });
     return {
       message: 'Usuario registrado con éxito',
       token: this.generateToken(userCreate),
-      user: {
-        id: userCreate.id,
-        email: userCreate.email,
-        fullName: userCreate.fullName,
-        role: userCreate.role,
-        status: userCreate.status,
-      },
+      user: this.toPublicUser(userCreate),
     };
   }
 
@@ -92,13 +86,7 @@ export class AuthService {
       return {
         message: 'Usuario logueado con éxito',
         token,
-        user: {
-          id: userFound.id,
-          email: userFound.email,
-          fullName: userFound.fullName,
-          role: userFound.role,
-          status: userFound.status,
-        },
+        user: this.toPublicUser(userFound),
       };
     }
   }

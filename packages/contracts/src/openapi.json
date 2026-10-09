@@ -968,13 +968,30 @@
             "type": "string",
             "description": "Nombre completo del usuario",
             "example": "Juan Perez"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "entrepreneur",
+              "mentor",
+              "evaluator",
+              "mecenas_semilla",
+              "mecenas_fundacional",
+              "mecenas_cambio",
+              "admin",
+              "guest"
+            ],
+            "description": "Rol del usuario",
+            "example": "ENTREPRENEUR",
+            "nullable": false
           }
         },
         "required": [
           "email",
           "password",
           "confirmPassword",
-          "fullName"
+          "fullName",
+          "role"
         ]
       },
       "RegisterResponseDto": {

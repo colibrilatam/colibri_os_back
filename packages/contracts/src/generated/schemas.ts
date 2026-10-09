@@ -44,6 +44,7 @@ export const RegisterRequestSchema = z.strictObject({
   password: z.string().min(8).max(15),
   confirmPassword: z.string(),
   fullName: z.string(),
+  role: UserRoleSchema,
 });
 
 export const RegisterResponseSchema = z.strictObject({
