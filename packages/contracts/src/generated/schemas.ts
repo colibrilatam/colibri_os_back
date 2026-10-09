@@ -19,7 +19,7 @@ export const UserSchema = z.strictObject({
   id: z.uuid(),
   email: z.email(),
   fullName: z.string(),
-  role: UserRoleSchema,
+  role: UserRoleSchema.nullable(),
   status: UserStatusSchema,
   provider: AuthProviderSchema,
   linkedinId: z.string().nullable().optional(),

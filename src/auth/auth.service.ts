@@ -105,7 +105,6 @@ export class AuthService {
 
   async googleLogin(user: IGoogleUser): Promise<{ user: User; requiresProfileCompletion: boolean }> {
   let userFound = await this.userService.findByEmail(user.email);
-
   if (!userFound) {
     try {
       userFound = await this.userService.create({
@@ -148,8 +147,19 @@ toPublicUser(user: User) {
     id: user.id,
     email: user.email,
     fullName: user.fullName,
-    role: user.role,
+    role: user.role, // puede ser null en PENDING_PROFILE
     status: user.status,
+    provider: user.provider,
+    linkedinId: user.linkedinId,
+    googleId: user.googleId,
+    cryptoWallet: user.cryptoWallet,
+    credentialsWallet: user.credentialsWallet,
+    adnHash: user.adnHash,
+    bio: user.bio,
+    avatar: user.avatar,
+    gender: user.gender,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
   };
 }
 

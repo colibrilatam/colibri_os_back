@@ -21,7 +21,7 @@
         "parameters": [],
         "responses": {
           "302": {
-            "description": "Redirect al frontend con cookie HttpOnly colibri_access_token"
+            "description": "Redirect al frontend con un código de intercambio opaco de un solo uso"
           }
         },
         "tags": [
@@ -803,7 +803,9 @@
               "mecenas_cambio",
               "admin",
               "guest"
-            ]
+            ],
+            "nullable": true,
+            "description": "Rol del usuario. Null mientras el usuario está en estado PENDING_PROFILE."
           },
           "status": {
             "type": "string",

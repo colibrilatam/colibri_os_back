@@ -11,7 +11,10 @@ export class UserResponseDto {
   @ApiProperty()
   fullName: string;
 
-  @ApiProperty({ enum: UserRole })
+  @ApiProperty({ enum: UserRole,  
+    nullable: true,
+    description:
+      'Rol del usuario. Null mientras el usuario está en estado PENDING_PROFILE.', })
   role: UserRole;
 
   @ApiProperty({ enum: UserStatus })
