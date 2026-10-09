@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import { IGoogleUser } from './interfaces/googleUser.interface';
@@ -11,6 +11,13 @@ import { SessionsService } from './sessions/sessions.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
+  private static readonly ALLOWED_SIGNUP_ROLES = new Set<UserRole>([
+    UserRole.ENTREPRENEUR,
+    UserRole.EVALUATOR,
+  ]);
+
   constructor(
     private readonly userService: UsersService,
     private readonly jwtService: JwtService,
@@ -45,13 +52,7 @@ export class AuthService {
   buildAuthResult(user: User) {
     return {
       token: this.generateToken(user),
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        status: user.status,
-      },
+      user: this.toPublicUser(user),
     };
   }
 
@@ -59,24 +60,24 @@ export class AuthService {
     if (user.password !== user.confirmPassword) {
       throw new BadRequestException('Las contraseñas deben ser iguales');
     }
+
+    const requestedRole = user.role ?? UserRole.ENTREPRENEUR;
+    if (!AuthService.ALLOWED_SIGNUP_ROLES.has(requestedRole)) {
+      throw new BadRequestException('Rol no permitido en registro');
+    }
+
     const passwordHash = await bcrypt.hash(user.password, 10);
     const userCreate = await this.userService.create({
       email: user.email,
       password: passwordHash,
       fullName: user.fullName,
       provider: AuthProvider.LOCAL,
-      role: UserRole.ENTREPRENEUR,
+      role: requestedRole,
     });
     return {
       message: 'Usuario registrado con éxito',
       token: this.generateToken(userCreate),
-      user: {
-        id: userCreate.id,
-        email: userCreate.email,
-        fullName: userCreate.fullName,
-        role: userCreate.role,
-        status: userCreate.status,
-      },
+      user: this.toPublicUser(userCreate),
     };
   }
 
@@ -96,76 +97,84 @@ export class AuthService {
       return {
         message: 'Usuario logueado con éxito',
         token,
-        user: {
-          id: userFound.id,
-          email: userFound.email,
-          fullName: userFound.fullName,
-          role: userFound.role,
-          status: userFound.status,
-        },
+        user: this.toPublicUser(userFound),
       };
     }
   }
 
-  async googleLogin(user: IGoogleUser): Promise<{ token?: string; tempToken?: string; requiresProfileCompletion: boolean, role?: UserRole | null }> {
-    
+  async googleLogin(user: IGoogleUser): Promise<{ user: User; requiresProfileCompletion: boolean }> {
   let userFound = await this.userService.findByEmail(user.email);
-  
-
   if (!userFound) {
-    // Crear usuario pendiente
-    try{
+    try {
       userFound = await this.userService.create({
-      email: user.email,
-      fullName: user.fullName,
-      googleId: user.googleId,
-      password: null,
-      avatar: user.avatar,
-      provider: AuthProvider.GOOGLE,
-      role: null,
-      status: UserStatus.PENDING_PROFILE,
-    });
-    const tempToken = this.jwtService.sign(
-      { sub: userFound.id, purpose: 'profile-completion' },
-      { expiresIn: '1h' }
-    );
-    return { tempToken, requiresProfileCompletion: true };
-    }
-    catch(e){
-      console.log(e)
+        email: user.email,
+        fullName: user.fullName,
+        googleId: user.googleId,
+        password: null,
+        avatar: user.avatar,
+        provider: AuthProvider.GOOGLE,
+        role: null,
+        status: UserStatus.PENDING_PROFILE,
+      });
+    } catch (e) {
+      this.logger.warn(
+        `Race condition en googleLogin para ${user.email}; reintentando búsqueda`,
+      );
+      userFound = await this.userService.findByEmail(user.email);
+      if (!userFound) {
+        this.logger.error(`No se pudo crear ni encontrar el usuario Google ${user.email}`);
+        throw new InternalServerErrorException('Error durante la autenticación con Google');
       }
-    return { requiresProfileCompletion: true, tempToken: undefined };
+    }
   }
 
-  if (userFound.status === UserStatus.PENDING_PROFILE) {
-    const tempToken = this.jwtService.sign(
-      { sub: userFound.id, purpose: 'profile-completion' },
-      { expiresIn: '1h' }
-    );
-    return { tempToken, requiresProfileCompletion: true };
-  }
+  return {
+    user: userFound,
+    requiresProfileCompletion: userFound.status === UserStatus.PENDING_PROFILE,
+  };
+}
 
-  // Usuario activo → login normal
-  const token = this.generateToken(userFound);
-  return { token, requiresProfileCompletion: false, role:userFound.role };
+issueProfileCompletionToken(user: User): string {
+  return this.jwtService.sign(
+    { sub: user.id, purpose: 'profile-completion' },
+    { expiresIn: '1h' },
+  );
+}
+
+toPublicUser(user: User) {
+  return {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    role: user.role, // puede ser null en PENDING_PROFILE
+    status: user.status,
+    provider: user.provider,
+    linkedinId: user.linkedinId,
+    googleId: user.googleId,
+    cryptoWallet: user.cryptoWallet,
+    credentialsWallet: user.credentialsWallet,
+    adnHash: user.adnHash,
+    bio: user.bio,
+    avatar: user.avatar,
+    gender: user.gender,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
 }
 
 async completeProfile(dto: CompleteProfileDto) {
+  let payload: { sub: string; purpose?: string };
   try {
-    const payload = this.jwtService.verify(dto.tempToken);
-    if (payload.purpose !== 'profile-completion') {
-      throw new UnauthorizedException('Token inválido');
-    }
-    const updatedUser = await this.userService.completeProfile(
-      payload.sub,
-      dto.role,
-      dto.gender,
-    );
-    const token = this.generateToken(updatedUser);
-    return { token, user: updatedUser };
+    payload = this.jwtService.verify(dto.profileCompletionToken);
   } catch {
     throw new UnauthorizedException('Token expirado o inválido');
   }
+  if (payload.purpose !== 'profile-completion') {
+    throw new UnauthorizedException('Token inválido');
+  }
+  const updatedUser = await this.userService.completeProfile(payload.sub, dto.role, dto.gender);
+  const token = this.generateToken(updatedUser);
+  return { token, user: this.toPublicUser(updatedUser) };
 }
 
   /** Rota un refresh token válido y emite un nuevo par de tokens. */

@@ -44,6 +44,8 @@ const RENAME: Record<string, string> = {
   UpdateProjectDto: 'UpdateProjectRequest',
   CompleteProfileResponseDto: 'CompleteProfileResponse',
   MessageResponseDto: 'MessageResponse',
+  GoogleExchangeDto: 'GoogleExchangeRequest',
+  GoogleExchangeResponseDto: 'GoogleExchangeResponse',
 };
 
 // Enums que exportamos con nombre propio. Los mas especificos primero
@@ -177,6 +179,8 @@ const ORDER = [
   'CreateProjectDto',
   'UpdateProjectDto',
   'CompleteProfileResponseDto',
+  'GoogleExchangeDto',
+  'GoogleExchangeResponseDto',
   'MessageResponseDto',
 ];
 
@@ -200,6 +204,8 @@ const TYPES: [string, string][] = [
   ['CreateProjectRequest', 'CreateProjectRequestSchema'],
   ['UpdateProjectRequest', 'UpdateProjectRequestSchema'],
   ['CompleteProfileResponse', 'CompleteProfileResponseSchema'],
+  ['GoogleExchangeRequest', 'GoogleExchangeRequestSchema'],
+  ['GoogleExchangeResponse', 'GoogleExchangeResponseSchema'],
   ['MessageResponse', 'MessageResponseSchema'],
 ];
 

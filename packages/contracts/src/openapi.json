@@ -21,7 +21,7 @@
         "parameters": [],
         "responses": {
           "302": {
-            "description": "Redirect al frontend con cookie HttpOnly colibri_access_token"
+            "description": "Redirect al frontend con un código de intercambio opaco de un solo uso"
           }
         },
         "tags": [
@@ -45,7 +45,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleExchangeResponseDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -744,7 +751,7 @@
   "info": {
     "title": "Colibrí OS API",
     "description": "API del sistema Colibrí OS — RaaS (Reputación como Servicio)",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "contact": {}
   },
   "tags": [],
@@ -769,27 +776,6 @@
         },
         "required": [
           "code"
-        ]
-      },
-      "LoginDto": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "description": "Correo electrónico del usuario registrado",
-            "example": "juanperez@mail.com",
-            "format": "email"
-          },
-          "password": {
-            "type": "string",
-            "description": "Contraseña del usuario",
-            "example": "MiPass@123",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "email",
-          "password"
         ]
       },
       "UserResponseDto": {
@@ -817,7 +803,9 @@
               "mecenas_cambio",
               "admin",
               "guest"
-            ]
+            ],
+            "nullable": true,
+            "description": "Rol del usuario. Null mientras el usuario está en estado PENDING_PROFILE."
           },
           "status": {
             "type": "string",
@@ -894,6 +882,51 @@
           "updatedAt"
         ]
       },
+      "GoogleExchangeResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Sesión iniciada con éxito"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponseDto"
+          },
+          "requiresProfileCompletion": {
+            "type": "boolean"
+          },
+          "profileCompletionToken": {
+            "type": "string",
+            "description": "Solo presente cuando requiresProfileCompletion=true. Usar solo en memoria, nunca persistir."
+          }
+        },
+        "required": [
+          "message",
+          "user",
+          "requiresProfileCompletion"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Correo electrónico del usuario registrado",
+            "example": "juanperez@mail.com",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "description": "Contraseña del usuario",
+            "example": "MiPass@123",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
       "AuthResponseDto": {
         "type": "object",
         "properties": {
@@ -935,6 +968,16 @@
             "type": "string",
             "description": "Nombre completo del usuario",
             "example": "Juan Perez"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "entrepreneur",
+              "evaluator"
+            ],
+            "description": "Rol con el que se registra el usuario. Solo se permiten roles no privilegiados. Default: entrepreneur.",
+            "example": "entrepreneur",
+            "nullable": true
           }
         },
         "required": [
