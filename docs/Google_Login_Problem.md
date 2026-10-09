@@ -1,5 +1,10 @@
 # Informe de Problema: Login con Google - Token Undefined
 
+> **Estado: RESUELTO en CODE-006.**
+> El fix de la race condition descrito en este informe se aplicó en
+> `AuthService.googleLogin` (retry de `findByEmail` en el `catch` de `create`).
+> El `tempToken` fue reemplazado por `profileCompletionToken` en body, no en URL.
+
 ```script
 Input
 google login

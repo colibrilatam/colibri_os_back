@@ -19,7 +19,8 @@ Todas las rutas usan el prefijo `/api/v1`. Esta matriz refleja los guards y deco
 
 | Recurso y operaciones | Protección efectiva declarada | Roles autorizados |
 | --- | --- | --- |
-| `auth`: `POST /signin`, `POST /signup`; `GET /google` y `/google/callback` | Público; el flujo Google usa su guard Passport específico. | No aplica. |
+| `auth`: `POST /signin`, `POST /signup`, `POST /google/exchange`, `POST /complete-profile` | Público con rate limit (Throttle 5/min). `POST /google/exchange` requiere `code` de un solo uso. `POST /complete-profile` requiere `profileCompletionToken` con `purpose=profile-completion` | No aplica |
+| `auth`: `GET /google`, `GET /google/callback` | Passport Google + `OAuthStateStore` (cookie HttpOnly one-time) | No aplica |
 | `categories`, `hierarchy`, `mecenas-semilla`, `micro-action-definitions`, `nft-projects`, `pacs`, `projects/:projectId/members`, `projects/:projectId/profile`, `tramo-closure` | Sin `JwtAuthGuard` declarado en el controlador. | Público. |
 | `tramos`, incl. `DELETE /tramos/:id` | Sin `JwtAuthGuard` ni `RolesGuard` declarados. El decorador `@Roles(ADMIN)` del borrado no se evalúa sin `RolesGuard`. | Público. |
 | Lectura de proyectos: `GET /projects`, `GET /projects/:id` | Sin guard declarado. | Público. |
