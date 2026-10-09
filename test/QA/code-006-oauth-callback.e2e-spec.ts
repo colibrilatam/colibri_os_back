@@ -101,7 +101,7 @@ describe('CODE-006 — OAuth Callback (e2e)', () => {
       }
     });
 
-    it('el code emitido es válido: POST /api/v1/auth/google/exchange con ese code responde 401 para usuario PENDING_PROFILE (BUG: OAuthExchangeService.consume rechaza PENDING_PROFILE)', async () => {
+    it('el code emitido es válido: POST /api/v1/auth/google/exchange con ese code responde 200 y devuelve profileCompletionToken para usuario PENDING_PROFILE', async () => {
       const callbackRes = await request(server())
         .get('/api/v1/auth/google/callback')
         .query({ state: 'valid-state' })
@@ -111,16 +111,27 @@ describe('CODE-006 — OAuth Callback (e2e)', () => {
       const code = callbackUrl.searchParams.get('code');
       expect(code).toBeTruthy();
 
-      // BUG: OAuthExchangeService.consume() lanza 401 para PENDING_PROFILE
-      // El controller SÍ tiene lógica para devolver profileCompletionToken,
-      // pero el service lanza antes de devolver el usuario.
-      await request(server())
+      const exchangeRes = await request(server())
         .post('/api/v1/auth/google/exchange')
         .send({ code })
-        .expect(401);
+        .expect(200);
+
+      expect(exchangeRes.body.user).toBeDefined();
+      expect(exchangeRes.body.requiresProfileCompletion).toBe(true);
+      expect(exchangeRes.body.profileCompletionToken).toBeDefined();
+      expect(typeof exchangeRes.body.profileCompletionToken).toBe('string');
+      expect(exchangeRes.body.profileCompletionToken.split('.').length).toBe(3); // JWT
+
+      const setCookie = exchangeRes.headers['set-cookie'];
+      if (setCookie) {
+        const hasAccessToken = setCookie.some((cookie) =>
+          cookie.includes('colibri_access_token='),
+        );
+        expect(hasAccessToken).toBe(false);
+      }
     });
 
-    it('el code es de un solo uso: segundo POST con el mismo code → 401 (aunque el primero ya falle, el código se marca usado)', async () => {
+    it('el code es de un solo uso: primer POST → 200, segundo POST con mismo code → 401', async () => {
       const callbackRes = await request(server())
         .get('/api/v1/auth/google/callback')
         .query({ state: 'valid-state' })
@@ -130,11 +141,11 @@ describe('CODE-006 — OAuth Callback (e2e)', () => {
       const code = callbackUrl.searchParams.get('code');
       expect(code).toBeTruthy();
 
-      // Primer uso: falla por bug (PENDING_PROFILE), pero marca el código como usado
+      // Primer uso: éxito (devuelve profileCompletionToken para usuario nuevo PENDING_PROFILE)
       await request(server())
         .post('/api/v1/auth/google/exchange')
         .send({ code })
-        .expect(401);
+        .expect(200);
 
       // Segundo uso: falla porque el código ya fue consumido
       await request(server())

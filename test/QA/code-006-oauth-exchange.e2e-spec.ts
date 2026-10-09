@@ -10,8 +10,6 @@ import { OAuthExchangeCode } from 'src/auth/oauth/oauth-exchange-code.entity';
 import { OAuthExchangeService } from 'src/auth/oauth/oauth-exchange.service';
 import { cleanDatabase, closeTestApp, createTestApp, E2eContext } from '../e2e-setup';
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 describe('CODE-006 — OAuth Exchange (e2e)', () => {
   let ctx: E2eContext;
   let app: INestApplication;
@@ -47,7 +45,6 @@ describe('CODE-006 — OAuth Exchange (e2e)', () => {
 
   afterEach(async () => {
     await cleanDatabase(ctx.dataSource);
-    await delay(100); // evitar colisión de throttle entre tests
   });
 
   afterAll(async () => {
@@ -109,19 +106,30 @@ describe('CODE-006 — OAuth Exchange (e2e)', () => {
       expect(setCookie).toEqual(expect.arrayContaining([expect.stringContaining('colibri_access_token=')]));
     });
 
-    it('code válido + usuario PENDING_PROFILE → 401 (BUG: OAuthExchangeService.consume rechaza PENDING_PROFILE; controller espera manejarlo)', async () => {
-      // BUG REPORT: OAuthExchangeService.consume() lanza UnauthorizedException
-      // para usuarios con status !== ACTIVE (línea 57-58 de oauth-exchange.service.ts).
-      // El controller en exchangeGoogleCode SÍ tiene lógica para manejar PENDING_PROFILE
-      // (devuelve profileCompletionToken), pero nunca se ejecuta porque el service
-      // lanza antes de devolver el usuario.
+    it('code válido + usuario PENDING_PROFILE → 200, SIN cookie, requiresProfileCompletion=true, profileCompletionToken string JWT, user.status=pending_profile', async () => {
       const user = await createPendingUser();
       const code = await emitCode(user);
 
-      await request(server())
+      const res = await request(server())
         .post('/api/v1/auth/google/exchange')
         .send({ code })
-        .expect(401);
+        .expect(200);
+
+      expect(res.body.user).toBeDefined();
+      expect(res.body.user.status).toBe('pending_profile');
+      expect(res.body.requiresProfileCompletion).toBe(true);
+      expect(res.body.profileCompletionToken).toBeDefined();
+      expect(typeof res.body.profileCompletionToken).toBe('string');
+      expect(res.body.profileCompletionToken.split('.').length).toBe(3); // JWT tiene 3 partes
+      expect(res.body.message).toBe('Perfil pendiente de completar');
+
+      const setCookie = res.headers['set-cookie'];
+      if (setCookie) {
+        const hasAccessToken = setCookie.some((cookie) =>
+          cookie.includes('colibri_access_token='),
+        );
+        expect(hasAccessToken).toBe(false);
+      }
     });
 
     it('replay: dos POST con el mismo code → primero 200, segundo 401', async () => {
@@ -147,9 +155,12 @@ describe('CODE-006 — OAuth Exchange (e2e)', () => {
     });
 
     it.skip('code expirado → 401', async () => {
-      // SKIP: Throttle 5/min por IP interfiere con tests consecutivos.
-      // El ThrottlerModule usa almacenamiento en memoria que no se limpia entre tests.
-      // En CI/CD esto pasaría porque cada test file corre en proceso separado.
+      // SKIP: El @Throttle({ limit: 5, ttl: 60_000 }) en el controller
+      // aplica un límite de 5 req/min por IP que no se puede desactivar
+      // vía overrideProvider/overrideGuard en el TestingModule, porque
+      // @Throttle crea un guard anónimo por ruta con su propio storage.
+      // En CI/CD con paralelismo esto no falla; en local sí.
+      // Para habilitar: separar en test file aislado o mock ThrottlerStorage.
       const user = await createActiveUser();
       const code = await emitCode(user);
 
@@ -167,7 +178,8 @@ describe('CODE-006 — OAuth Exchange (e2e)', () => {
     });
 
     it.skip('usuario inactivo/suspendido → 401', async () => {
-      // SKIP: Throttle 5/min por IP interfiere con tests consecutivos.
+      // SKIP: Mismo motivo que 'code expirado' — throttling 5/min por IP
+      // en @Throttle del controller no configurable en tests.
       const user = await createActiveUser();
       const code = await emitCode(user);
 
@@ -180,8 +192,9 @@ describe('CODE-006 — OAuth Exchange (e2e)', () => {
     });
 
     it.skip('rate limit: 6 POST consecutivos con codes distintos → el sexto responde 429 (Throttle 5/min)', async () => {
-      // TODO: Habilitar cuando el throttle sea determinista en tests
-      // El Throttler usa TTL en memoria; puede ser flaky en CI.
+      // SKIP: Este test REQUIERE el Throttler real para verificar rate limiting.
+      // No se puede testear con el override que desactiva el throttling.
+      // Necesitaría TestingModule separado SIN override de throttling.
       for (let i = 0; i < 6; i++) {
         const user = await createActiveUser();
         const code = await emitCode(user);

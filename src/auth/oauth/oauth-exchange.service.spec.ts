@@ -9,6 +9,7 @@ describe('OAuthExchangeService', () => {
   let service: OAuthExchangeService;
 
   const activeUser = { id: 'user-1', status: UserStatus.ACTIVE } as User;
+  const pendingUser = { id: 'user-2', status: UserStatus.PENDING_PROFILE } as User;
 
   beforeEach(() => {
     userRepository = { findOneBy: jest.fn().mockResolvedValue(activeUser) };
@@ -35,12 +36,22 @@ describe('OAuthExchangeService', () => {
     expect(persisted.userId).toEqual(activeUser.id);
   });
 
-  it('canjea un código válido y devuelve el usuario asociado', async () => {
+  it('canjea un código válido y devuelve el usuario asociado (ACTIVE)', async () => {
     const code = await service.issue(activeUser);
     const stored = exchangeCodeRepository.save.mock.calls[0][0];
     exchangeCodeRepository.findOneBy.mockResolvedValue(stored);
 
     await expect(service.consume(code)).resolves.toEqual(activeUser);
+    expect(stored.usedAt).not.toBeNull();
+  });
+
+  it('canjea un código válido y devuelve el usuario asociado (PENDING_PROFILE)', async () => {
+    const code = await service.issue(pendingUser);
+    const stored = exchangeCodeRepository.save.mock.calls[0][0];
+    exchangeCodeRepository.findOneBy.mockResolvedValue(stored);
+    userRepository.findOneBy.mockResolvedValue(pendingUser);
+
+    await expect(service.consume(code)).resolves.toEqual(pendingUser);
     expect(stored.usedAt).not.toBeNull();
   });
 
@@ -70,11 +81,20 @@ describe('OAuthExchangeService', () => {
     );
   });
 
-  it('rechaza el canje si el usuario ya no está activo', async () => {
+  it('rechaza el canje si el usuario está SUSPENDED', async () => {
     const code = await service.issue(activeUser);
     const stored = exchangeCodeRepository.save.mock.calls[0][0];
     exchangeCodeRepository.findOneBy.mockResolvedValueOnce(stored);
     userRepository.findOneBy.mockResolvedValue({ ...activeUser, status: UserStatus.SUSPENDED });
+
+    await expect(service.consume(code)).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('rechaza el canje si el usuario está INACTIVE', async () => {
+    const code = await service.issue(activeUser);
+    const stored = exchangeCodeRepository.save.mock.calls[0][0];
+    exchangeCodeRepository.findOneBy.mockResolvedValueOnce(stored);
+    userRepository.findOneBy.mockResolvedValue({ ...activeUser, status: UserStatus.INACTIVE });
 
     await expect(service.consume(code)).rejects.toBeInstanceOf(UnauthorizedException);
   });
