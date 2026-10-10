@@ -15,6 +15,7 @@ import {
   ProjectResourceAudit,
 } from './entities/project-resource-audit.entity';
 import { ProjectPrincipal } from './project-access.service';
+import { UserRole } from '../users/entities/user.entity';
 
 @Injectable()
 export class ProjectsService {
@@ -60,6 +61,19 @@ export class ProjectsService {
     return this.projectRepository.find({
       relations: ['owner', 'profile'],
     });
+  }
+
+  async findAllAuthorized(principal: ProjectPrincipal): Promise<Project[]> {
+    if (principal.role === UserRole.ADMIN) {
+      return this.findAll();
+    }
+
+    return this.projectRepository
+      .createQueryBuilder('project')
+      .leftJoin('project.members', 'member')
+      .where('project.owner_user_id = :userId', { userId: principal.userId })
+      .orWhere('member.user_id = :userId AND member.is_active = true', { userId: principal.userId })
+      .getMany();
   }
 
   async findOne(id: string): Promise<Project> {

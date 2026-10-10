@@ -32,12 +32,16 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { ProjectAccessService } from '../projects/project-access.service';
 
 @ApiTags('Tramos')
 @Controller('tramos')
-//@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class TramosController {
-  constructor(private readonly tramosService: TramosService) {}
+  constructor(
+    private readonly tramosService: TramosService,
+    private readonly projectAccessService: ProjectAccessService,
+  ) {}
 
   // ─── CRUD base ────────────────────────────────────────────────────────────
 
@@ -79,7 +83,12 @@ export class TramosController {
   })
   @ApiResponse({ status: 200, description: 'Tramos del proyecto obtenidos exitosamente.' })
   @ApiNotFoundResponse({ description: 'No existe un proyecto con el `projectId` proporcionado.' })
-  findAllByProject(@Param('projectId', ParseUUIDPipe) projectId: string) {
+  async findAllByProject(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    await this.projectAccessService.assertCanAccessProject({ userId, role }, projectId);
     return this.tramosService.findAllByProject(projectId);
   }
 
@@ -159,11 +168,13 @@ export class TramosController {
   })
   @ApiNotFoundResponse({ description: 'El proyecto o el nuevo tramo no existen.' })
   @ApiForbiddenResponse({ description: 'Se requiere rol ADMIN.' })
-  changeTramo(
+  async changeTramo(
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body() dto: ChangeTramoDto,
     @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
   ) {
+    await this.projectAccessService.assertCanManageProject({ userId, role }, projectId);
     return this.tramosService.changeTramo(projectId, dto, userId);
   }
 
@@ -180,7 +191,12 @@ export class TramosController {
   })
   @ApiResponse({ status: 200, description: 'Historial de tramos obtenido exitosamente.' })
   @ApiNotFoundResponse({ description: 'No existe un proyecto con el `projectId` proporcionado.' })
-  getTramoHistory(@Param('projectId', ParseUUIDPipe) projectId: string) {
+  async getTramoHistory(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    await this.projectAccessService.assertCanAccessProject({ userId, role }, projectId);
     return this.tramosService.getTramoHistory(projectId);
   }
 }
