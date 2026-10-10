@@ -20,6 +20,8 @@ import {
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiNoContentResponse,
+  ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
 } from '@nestjs/swagger';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -68,17 +70,28 @@ export class ProjectsController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener todos los proyectos' })
   @ApiOkResponse({ type: [ProjectResponseDto], description: 'Lista de proyectos' })
-  findAll() {
-    return this.projectsService.findAll();
+  @ApiUnauthorizedResponse({ description: 'Se requiere autenticación' })
+  findAll(@CurrentUser('id') userId: string, @CurrentUser('role') role: UserRole) {
+    return this.projectsService.findAllAuthorized({ userId, role });
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener un proyecto por ID' })
   @ApiOkResponse({ type: ProjectResponseDto, description: 'Proyecto encontrado' })
   @ApiNotFoundResponse({ description: 'Proyecto no encontrado' })
-  findOne(@Param('id') id: string) {
+  @ApiForbiddenResponse({ description: 'No tenés acceso a este proyecto' })
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    await this.projectAccessService.assertCanAccessProject({ userId, role }, id);
     return this.projectsService.findOne(id);
   }
 
