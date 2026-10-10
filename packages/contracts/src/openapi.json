@@ -541,8 +541,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Se requiere autenticación"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Obtener todos los proyectos",
         "tags": [
           "Projects"
@@ -573,10 +581,18 @@
               }
             }
           },
+          "403": {
+            "description": "No tenés acceso a este proyecto"
+          },
           "404": {
             "description": "Proyecto no encontrado"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Obtener un proyecto por ID",
         "tags": [
           "Projects"
