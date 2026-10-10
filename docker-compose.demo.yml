@@ -1,0 +1,90 @@
+# SEC-002 / PR-BE6: entorno demo aislado.
+#
+# Uso:
+#   cp .env.demo.example .env.demo   # completar valores
+#   docker compose -f docker-compose.demo.yml up -d
+#   docker compose -f docker-compose.demo.yml run --rm migrate
+#   docker compose -f docker-compose.demo.yml run --rm seed
+#
+# Diferencias con docker-compose.yml (producción/dev):
+#   - DB demo local (Postgres en contenedor), no Supabase.
+#   - Sin env_file: las variables se pasan explícitamente.
+#   - NODE_ENV=demo (no production ni development).
+#   - El seed solo corre si CONFIRM_DESTRUCTIVE_SEED está definido.
+
+services:
+  db-demo:
+    image: postgres:16-alpine
+    container_name: colibri-db-demo
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DEMO_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DEMO_DB_PASSWORD:-demo_password_local}
+      POSTGRES_DB: ${DEMO_DB_NAME:-colibri_demo}
+    volumes:
+      - pgdata-demo:/var/lib/postgresdemo/data
+    ports:
+      - "${DEMO_DB_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DEMO_DB_USER:-postgres} -d ${DEMO_DB_NAME:-colibri_demo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db-demo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: demo
+      NODE_OPTIONS: "--dns-result-order=ipv4first"
+      DATABASE_URL: postgresql://${DEMO_DB_USER:-postgres}:${DEMO_DB_PASSWORD:-demo_password_local}@db-demo:5432/${DEMO_DB_NAME:-colibri_demo}
+      # Copiar el resto de variables desde .env.demo (JWT_SECRET, CLOUDINARY_*, etc.)
+    env_file:
+      - .env.demo
+    ports:
+      - "${DEMO_APP_PORT:-3032}:3030"
+
+  migrate-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    profiles: ["tools"]
+    depends_on:
+      db-demo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: demo
+      NODE_OPTIONS: "--dns-result-order=ipv4first"
+      DATABASE_URL: postgresql://${DEMO_DB_USER:-postgres}:${DEMO_DB_PASSWORD:-demo_password_local}@db-demo:5432/${DEMO_DB_NAME:-colibri_demo}
+    command: ["npm", "run", "migration:run"]
+
+  seed-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    profiles: ["tools"]
+    depends_on:
+      db-demo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: demo
+      NODE_OPTIONS: "--dns-result-order=ipv4first"
+      DATABASE_URL: postgresql://${DEMO_DB_USER:-postgres}:${DEMO_DB_PASSWORD:-demo_password_local}@db-demo:5432/${DEMO_DB_NAME:-colibri_demo}
+      # SEC-002: el seed del demo SÍ necesita esta confirmación.
+      CONFIRM_DESTRUCTIVE_SEED: ${CONFIRM_DESTRUCTIVE_SEED:-}
+      SEED_ALLOWED_HOSTS: db-demo
+    command: ["npm", "run", "seed"]
+
+volumes:
+  pgdata-demo:
+
+networks:
+  default:
+    name: colibri-demo-network
