@@ -62,6 +62,7 @@ const ENUMS: { name: string; values: string[] }[] = [
       'mecenas_cambio',
       'admin',
       'guest',
+      'demo_readonly', // SEC-002
     ],
   },
   { name: 'UserStatus', values: ['active', 'inactive', 'suspended', 'pending_profile'] },

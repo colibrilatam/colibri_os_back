@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 
-export const UserRoleSchema = z.enum(['entrepreneur', 'mentor', 'evaluator', 'mecenas_semilla', 'mecenas_fundacional', 'mecenas_cambio', 'admin', 'guest']);
+export const UserRoleSchema = z.enum(['entrepreneur', 'mentor', 'evaluator', 'mecenas_semilla', 'mecenas_fundacional', 'mecenas_cambio', 'admin', 'guest', 'demo_readonly']);
 export const UserStatusSchema = z.enum(['active', 'inactive', 'suspended', 'pending_profile']);
 export const AuthProviderSchema = z.enum(['local', 'google']);
 export const ProjectStatusSchema = z.enum(['active', 'inactive', 'closed', 'suspended']);

@@ -1,7 +1,16 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "lastBreakingChange": "2026-08-22",
   "changelog": [
+    {
+      "version": "1.2.0",
+      "date": "2026-10-10",
+      "changes": [
+        "SEC-002: Nuevo endpoint POST /auth/demo-login (login demo sin password)",
+        "SEC-002: UserRole anade valor 'demo_readonly'",
+        "SEC-002: CompleteProfileDto.role restringido a ['entrepreneur', 'evaluator'] (cierra B1)"
+      ]
+    },
     {
       "version": "1.1.0",
       "date": "2026-10-09",
