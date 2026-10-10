@@ -133,6 +133,8 @@ export class UsersService {
       }),
     );
 
+    await this.sessionsService.bumpSessionVersion(targetUserId);
+
     return this.findOneById(targetUserId);
   }
 
@@ -144,7 +146,8 @@ export class UsersService {
   if (user.status !== UserStatus.PENDING_PROFILE) {
     throw new BadRequestException('El usuario no está en estado pendiente de perfil');
   }
-  user.role = role;
+  const allowedRoles = [UserRole.EVALUATOR, UserRole.ENTREPRENEUR];
+  user.role = allowedRoles.includes(role) ? role : UserRole.ENTREPRENEUR;
   user.gender = gender;
   user.status = UserStatus.ACTIVE;
   await this.userRepo.save(user);
@@ -226,6 +229,56 @@ export class UsersService {
   private assertAdmin(principal: { userId: string; role: UserRole }): void {
     if (principal.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Solo un administrador puede realizar esta acción');
+    }
+  }
+
+  getEffectivePermissions(role: UserRole): string[] {
+    const permissions = ['catalog:read'];
+
+    switch (role) {
+      case UserRole.ADMIN:
+        return [
+          'project:read:all',
+          'project:manage:all',
+          'evidence:read:all',
+          'evidence:write:all',
+          'evaluation:approve:all',
+          'user:manage:all',
+          'admin:access',
+        ];
+      case UserRole.ENTREPRENEUR:
+        return [
+          ...permissions,
+          'project:read:own',
+          'project:manage:own',
+          'evidence:read:own',
+          'evidence:write:own',
+          'evaluation:read:own',
+        ];
+      case UserRole.MENTOR:
+        return [
+          ...permissions,
+          'project:read:member',
+          'evidence:read:member',
+          'evaluation:read:member',
+        ];
+      case UserRole.EVALUATOR:
+        return [
+          ...permissions,
+          'project:read:assigned',
+          'evidence:read:assigned',
+          'evaluation:approve:assigned',
+        ];
+      case UserRole.MECENAS_SEMILLA:
+      case UserRole.MECENAS_FUNDACIONAL:
+      case UserRole.MECENAS_CAMBIO:
+        return [
+          ...permissions,
+          'nft:read:own',
+          'nft:manage:own',
+        ];
+      default:
+        return permissions;
     }
   }
 
