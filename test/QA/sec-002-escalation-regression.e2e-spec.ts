@@ -165,21 +165,199 @@ describe('SEC-002 — regresión de escalada de privilegios (B1–B4)', () => {
     });
   });
 
-  // ─── B2–B4 · pendientes de PR-BE2 ───────────────────────────────────────────
+  // ─── B2–B4 · cerrados en PR-BE2 ─────────────────────────────────────────────
 
   describe('B2 — tramos exige guards', () => {
-    // SEC-002: pendiente PR-BE2 (`//@UseGuards(...)` comentado en tramos.controller.ts:38)
-    it.skip('401 sin JWT en POST /api/v1/tramos', async () => {});
-    it.skip('403 con usuario no ADMIN', async () => {});
+    const validTramo = () => ({
+      code: `TRAMO-B2-${Date.now()}`,
+      name_es: 'Tramo de prueba',
+      name_en: 'Test tramo',
+      sortOrder: 1,
+    });
+
+    it('401 sin JWT en POST /api/v1/tramos', async () => {
+      await request(server())
+        .post('/api/v1/tramos')
+        .send(validTramo())
+        .expect(401);
+    });
+
+    it('403 con un ENTREPRENEUR (no ADMIN)', async () => {
+      const entrepreneur = await fixtures.createUser(UserRole.ENTREPRENEUR);
+
+      await request(server())
+        .post('/api/v1/tramos')
+        .set(fixtures.authHeader(entrepreneur))
+        .send(validTramo())
+        .expect(403);
+    });
+
+    it('201 con un ADMIN', async () => {
+      const admin = await fixtures.createUser(UserRole.ADMIN);
+
+      await request(server())
+        .post('/api/v1/tramos')
+        .set(fixtures.authHeader(admin))
+        .send(validTramo())
+        .expect(201);
+    });
   });
 
   describe('B3 — digital-credentials revoke exige ADMIN', () => {
-    // SEC-002: pendiente PR-BE2 (`@Roles(ADMIN)` comentado en digital-credentials.controller.ts:64)
-    it.skip('403 para un ENTREPRENEUR autenticado', async () => {});
+    const fakeCredentialId = '00000000-0000-4000-8000-000000000001';
+
+    it('401 sin JWT', async () => {
+      await request(server())
+        .post(`/api/v1/digital-credentials/${fakeCredentialId}/revoke`)
+        .send({ reason: 'test' })
+        .expect(401);
+    });
+
+    it('403 para un ENTREPRENEUR autenticado', async () => {
+      const entrepreneur = await fixtures.createUser(UserRole.ENTREPRENEUR);
+
+      await request(server())
+        .post(`/api/v1/digital-credentials/${fakeCredentialId}/revoke`)
+        .set(fixtures.authHeader(entrepreneur))
+        .send({ reason: 'test' })
+        .expect(403);
+    });
+
+    it('403 para un MENTOR autenticado', async () => {
+      const mentor = await fixtures.createUser(UserRole.MENTOR);
+
+      await request(server())
+        .post(`/api/v1/digital-credentials/${fakeCredentialId}/revoke`)
+        .set(fixtures.authHeader(mentor))
+        .send({ reason: 'test' })
+        .expect(403);
+    });
   });
 
   describe('B4 — mecenas-semilla activate exige ADMIN', () => {
-    // SEC-002: pendiente PR-BE2 (`@Roles(ADMIN)` comentado en mecenas-semilla.controller.ts:21)
-    it.skip('403 para un MENTOR autenticado', async () => {});
+    it('401 sin JWT', async () => {
+      const target = await fixtures.createUser(UserRole.ENTREPRENEUR);
+
+      await request(server())
+        .post(`/api/v1/mecenas-semilla/activate/${target.id}`)
+        .expect(401);
+    });
+
+    it('403 para un MENTOR autenticado', async () => {
+      const mentor = await fixtures.createUser(UserRole.MENTOR);
+      const target = await fixtures.createUser(UserRole.ENTREPRENEUR);
+
+      await request(server())
+        .post(`/api/v1/mecenas-semilla/activate/${target.id}`)
+        .set(fixtures.authHeader(mentor))
+        .expect(403);
+    });
+
+    it('403 para un ENTREPRENEUR autenticado', async () => {
+      const caller = await fixtures.createUser(UserRole.ENTREPRENEUR);
+      const target = await fixtures.createUser(UserRole.ENTREPRENEUR);
+
+      await request(server())
+        .post(`/api/v1/mecenas-semilla/activate/${target.id}`)
+        .set(fixtures.authHeader(caller))
+        .expect(403);
+    });
+  });
+
+  // ─── DemoReadOnlyGuard · PR-BE2 ────────────────────────────────────────────
+
+  describe('DemoReadOnlyGuard — demo_readonly solo puede hacer GET', () => {
+    let demo: Awaited<ReturnType<typeof fixtures.createUser>>;
+    let project: Awaited<ReturnType<typeof fixtures.createProject>>;
+
+    beforeEach(async () => {
+      const owner = await fixtures.createUser(UserRole.ENTREPRENEUR);
+      project = await fixtures.createProject(owner.id);
+      demo = await fixtures.createUser(UserRole.DEMO_READONLY);
+    });
+
+    describe('escrituras bloqueadas (403)', () => {
+      it('POST /api/v1/projects', async () => {
+        await request(server())
+          .post('/api/v1/projects')
+          .set(fixtures.authHeader(demo))
+          .send({ projectName: 'No debo poder crear esto' })
+          .expect(403);
+      });
+
+      it('PATCH /api/v1/projects/:id', async () => {
+        await request(server())
+          .patch(`/api/v1/projects/${project.id}`)
+          .set(fixtures.authHeader(demo))
+          .send({ projectName: 'Hackeado' })
+          .expect(403);
+      });
+
+      it('DELETE /api/v1/projects/:id', async () => {
+        await request(server())
+          .delete(`/api/v1/projects/${project.id}`)
+          .set(fixtures.authHeader(demo))
+          .expect(403);
+      });
+
+      it('POST /api/v1/evidence', async () => {
+        await request(server())
+          .post('/api/v1/evidence')
+          .set(fixtures.authHeader(demo))
+          .send({ projectId: project.id, evidenceType: 'file' })
+          .expect(403);
+      });
+
+      it('la escritura bloqueada no altera la base de datos', async () => {
+        await request(server())
+          .patch(`/api/v1/projects/${project.id}`)
+          .set(fixtures.authHeader(demo))
+          .send({ projectName: 'Hackeado' });
+
+        const rows = await ctx.dataSource.query(
+          `SELECT project_name FROM projects WHERE id = $1`,
+          [project.id],
+        );
+        expect(rows[0].project_name).not.toBe('Hackeado');
+      });
+    });
+
+    describe('lecturas permitidas', () => {
+      it('GET /api/v1/projects → 200', async () => {
+        await request(server())
+          .get('/api/v1/projects')
+          .set(fixtures.authHeader(demo))
+          .expect(200);
+      });
+
+      it('GET /api/v1/categories → 200', async () => {
+        await request(server())
+          .get('/api/v1/categories')
+          .set(fixtures.authHeader(demo))
+          .expect(200);
+      });
+    });
+
+    describe('excepciones del guard', () => {
+      it('POST /auth/logout → 200 (el demo puede cerrar sesión)', async () => {
+        await request(server())
+          .post('/api/v1/auth/logout')
+          .set(fixtures.authHeader(demo))
+          .send({})
+          .expect(200);
+      });
+    });
+
+    describe('otros roles no se ven afectados', () => {
+      it('un ENTREPRENEUR puede crear proyectos (no es demo)', async () => {
+        const entrepreneur = await fixtures.createUser(UserRole.ENTREPRENEUR);
+
+        await request(server())
+          .post('/api/v1/projects')
+          .set(fixtures.authHeader(entrepreneur))
+          .send({ projectName: 'Proyecto legítimo' })
+          .expect(201);
+      });
+    });
   });
 });

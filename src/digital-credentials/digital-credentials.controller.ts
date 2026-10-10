@@ -22,8 +22,8 @@ import {
 import { DigitalCredentialsService } from './digital-credentials.service';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-// import { Roles } from '../auth/decorators/roles.decorator';
-// import { UserRole } from '../users/entities/user.entity';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Digital Credentials')
 @ApiBearerAuth()
@@ -61,7 +61,7 @@ export class DigitalCredentialsController {
   }
 
   @Post(':id/revoke')
-  // @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN) // SEC-002 / B3: antes comentado; cualquier usuario autenticado podía revocar.
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Revocar una credencial',
