@@ -11,6 +11,7 @@ import { UsersModule } from 'src/users/users.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { OAuthExchangeModule } from './oauth/oauth-exchange.module';
 import { PasswordResetModule } from './password-reset/password-reset.module';
+import { JwtAuthGuard } from './guards/auth.guard';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { PasswordResetModule } from './password-reset/password-reset.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [JwtStrategy, AuthService, GoogleStrategy],
+  providers: [JwtStrategy, AuthService, GoogleStrategy, JwtAuthGuard],
+  exports: [JwtAuthGuard],
 })
 export class AuthModule {}

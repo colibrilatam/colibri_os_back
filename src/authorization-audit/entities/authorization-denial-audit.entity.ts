@@ -5,6 +5,7 @@ export enum DenialReason {
   NOT_OWNER_OR_MEMBER = 'not_owner_or_member',
   NOT_PRIMARY_OPERATOR = 'not_primary_operator',
   NOT_ASSIGNED_EVALUATOR = 'not_assigned_evaluator',
+  NOT_OWNER = 'not_owner',
   ROLE_NOT_ALLOWED = 'role_not_allowed',
 }
 

@@ -26,6 +26,8 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { MaintenanceModeMiddleware } from './common/middleware/maintenance-mode.middleware';
 import { validateEnv } from './config/env.validation';
+import { AuthorizationModule } from './authorization/authorization.module';
+import { JwtAuthGuard } from './auth/guards/auth.guard';
 
 @Module({
   imports: [
@@ -81,10 +83,14 @@ import { validateEnv } from './config/env.validation';
     DigitalCredentialsModule,
     TramoClosureModule,
     HealthModule,
+    AuthorizationModule,
   ],
   providers: [
     // QA-002: aplica el throttling a nivel global, a todos los controllers.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // SEC-004: guard global de autenticación. Deny by default: todo endpoint
+    // requiere sesión válida salvo los marcados explícitamente con @Public().
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
 })
 export class AppModule implements NestModule {
