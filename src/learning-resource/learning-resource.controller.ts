@@ -18,15 +18,19 @@ import { QueryLearningResourceDto } from './dto/query.learning-resource.dto';
 import { UpdateLearningResourceDto } from './dto/update-learning-resource.dto';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 @Controller('learning-resources')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class LearningResourceController {
   constructor(private readonly learningResourceService: LearningResourceService) {}
 
   @ApiOperation({ summary: 'Crea un nuevo recurso de aprendizaje' })
   @Post()
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateLearningResourceDto) {
     return await this.learningResourceService.create(dto);
@@ -48,6 +52,7 @@ export class LearningResourceController {
 
   @ApiOperation({ summary: 'Actualiza un recurso de aprendizaje por su ID' })
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateLearningResourceDto,
@@ -57,6 +62,7 @@ export class LearningResourceController {
 
   @ApiOperation({ summary: 'Desactiva un recurso de aprendizaje por su ID (soft delete)' })
   @Delete(':id')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   async remove(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.learningResourceService.softDelete(id);
@@ -66,6 +72,7 @@ export class LearningResourceController {
     summary: 'Elimina permanentemente un recurso de aprendizaje por su ID (hard delete)',
   })
   @Delete(':id/hard')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   async hardRemove(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.learningResourceService.hardDelete(id);
