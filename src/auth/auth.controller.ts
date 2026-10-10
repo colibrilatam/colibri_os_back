@@ -30,6 +30,7 @@ import { UserStatus } from '../users/entities/user.entity';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { PasswordResetService } from './password-reset/password-reset.service';
+import { Public } from './decorators/public.decorator';
 
 type GoogleAuthenticatedRequest = Request & { user: IGoogleUser };
 
@@ -42,6 +43,7 @@ export class AuthController {
     private readonly passwordResetService: PasswordResetService,
   ) {}
 
+  @Public()
   @UseGuards(AuthGuard('google'))
   @Get('google')
   @ApiResponse({ status: 302, description: 'Redirect a Google OAuth' })
@@ -54,6 +56,7 @@ export class AuthController {
    * de un solo uso; el JWT se emite recién cuando el frontend lo canjea
    * en POST /auth/google/exchange.
    */
+  @Public()
   @UseGuards(AuthGuard('google'))
   @Get('google/callback')
   @ApiResponse({
@@ -69,6 +72,7 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Public()
   @Post('google/exchange')
   @HttpCode(200)
   @ApiOkResponse({ type: GoogleExchangeResponseDto })
@@ -97,6 +101,7 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Public()
   @Post('signin')
   @ApiOkResponse({ type: AuthResponseDto, description: 'Login exitoso' })
   @ApiUnauthorizedResponse({ description: 'Credenciales inválidas' })
@@ -124,6 +129,7 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Public()
   @Post('signup')
   @ApiCreatedResponse({ type: RegisterResponseDto, description: 'Registro exitoso' })
   @ApiBadRequestResponse({ description: 'Datos inválidos o email ya en uso' })
@@ -141,6 +147,7 @@ export class AuthController {
     return { message: "Perfil completado con éxito", user: result.user };
   }
 
+  @Public()
   @Post('refresh')
   async refresh(@Body() dto: RefreshTokenDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.refresh(dto.refreshToken);
@@ -148,6 +155,7 @@ export class AuthController {
     return { message: 'Tokens renovados correctamente'}
   }
 
+  @Public()
   @Post('logout')
   @HttpCode(200)
   @ApiOkResponse({ type: MessageResponseDto, description: 'Sesión cerrada exitosamente' })
@@ -157,12 +165,14 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 solicitudes / min por IP
+  @Public()
   @Post('forgot-password')
   async forgotPassword(@Body() dto: ForgotPasswordDto, @Ip() ip: string) {
     return await this.passwordResetService.requestReset(dto.email, ip);
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Public()
   @Post('reset-password')
   async resetPassword(@Body() dto: ResetPasswordDto) {
     if (dto.newPassword !== dto.confirmNewPassword) {

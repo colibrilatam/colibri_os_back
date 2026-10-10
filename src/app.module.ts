@@ -27,6 +27,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { DemoReadOnlyGuard } from './auth/guards/demo-readonly.guard';
 import { MaintenanceModeMiddleware } from './common/middleware/maintenance-mode.middleware';
 import { validateEnv } from './config/env.validation';
+import { AuthorizationModule } from './authorization/authorization.module';
+import { JwtAuthGuard } from './auth/guards/auth.guard';
 
 @Module({
   imports: [
@@ -82,6 +84,7 @@ import { validateEnv } from './config/env.validation';
     DigitalCredentialsModule,
     TramoClosureModule,
     HealthModule,
+    AuthorizationModule,
   ],
   providers: [
     // QA-002: aplica el throttling a nivel global, a todos los controllers.
@@ -89,6 +92,9 @@ import { validateEnv } from './config/env.validation';
     // SEC-002: rol demo_readonly solo puede hacer GET. Se ejecuta después de
     // ThrottlerGuard y antes de los guards de controller.
     { provide: APP_GUARD, useClass: DemoReadOnlyGuard },
+    // SEC-004: guard global de autenticación. Deny by default: todo endpoint
+    // requiere sesión válida salvo los marcados explícitamente con @Public().
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
 })
 export class AppModule implements NestModule {

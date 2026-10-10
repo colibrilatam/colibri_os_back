@@ -6,12 +6,28 @@ describe('ProjectAccessService', () => {
   const project = { id: 'project-1', ownerUserId: 'owner-1' };
   let projectRepository: { findOne: jest.Mock };
   let memberRepository: { findOne: jest.Mock };
+  let evaluationRepository: { createQueryBuilder: jest.Mock };
+  let auditService: { logDenial: jest.Mock };
   let service: ProjectAccessService;
 
   beforeEach(() => {
     projectRepository = { findOne: jest.fn().mockResolvedValue(project) };
     memberRepository = { findOne: jest.fn() };
-    service = new ProjectAccessService(projectRepository as never, memberRepository as never);
+    evaluationRepository = {
+      createQueryBuilder: jest.fn().mockReturnValue({
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(0),
+      }),
+    };
+    auditService = { logDenial: jest.fn().mockResolvedValue(undefined) };
+    service = new ProjectAccessService(
+      projectRepository as never,
+      memberRepository as never,
+      evaluationRepository as never,
+      auditService as never,
+    );
   });
 
   it('allows the owner without consulting memberships', async () => {
