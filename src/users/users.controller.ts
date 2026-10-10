@@ -39,8 +39,12 @@ export class UsersController {
   @ApiOperation({ summary: 'Obtener el perfil del usuario autenticado' })
   @ApiBearerAuth()
   @ApiOkResponse({ type: UserResponseDto, description: 'Perfil del usuario autenticado' })
-  async getProfile(@CurrentUser('id') userId: string) {
-    return this.usersService.findOneById(userId);
+  async getProfile(@CurrentUser('id') userId: string, @CurrentUser('role') role: UserRole) {
+    const user = await this.usersService.findOneById(userId);
+    return {
+      ...user,
+      permissions: this.usersService.getEffectivePermissions(role),
+    };
   }
 
   @ApiOperation({ summary: 'Cambiar la contraseña del usuario autenticado' })
