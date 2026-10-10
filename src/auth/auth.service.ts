@@ -7,16 +7,12 @@ import { ILoginUser } from './interfaces/loginUser.interface';
 import bcrypt from 'bcrypt';
 import { IAuthCreate } from './interfaces/authCreate.interface';
 import { CompleteProfileDto } from './dto/complete-profile.dto';
+import { ALLOWED_SELF_ASSIGN_ROLES, isSelfAssignableRole } from './allowed-roles';
 import { SessionsService } from './sessions/sessions.service';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-
-  private static readonly ALLOWED_SIGNUP_ROLES = new Set<UserRole>([
-    UserRole.ENTREPRENEUR,
-    UserRole.EVALUATOR,
-  ]);
 
   constructor(
     private readonly userService: UsersService,
@@ -48,6 +44,20 @@ export class AuthService {
     }
   }
 
+  /**
+   * SEC-002 / B1: segunda barrera, en la capa de servicio, para que la whitelist
+   * se mantenga aunque el DTO se saltee (llamadas internas, DTOs anidados, etc.).
+   * No confies en que la validacion siempre corra.
+   */
+  private assertSelfAssignableRole(role: UserRole | null | undefined) {
+    if (!isSelfAssignableRole(role)) {
+      this.logger.warn(
+        `Intento de auto-asignar un rol no permitido: ${role ?? 'null'}`,
+      );
+      throw new BadRequestException('Rol no permitido');
+    }
+  }
+
   /** Arma la respuesta pública (token + datos del usuario) para un usuario ya resuelto. */
   buildAuthResult(user: User) {
     return {
@@ -62,9 +72,7 @@ export class AuthService {
     }
 
     const requestedRole = user.role ?? UserRole.ENTREPRENEUR;
-    if (!AuthService.ALLOWED_SIGNUP_ROLES.has(requestedRole)) {
-      throw new BadRequestException('Rol no permitido en registro');
-    }
+    this.assertSelfAssignableRole(requestedRole);
 
     const passwordHash = await bcrypt.hash(user.password, 10);
     const userCreate = await this.userService.create({
@@ -163,16 +171,19 @@ toPublicUser(user: User) {
 }
 
 async completeProfile(dto: CompleteProfileDto) {
-  let payload: { sub: string; purpose?: string };
-  try {
-    payload = this.jwtService.verify(dto.profileCompletionToken);
-  } catch {
-    throw new UnauthorizedException('Token expirado o inválido');
-  }
-  if (payload.purpose !== 'profile-completion') {
-    throw new UnauthorizedException('Token inválido');
-  }
-  const updatedUser = await this.userService.completeProfile(payload.sub, dto.role, dto.gender);
+    let payload: { sub: string; purpose?: string };
+    try {
+      payload = this.jwtService.verify(dto.profileCompletionToken);
+    } catch {
+      throw new UnauthorizedException('Token expirado o inválido');
+    }
+    if (payload.purpose !== 'profile-completion') {
+      throw new UnauthorizedException('Token inválido');
+    }
+    // SEC-002 / B1: este endpoint es publico y antes permitia auto-asignar
+    // cualquier rol del enum, incluido admin.
+    this.assertSelfAssignableRole(dto.role);
+    const updatedUser = await this.userService.completeProfile(payload.sub, dto.role, dto.gender);
   const token = this.generateToken(updatedUser);
   return { token, user: this.toPublicUser(updatedUser) };
 }
