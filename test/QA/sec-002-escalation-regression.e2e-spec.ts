@@ -360,4 +360,103 @@ describe('SEC-002 — regresión de escalada de privilegios (B1–B4)', () => {
       });
     });
   });
+
+  // ─── demo-login · PR-BE3 ──────────────────────────────────────────────────
+
+  describe('POST /auth/demo-login — login demo sin contraseña', () => {
+    /** Crea las 4 cuentas demo con role=demo_readonly (lo que hará el seed de PR-BE4). */
+    const seedDemoAccounts = async () => {
+      await fixtures.createUser(UserRole.DEMO_READONLY, { email: 'ana@colibri.com' });
+      await fixtures.createUser(UserRole.DEMO_READONLY, { email: 'mentor@colibri.com' });
+      await fixtures.createUser(UserRole.DEMO_READONLY, { email: 'evaluator@colibri.com' });
+      await fixtures.createUser(UserRole.DEMO_READONLY, { email: 'mecenas@colibri.com' });
+    };
+
+    beforeEach(async () => {
+      await seedDemoAccounts();
+    });
+
+    it('201 con body vacío (default entrepreneur)', async () => {
+      const res = await request(server())
+        .post('/api/v1/auth/demo-login')
+        .send({});
+
+      expect(res.status).toBe(201);
+      expect(res.body.user.email).toBe('ana@colibri.com');
+    });
+
+    it.each(['entrepreneur', 'mentor', 'evaluator', 'mecenas_semilla'] as const)(
+      '201 con role=%s y setea la cookie de sesión',
+      async (role) => {
+        const res = await request(server())
+          .post('/api/v1/auth/demo-login')
+          .send({ role });
+
+        expect(res.status).toBe(201);
+        expect(res.headers['set-cookie']).toEqual(
+          expect.arrayContaining([expect.stringContaining('colibri_access_token=')]),
+        );
+      },
+    );
+
+    it('el user.role de la respuesta es demo_readonly, no el rol elegido', async () => {
+      const res = await request(server())
+        .post('/api/v1/auth/demo-login')
+        .send({ role: 'mentor' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.user.role).toBe('demo_readonly');
+    });
+
+    it('no requiere password', async () => {
+      const res = await request(server())
+        .post('/api/v1/auth/demo-login')
+        .send({ role: 'evaluator' });
+
+      expect(res.status).toBe(201);
+      // No hay campo password en la respuesta ni se pidió en el body.
+      expect(res.body.user.password).toBeFalsy();
+    });
+
+    it('400 con un rol inválido', async () => {
+      await request(server())
+        .post('/api/v1/auth/demo-login')
+        .send({ role: 'admin' })
+        .expect(400);
+    });
+
+    it('401 si la cuenta demo no existe (seed no ejecutado)', async () => {
+      await cleanDatabase(ctx.dataSource);
+
+      await request(server())
+        .post('/api/v1/auth/demo-login')
+        .send({ role: 'entrepreneur' })
+        .expect(401);
+    });
+
+    it('el token demo-read-only no puede escribir (DemoReadOnlyGuard activo)', async () => {
+      // Usamos fixtures en vez del endpoint para no agotar el throttle
+      // de demo-login (10/min) con tanta llamadas en la suite.
+      const demo = await fixtures.createUser(UserRole.DEMO_READONLY, {
+        email: 'guard-test@colibri.com',
+      });
+
+      await request(server())
+        .post('/api/v1/projects')
+        .set(fixtures.authHeader(demo))
+        .send({ projectName: 'No debo poder' })
+        .expect(403);
+    });
+
+    it('el token demo-read-only sí puede leer', async () => {
+      const demo = await fixtures.createUser(UserRole.DEMO_READONLY, {
+        email: 'guard-test2@colibri.com',
+      });
+
+      await request(server())
+        .get('/api/v1/projects')
+        .set(fixtures.authHeader(demo))
+        .expect(200);
+    });
+  });
 });

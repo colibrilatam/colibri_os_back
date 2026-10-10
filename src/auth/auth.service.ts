@@ -14,6 +14,18 @@ import { SessionsService } from './sessions/sessions.service';
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
+  /**
+   * SEC-002 / PR-BE3: emails de las cuentas demo sembradas por PR-BE4.
+   * El selector de persona del body se mapea a uno de estos emails.
+   * Todas las cuentas tienen role='demo_readonly' en la DB.
+   */
+  private static readonly DEMO_ACCOUNT_EMAILS = {
+    entrepreneur: 'ana@colibri.com',
+    mentor: 'mentor@colibri.com',
+    evaluator: 'evaluator@colibri.com',
+    mecenas_semilla: 'mecenas@colibri.com',
+  } as const;
+
   constructor(
     private readonly userService: UsersService,
     private readonly jwtService: JwtService,
@@ -108,6 +120,42 @@ export class AuthService {
         user: this.toPublicUser(userFound),
       };
     }
+  }
+
+  /**
+   * SEC-002 / PR-BE3: autentica una cuenta demo sin contraseña.
+   *
+   * El `role` del body es un selector de persona, no un rol de autorizacion.
+   * Se mapea a un email de cuenta demo sembrada (PR-BE4). El token se firma
+   * con el rol real de la cuenta en la DB — que debe ser `demo_readonly`.
+   * No hay password en el request ni en el frontend.
+   */
+  async demoLogin(
+    requestedRole?: 'entrepreneur' | 'mentor' | 'evaluator' | 'mecenas_semilla',
+  ) {
+    const email = AuthService.DEMO_ACCOUNT_EMAILS[requestedRole ?? 'entrepreneur'];
+    const user = await this.userService.findByEmail(email);
+
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      this.logger.warn(`Demo login falló: cuenta ${email} no existe o no está activa`);
+      throw new UnauthorizedException('Entorno demo no disponible');
+    }
+
+    // Defensa en profundidad: si por algun motivo la cuenta no tiene el rol
+    // demo_readonly, no se emite token. Evita que un seed incompleto o un
+    // cambio manual abra una sesion con permisos de mas.
+    if (user.role !== UserRole.DEMO_READONLY) {
+      this.logger.error(
+        `Cuenta demo ${email} tiene role=${user.role}, se esperaba demo_readonly`,
+      );
+      throw new UnauthorizedException('Entorno demo no disponible');
+    }
+
+    return {
+      message: 'Sesión demo iniciada',
+      token: this.generateToken(user),
+      user: this.toPublicUser(user),
+    };
   }
 
   async googleLogin(user: IGoogleUser): Promise<{ user: User; requiresProfileCompletion: boolean }> {
