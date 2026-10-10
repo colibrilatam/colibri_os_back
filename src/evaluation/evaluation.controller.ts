@@ -30,6 +30,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { ProjectAccessService } from '../projects/project-access.service';
 
 const EXAMPLE_EVALUATION = {
   id: 'eval-uuid-0001',
@@ -63,7 +64,10 @@ const EXAMPLE_RUBRIC = {
 @Controller('evaluations')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class EvaluationController {
-  constructor(private readonly service: EvaluationService) {}
+  constructor(
+    private readonly service: EvaluationService,
+    private readonly projectAccessService: ProjectAccessService,
+  ) {}
 
   // ══════════════════════════════════════════════════════════
   // EVALUACIONES
@@ -121,11 +125,13 @@ export class EvaluationController {
     },
   })
   @ApiResponse({ status: 400, description: 'La evaluación ya está finalizada.' })
-  submitAiResult(
+  async submitAiResult(
     @CurrentUser('id') userId: string,
     @CurrentUser('role') role: UserRole,
     @Body() dto: SubmitAiResultDto,
   ) {
+    const evaluation = await this.service.findOneEvaluationAuthorized(dto.evaluationId, { userId, role });
+    await this.projectAccessService.assertCanAccessProject({ userId, role }, evaluation.evidence.projectId);
     return this.service.submitAiResult({ userId, role }, dto);
   }
 
@@ -208,8 +214,25 @@ export class EvaluationController {
     description: 'Lista de evaluaciones pendientes.',
     schema: { example: [EXAMPLE_EVALUATION] },
   })
-  findPendingHumanReviews() {
-    return this.service.findPendingHumanReviews();
+  async findPendingHumanReviews(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    const reviews = await this.service.findPendingHumanReviews();
+    const filtered = await Promise.all(
+      reviews.map(async (review) => {
+        try {
+          await this.projectAccessService.assertCanAccessProject(
+            { userId, role },
+            review.evidence.projectId,
+          );
+          return review;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    return filtered.filter(Boolean);
   }
 
   @Get('evidence/:evidenceId')

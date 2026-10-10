@@ -11,11 +11,12 @@ import { ProjectMember } from '../project-members/entities/project-member.entity
 import { ProjectAccessService } from './project-access.service';
 import { ProjectResourceAudit } from './entities/project-resource-audit.entity';
 import { AuthorizationAuditModule } from '../authorization-audit/authorization-audit.module';
+import { Evaluation } from '../evaluation/entities/evaluation.entity';
 
 @Module({
   imports: [
     CloudinaryModule,
-    TypeOrmModule.forFeature([Project, Pac, ProjectPac, ProjectMember, ProjectResourceAudit]),
+    TypeOrmModule.forFeature([Project, Pac, ProjectPac, ProjectMember, ProjectResourceAudit, Evaluation]),
     TramosModule, 
     AuthorizationAuditModule,
   ],
