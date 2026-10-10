@@ -68,6 +68,20 @@ export class NftActorService {
     return { message: 'NFT Actor actualizado correctamente' };
   }
 
+  async assertOwnership(id: string, principal: NftResourcePrincipal): Promise<NftActor> {
+    const nftActor = await this.nftActorRepository.findById(id);
+    if (!nftActor) throw new NotFoundException('NFT Actor no encontrado');
+
+    const isOwner = nftActor.userId === principal.userId;
+    const isAdmin = principal.role === UserRole.ADMIN;
+
+    if (!isOwner && !isAdmin) {
+      throw new ForbiddenException('No tenés permiso para acceder a este NFT Actor');
+    }
+
+    return nftActor;
+  }
+
   private async assertOwnershipAndWallet(
     id: string,
     principal: NftResourcePrincipal,
