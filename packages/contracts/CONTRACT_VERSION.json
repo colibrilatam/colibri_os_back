@@ -1,7 +1,16 @@
 {
-  "version": "1.2.0",
-  "lastBreakingChange": "2026-08-22",
+  "version": "2.0.0",
+  "lastBreakingChange": "2026-10-11",
   "changelog": [
+    {
+      "version": "2.0.0",                
+      "date": "2026-10-11",
+      "changes": [
+        "BREAKING: UserRole añade valor 'demo_readonly' — clientes con switch exhaustivo se rompen",
+        "SEC-002: Nuevo endpoint POST /auth/demo-login (login demo sin password)",
+        "SEC-002: CompleteProfileDto.role restringido a ['entrepreneur', 'evaluator'] (cierra B1)"
+      ]
+    },
     {
       "version": "1.2.0",
       "date": "2026-10-10",
