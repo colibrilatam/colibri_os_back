@@ -39,8 +39,8 @@ export async function seedEvidences(
   const flujoClave = projects.find((p) => p.projectName === 'FlujoClave');
   if (!flujoClave) throw new Error('❌ Proyecto FlujoClave no encontrado');
 
-  const entrepreneurs = users.filter((u) => u.role === UserRole.ENTREPRENEUR);
-  const actor = entrepreneurs[1];
+  const entrepreneurs = users.filter((u) => u.email === 'sofia@colibri.com' || u.email === 'ana@colibri.com' || u.email === 'martin@colibri.com' || u.email === 'martin@colibri.com');
+  const actor = entrepreneurs.find((u) => u.email === 'ana@colibri.com');
   if (!actor) throw new Error('❌ Actor no encontrado');
 
   // ── Obtener las MADs principales (sortOrder=1) de T1, T2 y T3 ─────────────

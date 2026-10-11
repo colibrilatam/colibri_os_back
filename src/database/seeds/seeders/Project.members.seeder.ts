@@ -45,7 +45,7 @@ export async function seedProjectMembers(
   const flujoClave = projects.find((p) => p.projectName === 'FlujoClave');
   if (!flujoClave) throw new Error('❌ Proyecto FlujoClave no encontrado');
 
-  const entrepreneurs = users.filter((u) => u.role === UserRole.ENTREPRENEUR);
+  const entrepreneurs = users.filter((u) => u.role === UserRole.DEMO_READONLY);
   const [lucas, ana, martin, sofia] = entrepreneurs;
 
   const flujoClaveMembers = repo.create([
