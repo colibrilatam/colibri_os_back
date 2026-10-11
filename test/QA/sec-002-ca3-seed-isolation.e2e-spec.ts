@@ -1,5 +1,4 @@
-import { execFileSync } from 'child_process';
-import { join } from 'path';
+import { runSeedScript } from '../helpers/run-seed-script';
 
 /**
  * SEC-002 / CA3: el seed no puede correr contra un host de producción.
@@ -15,29 +14,7 @@ import { join } from 'path';
  * por RFC 2606 que nunca resuelve). No se usa ningún host real.
  */
 describe('SEC-002 / CA3: seed aislado — aborta contra host de producción', () => {
-  const seedScript = join(__dirname, '..', '..', 'src', 'database', 'seeds', 'seed.ts');
-
-  function runSeed(env: Record<string, string | undefined>): { status: number; output: string } {
-    try {
-      // shell: true es necesario en Windows para que npx resuelva npx.cmd.
-      const output = execFileSync(
-        'npx',
-        ['ts-node', '-r', 'tsconfig-paths/register', seedScript],
-        {
-          env: { ...process.env, ...env },
-          encoding: 'utf-8',
-          timeout: 15_000,
-          shell: true,
-        },
-      );
-      return { status: 0, output };
-    } catch (error: any) {
-      return {
-        status: typeof error.status === 'number' ? error.status : 1,
-        output: `${error.stdout ?? ''}${error.stderr ?? ''}`,
-      };
-    }
-  }
+  const runSeed = runSeedScript;
 
   it('aborta si DATABASE_URL apunta a un host externo (no localhost)', () => {
     const result = runSeed({
