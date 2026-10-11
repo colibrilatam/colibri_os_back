@@ -41,19 +41,31 @@ export class RolesGuard implements CanActivate {
       const controllerClass = context.getClass();
       const handlerName = handler.name || 'anonymous';
       const controllerName = controllerClass.name || 'unknown';
+      const request = context.switchToHttp().getRequest();
 
-      if (process.env.ROLES_GUARD_ENFORCE === 'true') {
-        this.logger.warn(
-          `SEC-002:RolesGuard ENFORCE — ${controllerName}.${handlerName} tiene RolesGuard pero no @Roles. Bloqueado.`,
-        );
+      const enforce = process.env.ROLES_GUARD_ENFORCE === 'true';
+
+      // Log estructurado (JSON) para que el auditor pueda filtrar por
+      // "event":"roles_guard_no_metadata" en los logs del contenedor.
+      this.logger.warn(
+        JSON.stringify({
+          event: 'roles_guard_no_metadata',
+          enforce,
+          controller: controllerName,
+          handler: handlerName,
+          method: request?.method,
+          path: request?.route?.path ?? request?.url,
+          userId: request?.user?.sub ?? null,
+          timestamp: new Date().toISOString(),
+        }),
+      );
+
+      if (enforce) {
         throw new ForbiddenException(
           'Este endpoint no tiene roles definidos. Se requiere @Roles explícito.',
         );
       }
 
-      this.logger.warn(
-        `SEC-002: RolesGuard sin @Roles en ${controllerName}.${handlerName} — abierto a cualquier rol autenticado (log-only, enforce=false)`,
-      );
       return true;
     }
 

@@ -198,6 +198,21 @@ export class EnvironmentVariables {
   @Validate(NoDestructiveSeedInProductionConstraint)
   CONFIRM_DESTRUCTIVE_SEED?: string;
 
+  // ---------- SEGURIDAD (SEC-002) ----------
+  /**
+   * RolesGuard en modo enforce. Cuando es "true", los endpoints que tienen
+   * RolesGuard vinculado pero NO tienen @Roles declarado devuelven 403
+   * (fail-closed). Cuando es "false" (default), solo registran un warning
+   * en el log de auditoría.
+   *
+   * Fase 1 (actual): log-only. Fase 2: activar "true" tras 1 semana de
+   * auditoría. Revisar el log antes de activar.
+   */
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsBooleanString({ message: 'ROLES_GUARD_ENFORCE debe ser "true" o "false"' })
+  ROLES_GUARD_ENFORCE?: string;
+
   // ---------- LÍMITES / TIMEOUTS (expiraciones) ----------
   @IsOptional()
   @Matches(BODY_SIZE_REGEX, { message: 'MAX_JSON_BODY_SIZE debe tener formato de tamaño (ej: 1mb, 512kb)' })
