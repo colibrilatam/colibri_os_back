@@ -785,7 +785,7 @@
   "info": {
     "title": "Colibrí OS API",
     "description": "API del sistema Colibrí OS — RaaS (Reputación como Servicio)",
-    "version": "1.2.0",
+    "version": "2.0.0",
     "contact": {}
   },
   "tags": [],
