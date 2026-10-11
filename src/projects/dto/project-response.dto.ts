@@ -1,8 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProjectStatus, TrajectoryStatus } from '../entities/project.entity';
+import { UserResponseDto } from '../../users/dtos/user-response.dto';
+import { ProjectProfileResponseDto } from '../../project-profile/dto/project-profile-response.dto';
+import { ProjectMemberResponseDto } from '../../project-members/dto/project-member-response.dto';
+import { ProjectPacResponseDto } from './project-pac-response.dto';
 
 export class ProjectResponseDto {
-  @ApiProperty({ type: String,  format: 'uuid' })
+  @ApiProperty({ type: String, format: 'uuid' })
   id: string;
 
   @ApiProperty({ type: String, format: 'uuid' })
@@ -67,4 +71,16 @@ export class ProjectResponseDto {
 
   @ApiProperty({ type: String, format: 'date-time' })
   updatedAt: Date;
+
+  @ApiPropertyOptional({ type: UserResponseDto })
+  owner?: UserResponseDto;
+
+  @ApiPropertyOptional({ type: ProjectProfileResponseDto, nullable: true })
+  profile?: ProjectProfileResponseDto | null;
+
+  @ApiPropertyOptional({ type: [ProjectMemberResponseDto] })
+  members?: ProjectMemberResponseDto[];
+
+  @ApiPropertyOptional({ type: [ProjectPacResponseDto] })
+  projectPacs?: ProjectPacResponseDto[];
 }

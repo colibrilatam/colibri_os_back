@@ -35,7 +35,7 @@ import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Tramos')
 @Controller('tramos')
-//@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard) // SEC-002 / B2: antes comentado; los endpoints de escritura estaban abiertos.
 export class TramosController {
   constructor(private readonly tramosService: TramosService) {}
 

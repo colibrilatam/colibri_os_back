@@ -7,6 +7,17 @@
 .env.production
 .env.local
 .env.*.local
+.env.demo
+# SEC-002: los archivos de ejemplo sí se commitean.
+!.env.example
+!.env.demo.example
+
+# Secretos y llaves — nunca al repo.
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*
 
 # Logs
 logs

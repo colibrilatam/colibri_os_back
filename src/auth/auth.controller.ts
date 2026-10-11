@@ -22,6 +22,7 @@ import { MessageResponseDto } from './dto/message-response.dto';
 import type { Request, Response } from 'express';
 import type { IGoogleUser } from './interfaces/googleUser.interface';
 import { CompleteProfileDto } from './dto/complete-profile.dto';
+import { DemoLoginDto } from './dto/demo-login.dto';
 import { OAuthExchangeService } from './oauth/oauth-exchange.service';
 import { Throttle } from '@nestjs/throttler';
 import { Ip } from '@nestjs/common';
@@ -101,6 +102,23 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Credenciales inválidas' })
   async loginUser(@Body() logindto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.loginUser(logindto);
+    setAuthCookie(res, result.token);
+    return { message: result.message, user: result.user };
+  }
+
+  /**
+   * SEC-002 / PR-BE3: login demo sin contraseña.
+   *
+   * Emite un token con role=demo_readonly (el rol real de la cuenta en la DB).
+   * El body acepta un selector de persona para elegir que cuenta demo usar.
+   * Throttle estricto para evitar abuso.
+   */
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('demo-login')
+  @ApiOkResponse({ type: AuthResponseDto, description: 'Sesión demo iniciada' })
+  @ApiUnauthorizedResponse({ description: 'Entorno demo no disponible' })
+  async demoLogin(@Body() dto: DemoLoginDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.demoLogin(dto.role);
     setAuthCookie(res, result.token);
     return { message: result.message, user: result.user };
   }

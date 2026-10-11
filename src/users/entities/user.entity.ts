@@ -23,6 +23,14 @@ export enum UserRole {
   MECENAS_CAMBIO = 'mecenas_cambio', // nuevo
   ADMIN = 'admin', // ← el rol sin nombre definido aún
   GUEST = 'guest',
+  /**
+   * SEC-002: rol de las cuentas demo. Solo lectura.
+   *
+   * Lo impone `DemoReadOnlyGuard` (APP_GUARD global): cualquier metodo distinto
+   * de GET devuelve 403. Las cuentas con este rol se crean por seed, nunca por
+   * auto-registro ni por complete-profile (ver `auth/allowed-roles.ts`).
+   */
+  DEMO_READONLY = 'demo_readonly',
 }
 
 export enum Gender {

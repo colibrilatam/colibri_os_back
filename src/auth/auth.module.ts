@@ -20,6 +20,7 @@ import { PasswordResetModule } from './password-reset/password-reset.module';
     OAuthExchangeModule,
     PasswordResetModule,
     JwtModule.registerAsync({
+      global: true, // SEC-002: DemoReadOnlyGuard (APP_GUARD) necesita JwtService inyectable.
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {

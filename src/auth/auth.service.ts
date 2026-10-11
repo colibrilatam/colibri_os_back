@@ -7,16 +7,24 @@ import { ILoginUser } from './interfaces/loginUser.interface';
 import bcrypt from 'bcrypt';
 import { IAuthCreate } from './interfaces/authCreate.interface';
 import { CompleteProfileDto } from './dto/complete-profile.dto';
+import { ALLOWED_SELF_ASSIGN_ROLES, isSelfAssignableRole } from './allowed-roles';
 import { SessionsService } from './sessions/sessions.service';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  private static readonly ALLOWED_SIGNUP_ROLES = new Set<UserRole>([
-    UserRole.ENTREPRENEUR,
-    UserRole.EVALUATOR,
-  ]);
+  /**
+   * SEC-002 / PR-BE3: emails de las cuentas demo sembradas por PR-BE4.
+   * El selector de persona del body se mapea a uno de estos emails.
+   * Todas las cuentas tienen role='demo_readonly' en la DB.
+   */
+  private static readonly DEMO_ACCOUNT_EMAILS = {
+    entrepreneur: 'ana@colibri.com',
+    mentor: 'mentor@colibri.com',
+    evaluator: 'evaluator@colibri.com',
+    mecenas_semilla: 'mecenas@colibri.com',
+  } as const;
 
   constructor(
     private readonly userService: UsersService,
@@ -48,6 +56,20 @@ export class AuthService {
     }
   }
 
+  /**
+   * SEC-002 / B1: segunda barrera, en la capa de servicio, para que la whitelist
+   * se mantenga aunque el DTO se saltee (llamadas internas, DTOs anidados, etc.).
+   * No confies en que la validacion siempre corra.
+   */
+  private assertSelfAssignableRole(role: UserRole | null | undefined) {
+    if (!isSelfAssignableRole(role)) {
+      this.logger.warn(
+        `Intento de auto-asignar un rol no permitido: ${role ?? 'null'}`,
+      );
+      throw new BadRequestException('Rol no permitido');
+    }
+  }
+
   /** Arma la respuesta pública (token + datos del usuario) para un usuario ya resuelto. */
   buildAuthResult(user: User) {
     return {
@@ -62,9 +84,7 @@ export class AuthService {
     }
 
     const requestedRole = user.role ?? UserRole.ENTREPRENEUR;
-    if (!AuthService.ALLOWED_SIGNUP_ROLES.has(requestedRole)) {
-      throw new BadRequestException('Rol no permitido en registro');
-    }
+    this.assertSelfAssignableRole(requestedRole);
 
     const passwordHash = await bcrypt.hash(user.password, 10);
     const userCreate = await this.userService.create({
@@ -100,6 +120,42 @@ export class AuthService {
         user: this.toPublicUser(userFound),
       };
     }
+  }
+
+  /**
+   * SEC-002 / PR-BE3: autentica una cuenta demo sin contraseña.
+   *
+   * El `role` del body es un selector de persona, no un rol de autorizacion.
+   * Se mapea a un email de cuenta demo sembrada (PR-BE4). El token se firma
+   * con el rol real de la cuenta en la DB — que debe ser `demo_readonly`.
+   * No hay password en el request ni en el frontend.
+   */
+  async demoLogin(
+    requestedRole?: 'entrepreneur' | 'mentor' | 'evaluator' | 'mecenas_semilla',
+  ) {
+    const email = AuthService.DEMO_ACCOUNT_EMAILS[requestedRole ?? 'entrepreneur'];
+    const user = await this.userService.findByEmail(email);
+
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      this.logger.warn(`Demo login falló: cuenta ${email} no existe o no está activa`);
+      throw new UnauthorizedException('Entorno demo no disponible');
+    }
+
+    // Defensa en profundidad: si por algun motivo la cuenta no tiene el rol
+    // demo_readonly, no se emite token. Evita que un seed incompleto o un
+    // cambio manual abra una sesion con permisos de mas.
+    if (user.role !== UserRole.DEMO_READONLY) {
+      this.logger.error(
+        `Cuenta demo ${email} tiene role=${user.role}, se esperaba demo_readonly`,
+      );
+      throw new UnauthorizedException('Entorno demo no disponible');
+    }
+
+    return {
+      message: 'Sesión demo iniciada',
+      token: this.generateToken(user),
+      user: this.toPublicUser(user),
+    };
   }
 
   async googleLogin(user: IGoogleUser): Promise<{ user: User; requiresProfileCompletion: boolean }> {
@@ -163,16 +219,19 @@ toPublicUser(user: User) {
 }
 
 async completeProfile(dto: CompleteProfileDto) {
-  let payload: { sub: string; purpose?: string };
-  try {
-    payload = this.jwtService.verify(dto.profileCompletionToken);
-  } catch {
-    throw new UnauthorizedException('Token expirado o inválido');
-  }
-  if (payload.purpose !== 'profile-completion') {
-    throw new UnauthorizedException('Token inválido');
-  }
-  const updatedUser = await this.userService.completeProfile(payload.sub, dto.role, dto.gender);
+    let payload: { sub: string; purpose?: string };
+    try {
+      payload = this.jwtService.verify(dto.profileCompletionToken);
+    } catch {
+      throw new UnauthorizedException('Token expirado o inválido');
+    }
+    if (payload.purpose !== 'profile-completion') {
+      throw new UnauthorizedException('Token inválido');
+    }
+    // SEC-002 / B1: este endpoint es publico y antes permitia auto-asignar
+    // cualquier rol del enum, incluido admin.
+    this.assertSelfAssignableRole(dto.role);
+    const updatedUser = await this.userService.completeProfile(payload.sub, dto.role, dto.gender);
   const token = this.generateToken(updatedUser);
   return { token, user: this.toPublicUser(updatedUser) };
 }

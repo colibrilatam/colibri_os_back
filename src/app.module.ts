@@ -24,6 +24,7 @@ import { TramoClosureModule } from './tramo-closure/tramo-closure.module';
 import { HealthModule } from './health/health.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { DemoReadOnlyGuard } from './auth/guards/demo-readonly.guard';
 import { MaintenanceModeMiddleware } from './common/middleware/maintenance-mode.middleware';
 import { validateEnv } from './config/env.validation';
 
@@ -85,6 +86,9 @@ import { validateEnv } from './config/env.validation';
   providers: [
     // QA-002: aplica el throttling a nivel global, a todos los controllers.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // SEC-002: rol demo_readonly solo puede hacer GET. Se ejecuta después de
+    // ThrottlerGuard y antes de los guards de controller.
+    { provide: APP_GUARD, useClass: DemoReadOnlyGuard },
   ],
 })
 export class AppModule implements NestModule {

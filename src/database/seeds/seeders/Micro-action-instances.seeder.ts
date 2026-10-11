@@ -35,8 +35,8 @@ export async function seedMicroActionInstances(
   const flujoClave = projects.find((p) => p.projectName === 'FlujoClave');
   if (!flujoClave) throw new Error('❌ Proyecto FlujoClave no encontrado');
 
-  const entrepreneurs = users.filter((u) => u.role === UserRole.ENTREPRENEUR);
-  const actor = entrepreneurs[1]; // Ana Startup
+  const entrepreneurs = users.filter((u) => u.email === 'sofia@colibri.com' || u.email === 'ana@colibri.com' || u.email === 'martin@colibri.com' || u.email === 'martin@colibri.com');
+  const actor = entrepreneurs.find((u) => u.email === 'ana@colibri.com'); // Ana Startup
   if (!actor) throw new Error('❌ Actor (Ana Startup) no encontrado');
 
   // ── Filtrar MADs de T1, T2 y T3 ───────────────────────────────────────────

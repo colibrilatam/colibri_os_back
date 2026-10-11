@@ -94,6 +94,40 @@
         ]
       }
     },
+    "/auth/demo-login": {
+      "post": {
+        "operationId": "AuthController_demoLogin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesión demo iniciada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Entorno demo no disponible"
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/auth/signup": {
       "post": {
         "operationId": "AuthController_createUser",
@@ -751,7 +785,7 @@
   "info": {
     "title": "Colibrí OS API",
     "description": "API del sistema Colibrí OS — RaaS (Reputación como Servicio)",
-    "version": "1.1.0",
+    "version": "2.0.0",
     "contact": {}
   },
   "tags": [],
@@ -802,7 +836,8 @@
               "mecenas_fundacional",
               "mecenas_cambio",
               "admin",
-              "guest"
+              "guest",
+              "demo_readonly"
             ],
             "nullable": true,
             "description": "Rol del usuario. Null mientras el usuario está en estado PENDING_PROFILE."
@@ -943,6 +978,23 @@
           "user"
         ]
       },
+      "DemoLoginDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "entrepreneur",
+              "mentor",
+              "evaluator",
+              "mecenas_semilla"
+            ],
+            "description": "Persona demo a usar. El token emitido SIEMPRE lleva role=demo_readonly.",
+            "example": "entrepreneur",
+            "default": "entrepreneur"
+          }
+        }
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {
@@ -1005,7 +1057,20 @@
       },
       "CompleteProfileDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "entrepreneur",
+              "evaluator"
+            ],
+            "description": "Rol con el que se completa el perfil. Solo se permiten roles no privilegiados.",
+            "example": "entrepreneur"
+          }
+        },
+        "required": [
+          "role"
+        ]
       },
       "CompleteProfileResponseDto": {
         "type": "object",
@@ -1172,7 +1237,8 @@
               "mecenas_fundacional",
               "mecenas_cambio",
               "admin",
-              "guest"
+              "guest",
+              "demo_readonly"
             ],
             "example": "evaluator"
           },
@@ -1276,6 +1342,302 @@
         },
         "required": [
           "projectName"
+        ]
+      },
+      "ProjectProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "longDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "problemStatement": {
+            "type": "string",
+            "nullable": true
+          },
+          "solutionStatement": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetAudience": {
+            "type": "string",
+            "nullable": true
+          },
+          "sdgGoals": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "valueProposition": {
+            "type": "string",
+            "nullable": true
+          },
+          "businessModelSummary": {
+            "type": "string",
+            "nullable": true
+          },
+          "stageNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "pitchUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ProjectMemberResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female",
+              "non_binary",
+              "other",
+              "prefer_not_to_say"
+            ],
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roleInTeam": {
+            "type": "string",
+            "enum": [
+              "founder",
+              "co_founder",
+              "cto",
+              "cmo",
+              "developer",
+              "designer",
+              "advisor",
+              "other"
+            ]
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "leftAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "participationWeight": {
+            "type": "string",
+            "nullable": true
+          },
+          "isFounder": {
+            "type": "boolean"
+          },
+          "isPrimaryOperator": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "userId",
+          "roleInTeam",
+          "isActive",
+          "isFounder",
+          "isPrimaryOperator",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PacResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "title_es": {
+            "type": "string"
+          },
+          "title_en": {
+            "type": "string"
+          },
+          "objectiveLine_es": {
+            "type": "string",
+            "nullable": true
+          },
+          "objectiveLine_en": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "executionWindowDays": {
+            "type": "number",
+            "nullable": true
+          },
+          "minimumCompletionThreshold": {
+            "type": "string",
+            "nullable": true
+          },
+          "icWeight": {
+            "type": "string",
+            "nullable": true
+          },
+          "closureRule": {
+            "type": "string",
+            "nullable": true
+          },
+          "templateVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "validTo": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "categoryId",
+          "code",
+          "title_es",
+          "title_en",
+          "sortOrder",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ProjectPacResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "pacId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed"
+            ]
+          },
+          "progress": {
+            "type": "string",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pac": {
+            "$ref": "#/components/schemas/PacResponseDto"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "pacId",
+          "status",
+          "createdAt",
+          "updatedAt"
         ]
       },
       "ProjectResponseDto": {
@@ -1388,6 +1750,30 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/UserResponseDto"
+          },
+          "profile": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProjectProfileResponseDto"
+              }
+            ]
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectMemberResponseDto"
+            }
+          },
+          "projectPacs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectPacResponseDto"
+            }
           }
         },
         "required": [

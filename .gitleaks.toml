@@ -10,4 +10,5 @@ useDefault = true
 description = "Falso positivo en tests de contratos (JWT de ejemplo)"
 paths = [
   '''contracts\.test\.ts''',
+  '''\.env\.example$''',
 ]

@@ -21,6 +21,7 @@ type JsonSchema = {
   required?: string[];
   nullable?: boolean;
   $ref?: string;
+  allOf?: JsonSchema[];
   minLength?: number;
   maxLength?: number;
 };
@@ -40,6 +41,10 @@ const RENAME: Record<string, string> = {
   RegisterResponseDto: 'RegisterResponse',
   UserResponseDto: 'User',
   ProjectResponseDto: 'Project',
+  ProjectProfileResponseDto: 'ProjectProfile',
+  ProjectMemberResponseDto: 'ProjectMember',
+  ProjectPacResponseDto: 'ProjectPac',
+  PacResponseDto: 'Pac',
   CreateProjectDto: 'CreateProjectRequest',
   UpdateProjectDto: 'UpdateProjectRequest',
   CompleteProfileResponseDto: 'CompleteProfileResponse',
@@ -62,6 +67,7 @@ const ENUMS: { name: string; values: string[] }[] = [
       'mecenas_cambio',
       'admin',
       'guest',
+      'demo_readonly', // SEC-002
     ],
   },
   { name: 'UserStatus', values: ['active', 'inactive', 'suspended', 'pending_profile'] },
@@ -110,6 +116,10 @@ function zodType(schema: JsonSchema): string {
     const renamed = RENAME[refName];
     if (!renamed) throw new Error(`$ref fuera de scope: ${refName}`);
     return `${renamed}Schema`;
+  }
+  if (schema.allOf && schema.allOf.length > 0) {
+    if (schema.allOf.length === 1) return zodType(schema.allOf[0]);
+    return 'z.unknown()';
   }
   if (schema.enum) {
     const enumName = findEnumName(schema.enum);
@@ -175,6 +185,10 @@ const ORDER = [
   'AuthResponseDto',
   'CreateUserDto',
   'RegisterResponseDto',
+  'ProjectProfileResponseDto',
+  'ProjectMemberResponseDto',
+  'PacResponseDto',
+  'ProjectPacResponseDto',
   'ProjectResponseDto',
   'CreateProjectDto',
   'UpdateProjectDto',
@@ -201,6 +215,10 @@ const TYPES: [string, string][] = [
   ['RegisterResponse', 'RegisterResponseSchema'],
   ['User', 'UserSchema'],
   ['Project', 'ProjectSchema'],
+  ['ProjectProfile', 'ProjectProfileSchema'],
+  ['ProjectMember', 'ProjectMemberSchema'],
+  ['Pac', 'PacSchema'],
+  ['ProjectPac', 'ProjectPacSchema'],
   ['CreateProjectRequest', 'CreateProjectRequestSchema'],
   ['UpdateProjectRequest', 'UpdateProjectRequestSchema'],
   ['CompleteProfileResponse', 'CompleteProfileResponseSchema'],

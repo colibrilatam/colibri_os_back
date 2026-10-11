@@ -21,48 +21,35 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    #container_name: colibri-back
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      NODE_ENV: production 
+      NODE_ENV: production
       NODE_OPTIONS: "--dns-result-order=ipv4first"
-      # Sobrescribe lo que traiga el .env para que el backend hable con el
-      # contenedor "db" de esta red en lugar de "localhost".
-      #DB_HOST: db
-      #DB_PORT: 5432
-      #DATABASE_URL: postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-postgres}@DB_HOST:DB_PORT/${DB_NAME:-colibri_db}
-      #direct connection string
-      DATABASE_URL: postgresql://postgres:movimientocolibrilatamjesus@db.konerpsbihgobpqgeqgq.supabase.co:5432/postgres
+      # SEC-002: sin default. Si DATABASE_URL no está definida, Docker
+      # Compose falla en vez de caer a una credencial hardcodeada.
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL requerido — definir en .env o en el entorno}
 
     ports:
       - "${PORT:-3030}:3030"
-    #depends_on:
-      #db:
-        #condition: service_healthy
 
   # --- Servicios de utilidad (no arrancan con `docker compose up`) ---
   # Ejecutar migraciones:  docker compose run --rm migrate
   # Sembrar datos:         docker compose run --rm seed
+  #
+  # SEC-002: migrate y seed NO usan env_file. Solo reciben las variables
+  # que necesitan vía `environment`, para no inyectar el .env completo
+  # (que puede contener credenciales de producción) en procesos destructivos.
   migrate:
     build:
       context: .
       dockerfile: Dockerfile
       target: builder
     profiles: ["tools"]
-    env_file:
-      - .env
     environment:
-      NODE_ENV: development # evita que data-source.ts pida SSL contra el Postgres local
       NODE_OPTIONS: "--dns-result-order=ipv4first"
-      #DB_HOST: db
-      #DB_PORT: 5432
-      DATABASE_URL: postgresql://postgres:movimientocolibrilatamjesus@db.konerpsbihgobpqgeqgq.supabase.co:5432/postgres
-
-    #depends_on:
-      #db:
-        #condition: service_healthy
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL requerido — definir en .env o en el entorno}
     command: ["npm", "run", "migration:run"]
 
   seed:
@@ -71,18 +58,12 @@ services:
       dockerfile: Dockerfile
       target: builder
     profiles: ["tools"]
-    env_file:
-      - .env
     environment:
-      NODE_ENV: development
       NODE_OPTIONS: "--dns-result-order=ipv4first"
-      #DB_HOST: db
-      #DB_PORT: 5432
-      DATABASE_URL: potgresql://postgres:movimientocolibrilatamjesus@db.konerpsbihgobpqgeqgq.supabase.co:5432/postgres
-
-    #depends_on:
-      #db:
-        #condition: service_healthy
+      # SEC-002: sin NODE_ENV: development. Antes este valor desactivaba el
+      # guard de production en seed.ts, permitiendo TRUNCATE contra prod.
+      # Ahora seed.ts decide en base al NODE_ENV real del entorno.
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL requerido — definir en .env o en el entorno}
     command: ["npm", "run", "seed"]
 
 volumes:

@@ -56,6 +56,8 @@ function assertSeedIsAllowed(): void {
     process.exit(1);
   }
 
+  assertAllowedHost();
+
   if (process.env.CONFIRM_DESTRUCTIVE_SEED !== DESTRUCTIVE_CONFIRMATION_VALUE) {
     logSeedAttempt('seed_blocked_missing_destructive_confirmation');
     console.error(
@@ -67,6 +69,48 @@ function assertSeedIsAllowed(): void {
   }
 
   logSeedAttempt('seed_allowed', { database: safeDbLabel() });
+}
+
+/**
+ * SEC-002 / PR-BE4: el seed solo puede correr contra hosts permitidos.
+ *
+ * Por defecto se permiten localhost y 127.0.0.1. Para permitir otros hosts
+ * (p.ej. una DB demo remota), definir SEED_ALLOWED_HOSTS como una lista
+ * separada por comas. Si el host de DATABASE_URL no está en la lista, el
+ * seed se aborta.
+ *
+ * Esto previene que un `docker compose run --rm seed` con DATABASE_URL mal
+ * configurada ejecute TRUNCATE contra producción.
+ */
+const DEFAULT_ALLOWED_HOSTS = ['localhost', '127.0.0.1', '::1'];
+
+function assertAllowedHost(): void {
+  const url = process.env.DATABASE_URL;
+  if (!url) return; // data-source.ts ya falla si no hay DATABASE_URL
+
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    return; // URL inválida: data-source.ts fallará al conectar
+  }
+
+  const extra = (process.env.SEED_ALLOWED_HOSTS ?? '')
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+
+  const allowed = new Set([...DEFAULT_ALLOWED_HOSTS, ...extra]);
+
+  if (!allowed.has(hostname.toLowerCase())) {
+    logSeedAttempt('seed_blocked_host_not_allowed', { hostname });
+    console.error(
+      `❌ Seed abortado: el host "${hostname}" no está en la lista de hosts permitidos. ` +
+        'El seed solo corre contra localhost o contra hosts declarados en SEED_ALLOWED_HOSTS. ' +
+        'Si necesitás sembrar otra DB, definí SEED_ALLOWED_HOSTS con el host correcto.',
+    );
+    process.exit(1);
+  }
 }
 
 function safeDbLabel(): string {
@@ -82,9 +126,13 @@ function safeDbLabel(): string {
 }
 
 /**
- * OPS-002: nunca sembrar con una contraseña fija conocida (ej. "Test@1234").
- * Si no se define SEED_USERS_PASSWORD, se genera una aleatoria por corrida
- * y se imprime una única vez para uso local.
+ * SEC-002 / PR-BE4: resuelve la contraseña base de las cuentas demo.
+ *
+ * - Si SEED_USERS_PASSWORD está definida (>= 8 chars), se usa.
+ * - Si no, se genera una aleatoria y NO se imprime a stdout. Las cuentas
+ *   demo se acceden vía `POST /auth/demo-login`, que no usa password.
+ *   La password solo sirve como fallback para signin manual, y en ese
+ *   caso se regenera con cada seed.
  */
 function resolveSeedPassword(): string {
   const fromEnv = process.env.SEED_USERS_PASSWORD;
@@ -92,12 +140,11 @@ function resolveSeedPassword(): string {
     return fromEnv;
   }
 
-  const generated = randomBytes(9).toString('base64url'); // ~12 caracteres
-  console.log(
-    `🔐 SEED_USERS_PASSWORD no definida: se generó una contraseña aleatoria para las cuentas de seed: ${generated}`,
-  );
-  console.log('   (Definí SEED_USERS_PASSWORD en tu .env si querés fijar una vos mismo.)');
-  return generated;
+  // SEC-002: no imprimir a stdout. La password no es necesaria para el
+  // acceso demo (demo-login no la usa). Si alguien necesita signin manual,
+  // debe definir SEED_USERS_PASSWORD explícitamente.
+  logSeedAttempt('seed_password_generated_not_logged');
+  return randomBytes(24).toString('base64url');
 }
 
 async function seed() {
