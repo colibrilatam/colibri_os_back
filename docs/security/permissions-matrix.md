@@ -48,3 +48,20 @@ Todas las rutas usan el prefijo `/api/v1`. Esta matriz refleja los guards y deco
 4. Antes de liberar, probar un caso permitido y un caso denegado para cada operaciÃ³n privilegiada.
 
 Los procedimientos de despliegue y respuesta operativa estÃ¡n en los [runbooks](../runbooks/deployment.md).
+
+---
+
+## Rol demo_readonly (SEC-002)
+
+| Propiedad | Valor |
+| --- | --- |
+| Valor en API | `demo_readonly` |
+| Uso | Cuentas demo. Solo lectura. |
+| Cómo se impone | `DemoReadOnlyGuard` registrado como `APP_GUARD` global (`src/app.module.ts`). |
+| Operaciones permitidas | `GET` en cualquier endpoint. |
+| Operaciones denegadas | `POST`, `PATCH`, `PUT`, `DELETE` en cualquier endpoint ? **403**. |
+| Excepciones | `POST /auth/logout` y `POST /auth/refresh` (el demo puede cerrar sesión y renovar token). |
+| Autenticación | `POST /auth/demo-login` (sin password, throttle 10/min). |
+| No puede | Aprobar, rechazar, revocar credenciales, modificar proyectos, gestionar usuarios, ni ninguna escritura. |
+
+**Nota:** El `DemoGuard` del frontend oculta botones de escritura, pero esto es UX, no seguridad. La restricción real es el 403 del backend.
