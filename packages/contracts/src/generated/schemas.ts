@@ -52,6 +52,73 @@ export const RegisterResponseSchema = z.strictObject({
   user: UserSchema,
 });
 
+export const ProjectProfileSchema = z.strictObject({
+  id: z.uuid(),
+  projectId: z.uuid(),
+  longDescription: z.string().nullable().optional(),
+  problemStatement: z.string().nullable().optional(),
+  solutionStatement: z.string().nullable().optional(),
+  targetAudience: z.string().nullable().optional(),
+  sdgGoals: z.array(z.string()).nullable().optional(),
+  valueProposition: z.string().nullable().optional(),
+  businessModelSummary: z.string().nullable().optional(),
+  stageNotes: z.string().nullable().optional(),
+  pitchUrl: z.string().nullable().optional(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const ProjectMemberSchema = z.strictObject({
+  id: z.uuid(),
+  projectId: z.uuid(),
+  gender: z.enum(["male", "female", "non_binary", "other", "prefer_not_to_say"]).nullable().optional(),
+  userId: z.uuid(),
+  roleInTeam: z.enum(["founder", "co_founder", "cto", "cmo", "developer", "designer", "advisor", "other"]),
+  joinedAt: z.iso.datetime().nullable().optional(),
+  leftAt: z.iso.datetime().nullable().optional(),
+  isActive: z.boolean(),
+  participationWeight: z.string().nullable().optional(),
+  isFounder: z.boolean(),
+  isPrimaryOperator: z.boolean(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const PacSchema = z.strictObject({
+  id: z.uuid(),
+  categoryId: z.uuid(),
+  code: z.string(),
+  title_es: z.string(),
+  title_en: z.string(),
+  objectiveLine_es: z.string().nullable().optional(),
+  objectiveLine_en: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  sortOrder: z.number(),
+  executionWindowDays: z.number().nullable().optional(),
+  minimumCompletionThreshold: z.string().nullable().optional(),
+  icWeight: z.string().nullable().optional(),
+  closureRule: z.string().nullable().optional(),
+  templateVersion: z.string().nullable().optional(),
+  isActive: z.boolean(),
+  validFrom: z.iso.datetime().nullable().optional(),
+  validTo: z.iso.datetime().nullable().optional(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const ProjectPacSchema = z.strictObject({
+  id: z.uuid(),
+  projectId: z.uuid(),
+  pacId: z.uuid(),
+  status: z.enum(["pending", "in_progress", "completed"]),
+  progress: z.string().nullable().optional(),
+  startedAt: z.iso.datetime().nullable().optional(),
+  completedAt: z.iso.datetime().nullable().optional(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+  pac: PacSchema.optional(),
+});
+
 export const ProjectSchema = z.strictObject({
   id: z.uuid(),
   ownerUserId: z.uuid(),
@@ -75,6 +142,10 @@ export const ProjectSchema = z.strictObject({
   lastActivityAt: z.iso.datetime().nullable().optional(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
+  owner: UserSchema.optional(),
+  profile: ProjectProfileSchema.nullable().optional(),
+  members: z.array(ProjectMemberSchema).optional(),
+  projectPacs: z.array(ProjectPacSchema).optional(),
 });
 
 export const CreateProjectRequestSchema = z.strictObject({
@@ -136,6 +207,10 @@ export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 export type RegisterResponse = z.infer<typeof RegisterResponseSchema>;
 export type User = z.infer<typeof UserSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
+export type ProjectProfile = z.infer<typeof ProjectProfileSchema>;
+export type ProjectMember = z.infer<typeof ProjectMemberSchema>;
+export type Pac = z.infer<typeof PacSchema>;
+export type ProjectPac = z.infer<typeof ProjectPacSchema>;
 export type CreateProjectRequest = z.infer<typeof CreateProjectRequestSchema>;
 export type UpdateProjectRequest = z.infer<typeof UpdateProjectRequestSchema>;
 export type CompleteProfileResponse = z.infer<typeof CompleteProfileResponseSchema>;

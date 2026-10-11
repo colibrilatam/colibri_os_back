@@ -21,6 +21,7 @@ type JsonSchema = {
   required?: string[];
   nullable?: boolean;
   $ref?: string;
+  allOf?: JsonSchema[];
   minLength?: number;
   maxLength?: number;
 };
@@ -40,6 +41,10 @@ const RENAME: Record<string, string> = {
   RegisterResponseDto: 'RegisterResponse',
   UserResponseDto: 'User',
   ProjectResponseDto: 'Project',
+  ProjectProfileResponseDto: 'ProjectProfile',
+  ProjectMemberResponseDto: 'ProjectMember',
+  ProjectPacResponseDto: 'ProjectPac',
+  PacResponseDto: 'Pac',
   CreateProjectDto: 'CreateProjectRequest',
   UpdateProjectDto: 'UpdateProjectRequest',
   CompleteProfileResponseDto: 'CompleteProfileResponse',
@@ -112,6 +117,10 @@ function zodType(schema: JsonSchema): string {
     if (!renamed) throw new Error(`$ref fuera de scope: ${refName}`);
     return `${renamed}Schema`;
   }
+  if (schema.allOf && schema.allOf.length > 0) {
+    if (schema.allOf.length === 1) return zodType(schema.allOf[0]);
+    return 'z.unknown()';
+  }
   if (schema.enum) {
     const enumName = findEnumName(schema.enum);
     if (enumName) return `${enumName}Schema`;
@@ -176,6 +185,10 @@ const ORDER = [
   'AuthResponseDto',
   'CreateUserDto',
   'RegisterResponseDto',
+  'ProjectProfileResponseDto',
+  'ProjectMemberResponseDto',
+  'PacResponseDto',
+  'ProjectPacResponseDto',
   'ProjectResponseDto',
   'CreateProjectDto',
   'UpdateProjectDto',
@@ -202,6 +215,10 @@ const TYPES: [string, string][] = [
   ['RegisterResponse', 'RegisterResponseSchema'],
   ['User', 'UserSchema'],
   ['Project', 'ProjectSchema'],
+  ['ProjectProfile', 'ProjectProfileSchema'],
+  ['ProjectMember', 'ProjectMemberSchema'],
+  ['Pac', 'PacSchema'],
+  ['ProjectPac', 'ProjectPacSchema'],
   ['CreateProjectRequest', 'CreateProjectRequestSchema'],
   ['UpdateProjectRequest', 'UpdateProjectRequestSchema'],
   ['CompleteProfileResponse', 'CompleteProfileResponseSchema'],
