@@ -29,8 +29,7 @@ import { MaintenanceModeMiddleware } from './common/middleware/maintenance-mode.
 import { validateEnv } from './config/env.validation';
 import { AuthorizationModule } from './authorization/authorization.module';
 import { JwtAuthGuard } from './auth/guards/auth.guard';
-import { AuthorizationModule } from './authorization/authorization.module';
-import { JwtAuthGuard } from './auth/guards/auth.guard';
+
 
 @Module({
   imports: [
