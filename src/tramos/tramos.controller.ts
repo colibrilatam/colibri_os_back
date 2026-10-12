@@ -152,7 +152,6 @@ export class TramosController {
   // ─── Historial de tramos ──────────────────────────────────────────────────
 
   @Post('project/:projectId/change')
-  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Cambiar el tramo activo de un proyecto',
     description:
