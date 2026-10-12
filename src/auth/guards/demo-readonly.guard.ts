@@ -39,6 +39,7 @@ export class DemoReadOnlyGuard implements CanActivate {
   private static readonly EXCEPTION_PATHS = new Set<string>([
     '/auth/logout',
     '/auth/refresh',
+    '/auth/demo-login'
   ]);
 
   constructor(private readonly jwtService: JwtService) {}

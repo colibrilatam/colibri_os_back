@@ -119,6 +119,7 @@ export class AuthController {
    * Throttle estricto para evitar abuso.
    */
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Public()
   @Post('demo-login')
   @ApiOkResponse({ type: AuthResponseDto, description: 'Sesión demo iniciada' })
   @ApiUnauthorizedResponse({ description: 'Entorno demo no disponible' })
