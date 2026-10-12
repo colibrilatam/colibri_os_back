@@ -34,6 +34,26 @@ export const UserSchema = z.strictObject({
   updatedAt: z.iso.datetime(),
 });
 
+export const UserProfileSchema = z.strictObject({
+  id: z.uuid(),
+  email: z.email(),
+  fullName: z.string(),
+  role: UserRoleSchema.nullable(),
+  status: UserStatusSchema,
+  provider: AuthProviderSchema,
+  linkedinId: z.string().nullable().optional(),
+  googleId: z.string().nullable().optional(),
+  cryptoWallet: z.string().nullable().optional(),
+  credentialsWallet: z.string().nullable().optional(),
+  adnHash: z.string().nullable().optional(),
+  bio: z.string().nullable().optional(),
+  avatar: z.string().nullable().optional(),
+  gender: z.enum(["male", "female", "non_binary", "other", "prefer_not_to_say"]).nullable().optional(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+  permissions: z.array(z.string()),
+});
+
 export const AuthResponseSchema = z.strictObject({
   message: z.string(),
   user: UserSchema,
@@ -206,6 +226,7 @@ export type AuthResponse = z.infer<typeof AuthResponseSchema>;
 export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 export type RegisterResponse = z.infer<typeof RegisterResponseSchema>;
 export type User = z.infer<typeof UserSchema>;
+export type UserProfile = z.infer<typeof UserProfileSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type ProjectProfile = z.infer<typeof ProjectProfileSchema>;
 export type ProjectMember = z.infer<typeof ProjectMemberSchema>;

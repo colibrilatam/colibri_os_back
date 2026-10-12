@@ -296,7 +296,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponseDto"
+                  "$ref": "#/components/schemas/UserProfileResponseDto"
                 }
               }
             }
@@ -801,7 +801,7 @@
   "info": {
     "title": "Colibrí OS API",
     "description": "API del sistema Colibrí OS — RaaS (Reputación como Servicio)",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "contact": {}
   },
   "tags": [],
@@ -1161,6 +1161,124 @@
           "token",
           "newPassword",
           "confirmNewPassword"
+        ]
+      },
+      "UserProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "entrepreneur",
+              "mentor",
+              "evaluator",
+              "mecenas_semilla",
+              "mecenas_fundacional",
+              "mecenas_cambio",
+              "admin",
+              "guest",
+              "demo_readonly"
+            ],
+            "nullable": true,
+            "description": "Rol del usuario. Null mientras el usuario está en estado PENDING_PROFILE."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "suspended",
+              "pending_profile"
+            ]
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "local",
+              "google"
+            ]
+          },
+          "linkedinId": {
+            "type": "string",
+            "nullable": true
+          },
+          "googleId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cryptoWallet": {
+            "type": "string",
+            "nullable": true
+          },
+          "credentialsWallet": {
+            "type": "string",
+            "nullable": true
+          },
+          "adnHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female",
+              "non_binary",
+              "other",
+              "prefer_not_to_say"
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "permissions": {
+            "description": "Permisos efectivos derivados del rol del usuario autenticado.",
+            "example": [
+              "catalog:read",
+              "project:read:own",
+              "project:manage:own"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "fullName",
+          "role",
+          "status",
+          "provider",
+          "createdAt",
+          "updatedAt",
+          "permissions"
         ]
       },
       "ChangePasswordDto": {

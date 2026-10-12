@@ -188,10 +188,20 @@ describe('AuthService — CODE-006', () => {
         fullName: mockUser.fullName,
         role: mockUser.role,
         status: mockUser.status,
+        provider: mockUser.provider,
+        linkedinId: mockUser.linkedinId,
+        googleId: mockUser.googleId,
+        cryptoWallet: mockUser.cryptoWallet,
+        credentialsWallet: mockUser.credentialsWallet,
+        adnHash: mockUser.adnHash,
+        bio: mockUser.bio,
+        avatar: mockUser.avatar,
+        gender: mockUser.gender,
+        createdAt: mockUser.createdAt,
+        updatedAt: mockUser.updatedAt,
       });
       expect(result).not.toHaveProperty('password');
       expect(result).not.toHaveProperty('sessionVersion');
-      expect(result).not.toHaveProperty('googleId');
     });
   });
 
