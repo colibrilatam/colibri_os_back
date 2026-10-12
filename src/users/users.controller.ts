@@ -19,7 +19,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { UpdateUserDto } from './dtos/userUpdate.dto';
-import { UserResponseDto } from './dtos/user-response.dto';
+import { UserProfileResponseDto } from './dtos/user-profile-response.dto';
+import { toPublicUser } from './user.mapper';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -38,9 +39,13 @@ export class UsersController {
   @Get('profile')
   @ApiOperation({ summary: 'Obtener el perfil del usuario autenticado' })
   @ApiBearerAuth()
-  @ApiOkResponse({ type: UserResponseDto, description: 'Perfil del usuario autenticado' })
-  async getProfile(@CurrentUser('id') userId: string) {
-    return this.usersService.findOneById(userId);
+  @ApiOkResponse({ type: UserProfileResponseDto, description: 'Perfil del usuario autenticado' })
+  async getProfile(@CurrentUser('id') userId: string, @CurrentUser('role') role: UserRole) {
+    const user = await this.usersService.findOneById(userId);
+    return {
+      ...toPublicUser(user),
+      permissions: this.usersService.getEffectivePermissions(role),
+    };
   }
 
   @ApiOperation({ summary: 'Cambiar la contraseña del usuario autenticado' })

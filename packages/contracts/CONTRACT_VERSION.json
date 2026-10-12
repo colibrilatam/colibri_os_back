@@ -1,7 +1,15 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "lastBreakingChange": "2026-10-11",
   "changelog": [
+    {
+      "version": "2.1.0",
+      "date": "2026-10-12",
+      "changes": [
+        "Nuevo schema UserProfileResponseDto (UserProfile) para GET /users/profile: añade 'permissions: string[]'",
+        "SEC: GET /users/profile deja de exponer password y sessionVersion (usa toPublicUser)"
+      ]
+    },
     {
       "version": "2.0.0",                
       "date": "2026-10-11",

@@ -7,9 +7,11 @@ import {
   CreateProjectRequestSchema,
   ErrorResponseSchema,
   UserSchema,
+  UserProfileSchema,
 } from '../src/generated';
 import {
   mockUser,
+  mockUserProfile,
   mockProject,
   mockAuthResponse,
   mockErrorResponse,
@@ -220,6 +222,27 @@ describe('User Contract', () => {
       provider: 'local',
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('UserProfile Contract', () => {
+  it('accepts valid profile with permissions from mock', () => {
+    const result = UserProfileSchema.safeParse(mockUserProfile());
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects profile without permissions', () => {
+    const result = UserProfileSchema.safeParse(mockUser());
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects profile leaking password or sessionVersion', () => {
+    const result = UserProfileSchema.safeParse({
+      ...mockUserProfile(),
+      password: '$2b$10$hash',
+      sessionVersion: 3,
     });
     expect(result.success).toBe(false);
   });

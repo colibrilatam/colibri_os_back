@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { UserRole } from '../users/entities/user.entity';
 import { ProjectMember } from '../project-members/entities/project-member.entity';
 import { Project } from './entities/project.entity';
+import { Evaluation } from '../evaluation/entities/evaluation.entity';
 import { AuthorizationAuditService } from '../authorization-audit/authorization-audit.service';
 import { DenialReason } from '../authorization-audit/entities/authorization-denial-audit.entity';
 
@@ -19,14 +20,39 @@ export class ProjectAccessService {
     private readonly projectRepository: Repository<Project>,
     @InjectRepository(ProjectMember)
     private readonly projectMemberRepository: Repository<ProjectMember>,
+    @InjectRepository(Evaluation)
+    private readonly evaluationRepository: Repository<Evaluation>,
     private readonly auditService: AuthorizationAuditService,
   ) {}
 
   async assertCanAccessProject(principal: ProjectPrincipal, projectId: string): Promise<Project> {
     const project = await this.findProject(projectId);
 
-    if (principal.role === UserRole.ADMIN || principal.role === UserRole.EVALUATOR || project.ownerUserId === principal.userId) {
+    if (principal.role === UserRole.ADMIN || project.ownerUserId === principal.userId) {
       return project;
+    }
+
+    if (principal.role === UserRole.EVALUATOR) {
+      const isAssigned = await this.evaluationRepository
+        .createQueryBuilder('evaluation')
+        .innerJoin('evaluation.evidence', 'evidence')
+        .where('evaluation.created_by_user_id = :userId', { userId: principal.userId })
+        .andWhere('evidence.project_id = :projectId', { projectId })
+        .getCount();
+
+      if (isAssigned > 0) {
+        return project;
+      }
+
+      await this.auditService.logDenial({
+        resourceType: 'project',
+        resourceId: projectId,
+        action: 'access',
+        attemptedByUserId: principal.userId,
+        attemptedByRole: principal.role,
+        reason: DenialReason.NOT_ASSIGNED_EVALUATOR,
+      });
+      throw new ForbiddenException('No estás asignado como evaluador de este proyecto');
     }
 
     const membership = await this.projectMemberRepository.findOne({

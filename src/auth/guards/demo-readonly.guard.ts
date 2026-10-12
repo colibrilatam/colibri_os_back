@@ -39,6 +39,16 @@ export class DemoReadOnlyGuard implements CanActivate {
   private static readonly EXCEPTION_PATHS = new Set<string>([
     '/auth/logout',
     '/auth/refresh',
+    '/auth/demo-login',
+    '/auth/signup',
+    '/auth/signin',
+    '/auth/complete-profile',
+    '/auth/forgot-password',
+    '/auth/reset-password',
+    '/auth/google',
+    '/auth/google/callback',
+    '/auth/google/exchange',
+    '/auth'
   ]);
 
   constructor(private readonly jwtService: JwtService) {}

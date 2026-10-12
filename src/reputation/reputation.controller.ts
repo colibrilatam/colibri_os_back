@@ -15,17 +15,22 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@ne
 import { ReputationService } from './reputation.service';
 import { CreateAlgorithmVersionDto } from './dto/create-algorithm-version.dto';
 import { CalculateSnapshotDto } from './dto/calculate-snapshot.dto';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { ProjectAccessService } from '../projects/project-access.service';
 
 @ApiTags('Reputation')
 @ApiBearerAuth()
 @Controller('reputation')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ReputationController {
-  constructor(private readonly reputationService: ReputationService) {}
+  constructor(
+    private readonly reputationService: ReputationService,
+    private readonly projectAccessService: ProjectAccessService,
+  ) {}
 
   // ─── ALGORITMO ────────────────────────────────────────────────────────────────
 
@@ -89,7 +94,12 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   })
   @ApiResponse({ status: 200, description: 'Snapshot calculado y persistido.' })
   @ApiResponse({ status: 404, description: 'Proyecto o algoritmo activo no encontrado.' })
-  calculateSnapshot(@Body() dto: CalculateSnapshotDto) {
+  async calculateSnapshot(
+    @Body() dto: CalculateSnapshotDto,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    await this.projectAccessService.assertCanAccessProject({ userId, role }, dto.projectId);
     return this.reputationService.calculateSnapshot(dto);
   }
 
@@ -113,7 +123,12 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   @ApiParam({ name: 'projectId', example: 'proj-uuid-0001' })
   @ApiResponse({ status: 200, description: 'Snapshot vigente con explicaciones.' })
   @ApiResponse({ status: 404, description: 'No hay snapshot para este proyecto.' })
-  findLatestSnapshot(@Param('projectId', ParseUUIDPipe) projectId: string) {
+  async findLatestSnapshot(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    await this.projectAccessService.assertCanAccessProject({ userId, role }, projectId);
     return this.reputationService.findLatestSnapshot(projectId);
   }
 
@@ -134,7 +149,12 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   })
   @ApiParam({ name: 'projectId', example: 'proj-uuid-0001' })
   @ApiResponse({ status: 200, description: 'Historial de snapshots.' })
-  findSnapshotHistory(@Param('projectId', ParseUUIDPipe) projectId: string) {
+  async findSnapshotHistory(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    await this.projectAccessService.assertCanAccessProject({ userId, role }, projectId);
     return this.reputationService.findSnapshotHistory(projectId);
   }
 
@@ -156,7 +176,13 @@ Cierra el snapshot anterior del proyecto y persiste el nuevo con sus explicacion
   @ApiParam({ name: 'id', example: 'snap-uuid-001' })
   @ApiResponse({ status: 200, description: 'Snapshot con explicaciones granulares.' })
   @ApiResponse({ status: 404, description: 'Snapshot no encontrado.' })
-  findSnapshotWithExplanations(@Param('id', ParseUUIDPipe) id: string) {
-    return this.reputationService.findSnapshotWithExplanations(id);
+  async findSnapshotWithExplanations(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ) {
+    const snapshot = await this.reputationService.findSnapshotWithExplanations(id);
+    await this.projectAccessService.assertCanAccessProject({ userId, role }, snapshot.projectId);
+    return snapshot;
   }
 }

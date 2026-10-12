@@ -9,6 +9,7 @@ import { IAuthCreate } from './interfaces/authCreate.interface';
 import { CompleteProfileDto } from './dto/complete-profile.dto';
 import { ALLOWED_SELF_ASSIGN_ROLES, isSelfAssignableRole } from './allowed-roles';
 import { SessionsService } from './sessions/sessions.service';
+import { toPublicUser } from 'src/users/user.mapper';
 
 @Injectable()
 export class AuthService {
@@ -198,25 +199,8 @@ issueProfileCompletionToken(user: User): string {
 }
 
 toPublicUser(user: User) {
-  return {
-    id: user.id,
-    email: user.email,
-    fullName: user.fullName,
-    role: user.role, // puede ser null en PENDING_PROFILE
-    status: user.status,
-    provider: user.provider,
-    linkedinId: user.linkedinId,
-    googleId: user.googleId,
-    cryptoWallet: user.cryptoWallet,
-    credentialsWallet: user.credentialsWallet,
-    adnHash: user.adnHash,
-    bio: user.bio,
-    avatar: user.avatar,
-    gender: user.gender,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  };
-}
+    return toPublicUser(user);
+  }
 
 async completeProfile(dto: CompleteProfileDto) {
     let payload: { sub: string; purpose?: string };

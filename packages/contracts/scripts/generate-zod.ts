@@ -40,6 +40,7 @@ const RENAME: Record<string, string> = {
   CreateUserDto: 'RegisterRequest',
   RegisterResponseDto: 'RegisterResponse',
   UserResponseDto: 'User',
+  UserProfileResponseDto: 'UserProfile',
   ProjectResponseDto: 'Project',
   ProjectProfileResponseDto: 'ProjectProfile',
   ProjectMemberResponseDto: 'ProjectMember',
@@ -182,6 +183,7 @@ out.push('');
 const ORDER = [
   'LoginDto',
   'UserResponseDto',
+  'UserProfileResponseDto',
   'AuthResponseDto',
   'CreateUserDto',
   'RegisterResponseDto',
@@ -214,6 +216,7 @@ const TYPES: [string, string][] = [
   ['RegisterRequest', 'RegisterRequestSchema'],
   ['RegisterResponse', 'RegisterResponseSchema'],
   ['User', 'UserSchema'],
+  ['UserProfile', 'UserProfileSchema'],
   ['Project', 'ProjectSchema'],
   ['ProjectProfile', 'ProjectProfileSchema'],
   ['ProjectMember', 'ProjectMemberSchema'],
