@@ -127,7 +127,9 @@ export class EnvironmentVariables {
 
   // ---------- JWT ----------
   @IsString()
-  @IsNotEmpty({ message: 'JWT_SECRET es obligatorio: la aplicación no puede firmar sesiones sin un secreto' })
+  @IsNotEmpty({
+    message: 'JWT_SECRET es obligatorio: la aplicación no puede firmar sesiones sin un secreto',
+  })
   @MinLength(32, { message: 'JWT_SECRET debe tener al menos 32 caracteres' })
   JWT_SECRET: string;
 
@@ -215,7 +217,9 @@ export class EnvironmentVariables {
 
   // ---------- LÍMITES / TIMEOUTS (expiraciones) ----------
   @IsOptional()
-  @Matches(BODY_SIZE_REGEX, { message: 'MAX_JSON_BODY_SIZE debe tener formato de tamaño (ej: 1mb, 512kb)' })
+  @Matches(BODY_SIZE_REGEX, {
+    message: 'MAX_JSON_BODY_SIZE debe tener formato de tamaño (ej: 1mb, 512kb)',
+  })
   MAX_JSON_BODY_SIZE: string = '1mb';
 
   @Transform(toNumber)
@@ -247,14 +251,39 @@ export class EnvironmentVariables {
   @IsInt({ message: 'OAUTH_EXCHANGE_CODE_TTL_MS debe ser un entero (ms)' })
   @Min(1, { message: 'OAUTH_EXCHANGE_CODE_TTL_MS debe ser mayor a 0' })
   OAUTH_EXCHANGE_CODE_TTL_MS: number = 60_000;
+
+  // ---------- WALLET AUTH (WEB3-002) ----------
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty({ message: 'WALLET_AUTH_DOMAIN no puede estar vacío' })
+  WALLET_AUTH_DOMAIN: string = 'localhost:3000';
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty({ message: 'WALLET_AUTH_URI no puede estar vacío' })
+  WALLET_AUTH_URI: string = 'http://localhost:3000';
+
+  @Transform(toNumber)
+  @IsOptional()
+  @IsInt({ message: 'WALLET_AUTH_NONCE_TTL_MS debe ser un entero (ms)' })
+  @Min(1, { message: 'WALLET_AUTH_NONCE_TTL_MS debe ser mayor a 0' })
+  WALLET_AUTH_NONCE_TTL_MS: number = 300_000;
+
+  @IsOptional()
+  @IsString()
+  WALLET_AUTH_CHAIN_IDS: string = '1,137';
 }
 
 /** Junta los mensajes de un árbol de ValidationError sin exponer los valores recibidos. */
 function flattenValidationErrors(errors: ValidationError[], prefix = ''): string[] {
   return errors.flatMap((error) => {
     const path = prefix ? `${prefix}.${error.property}` : error.property;
-    const ownMessages = error.constraints ? Object.values(error.constraints).map((m) => `- ${path}: ${m}`) : [];
-    const childMessages = error.children?.length ? flattenValidationErrors(error.children, path) : [];
+    const ownMessages = error.constraints
+      ? Object.values(error.constraints).map((m) => `- ${path}: ${m}`)
+      : [];
+    const childMessages = error.children?.length
+      ? flattenValidationErrors(error.children, path)
+      : [];
     return [...ownMessages, ...childMessages];
   });
 }

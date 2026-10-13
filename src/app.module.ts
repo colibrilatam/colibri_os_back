@@ -29,6 +29,7 @@ import { MaintenanceModeMiddleware } from './common/middleware/maintenance-mode.
 import { validateEnv } from './config/env.validation';
 import { AuthorizationModule } from './authorization/authorization.module';
 import { JwtAuthGuard } from './auth/guards/auth.guard';
+import { WalletAuthModule } from './wallet-auth/wallet-auth.module';
 
 
 @Module({
@@ -86,7 +87,7 @@ import { JwtAuthGuard } from './auth/guards/auth.guard';
     TramoClosureModule,
     HealthModule,
     AuthorizationModule,
-    AuthorizationModule,
+    WalletAuthModule,
   ],
   providers: [
     // QA-002: aplica el throttling a nivel global, a todos los controllers.

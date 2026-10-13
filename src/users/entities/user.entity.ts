@@ -51,6 +51,7 @@ export enum UserStatus {
 export enum AuthProvider {
   LOCAL = 'local',
   GOOGLE = 'google',
+  WALLET = 'wallet',
 }
 
 @Entity('users')
@@ -69,7 +70,7 @@ export class User {
   fullName: string;
 
   @Column({ type: 'enum', enum: UserRole, nullable: true })
-role: UserRole | null;
+  role: UserRole | null;
 
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
   status: UserStatus;
@@ -94,8 +95,8 @@ role: UserRole | null;
   @Column({ name: 'google_id', nullable: true, unique: true })
   googleId: string;
 
-  @Column({ name: 'crypto_wallet', nullable: true })
-  cryptoWallet: string;
+  @Column({ name: 'crypto_wallet', type: 'varchar', nullable: true })
+  cryptoWallet: string | null;
 
   @Column({ name: 'credentials_wallet', nullable: true })
   credentialsWallet: string;
