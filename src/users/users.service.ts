@@ -9,7 +9,7 @@ import {
 import bcrypt from 'bcrypt';
 import { ICreateUser } from './interfaces/create-user.interface';
 import { UserRepository } from './user.repository';
-import { User, UserRole, Gender, UserStatus } from './entities/user.entity';
+import { User, UserRole, Gender, UserStatus, AuthProvider } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserRoleChangeAudit } from './entities/user-role-change-audit.entity';
@@ -21,7 +21,6 @@ import { SessionsService } from '../auth/sessions/sessions.service';
 @Injectable()
 export class UsersService {
   constructor(
-    
     private readonly userRepository: UserRepository,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(UserRoleChangeAudit)
@@ -139,20 +138,20 @@ export class UsersService {
   }
 
   async completeProfile(userId: string, role: UserRole, gender: Gender) {
-  const user = await this.userRepository.findOneByID(userId);
-  if (!user) {
-    throw new NotFoundException('Usuario no encontrado');
+    const user = await this.userRepository.findOneByID(userId);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+    if (user.status !== UserStatus.PENDING_PROFILE) {
+      throw new BadRequestException('El usuario no está en estado pendiente de perfil');
+    }
+    const allowedRoles = [UserRole.EVALUATOR, UserRole.ENTREPRENEUR];
+    user.role = allowedRoles.includes(role) ? role : UserRole.ENTREPRENEUR;
+    user.gender = gender;
+    user.status = UserStatus.ACTIVE;
+    await this.userRepo.save(user);
+    return user;
   }
-  if (user.status !== UserStatus.PENDING_PROFILE) {
-    throw new BadRequestException('El usuario no está en estado pendiente de perfil');
-  }
-  const allowedRoles = [UserRole.EVALUATOR, UserRole.ENTREPRENEUR];
-  user.role = allowedRoles.includes(role) ? role : UserRole.ENTREPRENEUR;
-  user.gender = gender;
-  user.status = UserStatus.ACTIVE;
-  await this.userRepo.save(user);
-  return user;
-}
 
   /**
    * Suspende, desactiva o reactiva a un usuario. Cambiar el estado a algo
@@ -272,11 +271,7 @@ export class UsersService {
       case UserRole.MECENAS_SEMILLA:
       case UserRole.MECENAS_FUNDACIONAL:
       case UserRole.MECENAS_CAMBIO:
-        return [
-          ...permissions,
-          'nft:read:own',
-          'nft:manage:own',
-        ];
+        return [...permissions, 'nft:read:own', 'nft:manage:own'];
       default:
         return permissions;
     }
@@ -284,5 +279,31 @@ export class UsersService {
 
   private normalizeEmail(email: string): string {
     return email.trim().toLowerCase();
+  }
+
+  async findByCryptoWallet(walletAddress: string): Promise<User | null> {
+    return await this.userRepo.findOne({
+      where: { cryptoWallet: walletAddress.toLowerCase() },
+    });
+  }
+
+  async createWalletUser(walletAddress: string): Promise<User> {
+    const email = `wallet_${walletAddress.toLowerCase()}@colibri.wallet`;
+    const user = await this.userRepo.save(
+      this.userRepo.create({
+        email,
+        fullName: `Wallet ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`,
+        password: null,
+        provider: AuthProvider.WALLET,
+        role: UserRole.ENTREPRENEUR,
+        status: UserStatus.ACTIVE,
+        cryptoWallet: walletAddress.toLowerCase(),
+      }),
+    );
+    return user;
+  }
+
+  async updateCryptoWallet(userId: string, walletAddress: string | null): Promise<void> {
+    await this.userRepo.update(userId, { cryptoWallet: walletAddress });
   }
 }

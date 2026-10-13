@@ -92,7 +92,10 @@ npm run start:prod
 npm run test
 npm run test:cov
 
-# Pruebas e2e (requieren variables de entorno y PostgreSQL disponibles)
+# Preparar la DB aislada de test y aplicar migraciones (una vez por entorno)
+npm run test:e2e:setup-db
+
+# Pruebas e2e (usan la DB de test aislada; hacen TRUNCATE de todas las tablas)
 npm run test:e2e
 ```
 
@@ -104,7 +107,29 @@ El backend usa **Jest 30** para pruebas unitarias y **Supertest 7** para pruebas
 | --- | --- |
 | `npm run test` | Ejecutar todas las pruebas unitarias |
 | `npm run test:cov` | Ejecutar pruebas con reporte de cobertura |
-| `npm run test:e2e` | Ejecutar pruebas de integración (requiere DB) |
+| `npm run test:e2e:setup-db` | Crear la DB de test aislada y aplicar migraciones |
+| `npm run test:e2e` | Ejecutar pruebas de integración (requiere la DB de test) |
+
+#### Base de datos de test (e2e)
+
+Las suites e2e hacen `TRUNCATE` de todas las tablas: **nunca** deben apuntar a la
+DB de desarrollo. `npm run test:e2e:setup-db` crea una DB separada (default
+`colibri_test`) reutilizando las credenciales/host de `DATABASE_URL` y le aplica
+las migraciones.
+
+```powershell
+# 1) Crear/migrar la DB de test
+npm run test:e2e:setup-db
+
+# 2) Apuntar los e2e a esa DB
+$env:DATABASE_URL = "postgresql://usuario:clave@localhost:5432/colibri_test"
+$env:NODE_ENV = "test"
+npm run test:e2e
+```
+
+Variables opcionales del script: `TEST_DB_NAME` (nombre de la DB, default
+`colibri_test`) y `TEST_DB_ADMIN_DATABASE` (DB de mantenimiento usada para el
+`CREATE DATABASE`, default `postgres`).
 
 ### Contract Testing
 
