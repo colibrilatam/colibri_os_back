@@ -194,6 +194,35 @@ describe('WEB3-002 — Firma de wallet con nonce (SIWE) (e2e)', () => {
     });
   });
 
+  describe('Normalización de address (EIP-55)', () => {
+    const LOWERCASE = '0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed';
+    const CHECKSUMMED = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed';
+    const BAD_CHECKSUM = '0x5aaeb6053F3E94C9b9A09f33669435E7Ef1BeAed';
+
+    it('acepta una address en minúsculas y la normaliza a checksum en el mensaje', async () => {
+      const res = await requestNonce(LOWERCASE);
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toContain(CHECKSUMMED);
+
+      const saved = await nonceRepo.findOne({ where: { nonce: res.body.nonce } });
+      expect(saved).not.toBeNull();
+      expect(saved!.walletAddress).toBe(LOWERCASE);
+    });
+
+    it('rechaza una address malformada con 400 (no 500)', async () => {
+      const res = await requestNonce('0x1234');
+
+      expect(res.status).toBe(400);
+    });
+
+    it('rechaza una address con checksum inválido con 400 (no 500)', async () => {
+      const res = await requestNonce(BAD_CHECKSUM);
+
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe('Cruce de flujos login/link', () => {
     it('rechaza un nonce de login usado en /link/verify', async () => {
       const user = await fixtures.createUser(UserRole.ENTREPRENEUR);

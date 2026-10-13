@@ -45,16 +45,22 @@ export class WalletAuthService {
     const domain = this.configService.get<string>('WALLET_AUTH_DOMAIN')!;
     const uri = this.configService.get<string>('WALLET_AUTH_URI')!;
     const ttlMs = Number(this.configService.get<string>('WALLET_AUTH_NONCE_TTL_MS') ?? 300_000);
+    const checksummedAddress = this.toChecksumAddress(walletAddress);
 
-    const siweMessage = new SiweMessage({
-      domain,
-      address: walletAddress,
-      uri,
-      version: '1',
-      chainId,
-      nonce,
-      expirationTime: new Date(Date.now() + ttlMs).toISOString(),
-    });
+    let siweMessage: SiweMessage;
+    try {
+      siweMessage = new SiweMessage({
+        domain,
+        address: checksummedAddress,
+        uri,
+        version: '1',
+        chainId,
+        nonce,
+        expirationTime: new Date(Date.now() + ttlMs).toISOString(),
+      });
+    } catch {
+      throw new BadRequestException('No se pudo construir el mensaje SIWE');
+    }
 
     const message = siweMessage.prepareMessage();
 
@@ -62,7 +68,7 @@ export class WalletAuthService {
       nonce,
       purpose,
       userId: purpose === WalletNoncePurpose.LINK ? userId! : null,
-      walletAddress: walletAddress.toLowerCase(),
+      walletAddress: checksummedAddress.toLowerCase(),
       message,
       domain,
       uri,
@@ -234,6 +240,14 @@ export class WalletAuthService {
 
   private generateRandomNonce(): string {
     return '0x' + randomBytes(32).toString('hex');
+  }
+
+  private toChecksumAddress(address: string): string {
+    try {
+      return ethers.getAddress(address);
+    } catch {
+      throw new BadRequestException('Dirección de wallet inválida');
+    }
   }
 
   private assertChainIdAllowed(chainId: number): void {

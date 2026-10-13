@@ -14,6 +14,9 @@ de un solo uso y vinculación de la sesión a la wallet validada.
 - Verificación de firma con `ethers` v6 (`verifyMessage`, EIP-191 `personal_sign`).
 - Parseo y validación estructural del mensaje con `siwe` v3.
 - Persistencia de nonces en PostgreSQL (`wallet_nonces`).
+- La dirección se normaliza a **checksum EIP-55** (`ethers.getAddress`) antes de
+  construir el mensaje. Entradas mal formadas o con checksum inválido responden
+  **400** (nunca 500). En BD se persiste en minúsculas para comparar/indexar.
 
 ## Endpoints (`/api/v1/wallet-auth`)
 
