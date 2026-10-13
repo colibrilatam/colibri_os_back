@@ -1,7 +1,15 @@
 {
-  "version": "2.1.0",
+  "version": "2.2.0",
   "lastBreakingChange": "2026-10-11",
   "changelog": [
+    {
+      "version": "2.2.0",
+      "date": "2026-10-13",
+      "changes": [
+        "WEB3-002: User.provider (enum) añade el valor 'wallet' — aditivo; clientes con switch exhaustivo deben contemplarlo",
+        "WEB3-002: incorpora autenticación/vinculación de wallet con SIWE y nonce de un solo uso (endpoints /api/v1/wallet-auth/*, fuera del contrato OpenAPI acotado)"
+      ]
+    },
     {
       "version": "2.1.0",
       "date": "2026-10-12",
