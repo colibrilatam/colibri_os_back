@@ -5,6 +5,7 @@ import { NftProject } from './entities/nft-project.entity';
 import { NftActor } from './entities/nft-actor.entity';
 import { MecenasNftPortfolio } from './entities/mecenas-nft-portfolio.entity';
 import { NftOwnershipEvent } from './entities/nft-ownership-event.entity';
+import { NftOwnershipVerification } from './entities/nft-ownership-verification.entity';
 import { NftResourceAudit } from './entities/nft-resource-audit.entity';
 import { User } from '../users/entities/user.entity';
 
@@ -29,6 +30,8 @@ import { ProjectsModule } from 'src/projects/projects.module';
 
 import { BlockchainRpcService } from './blockchain-rpc.service';
 import { NftChainVerificationService } from './nft-chain-verification.service';
+import { NftOwnershipVerificationService } from './nft-ownership-verification.service';
+import { NftOwnershipThrottleGuard } from './guards/nft-ownership-throttle.guard';
 
 import { UserRepository } from '../users/user.repository';
 
@@ -42,6 +45,7 @@ import { UserRepository } from '../users/user.repository';
       NftActor,
       MecenasNftPortfolio,
       NftOwnershipEvent,
+      NftOwnershipVerification,
       NftResourceAudit,
       User,
     ]),
@@ -68,6 +72,8 @@ import { UserRepository } from '../users/user.repository';
 
     BlockchainRpcService,
     NftChainVerificationService,
+    NftOwnershipVerificationService,
+    NftOwnershipThrottleGuard,
 
     UserRepository,
   ],
@@ -78,6 +84,7 @@ import { UserRepository } from '../users/user.repository';
     MecenasNftPortfolioService,
     NftOwnershipEventService,
     NftChainVerificationService,
+    NftOwnershipVerificationService,
   ],
 })
 export class NftsModule {}
