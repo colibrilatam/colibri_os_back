@@ -53,6 +53,19 @@ export interface RpcBlock {
   timestamp: string;
 }
 
+/**
+ * WEB3-003: un `eth_call` que revierte (p.ej. `ownerOf` de un token
+ * inexistente) es una respuesta RPC válida, no un fallo de
+ * infraestructura. Se distingue de `ServiceUnavailableException` para que
+ * el llamador lo trate como resultado negativo en vez de "no disponible".
+ */
+export class RpcCallRevertedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RpcCallRevertedError';
+  }
+}
+
 @Injectable()
 export class BlockchainRpcService {
   private readonly logger = new Logger(BlockchainRpcService.name);
@@ -153,16 +166,51 @@ export class BlockchainRpcService {
       (await response.json()) as JsonRpcResponse<T>;
 
     if (payload.error) {
+      const message = payload.error.message ?? 'error desconocido';
+
       this.logger.warn(
-        `RPC ${method} falló en chain ${chainId}: ${payload.error.message}`,
+        `RPC ${method} falló en chain ${chainId}: ${message}`,
       );
 
+      // Un revert de ejecución (p.ej. `eth_call` sobre un token
+      // inexistente) es una respuesta válida del nodo, no una caída de
+      // infraestructura. Se expone como error tipado para que el servicio
+      // lo traduzca a un resultado negativo.
+      if (
+        method === 'eth_call' &&
+        this.isExecutionRevert(payload.error.code, message)
+      ) {
+        throw new RpcCallRevertedError(message);
+      }
+
       throw new ServiceUnavailableException(
-        `Error RPC: ${payload.error.message}`,
+        `Error RPC: ${message}`,
       );
     }
 
     return payload.result as T;
+  }
+
+  /**
+   * Distingue un revert de ejecución de un fallo de infraestructura.
+   *
+   * `-32000` es el código genérico de error de servidor de Geth y **no**
+   * implica revert ("header not found", "block not found",
+   * "insufficient funds", "nonce too low", etc.), por lo que nunca alcanza
+   * por sí solo. `3` sí es específico de "execution reverted" en varios
+   * providers. `-32015` se acepta únicamente acompañado de un mensaje de
+   * ejecución/VM, ya que algunos nodos lo usan para el mismo fin.
+   */
+  private isExecutionRevert(code: number, message: string): boolean {
+    if (code === 3) {
+      return true;
+    }
+
+    if (/revert/i.test(message)) {
+      return true;
+    }
+
+    return code === -32015 && /execution|VM/i.test(message);
   }
 
   async getChainId(chainId: number): Promise<number> {
@@ -214,5 +262,36 @@ export class BlockchainRpcService {
     );
 
     return Number.parseInt(result, 16);
+  }
+
+  /**
+   * WEB3-003: código de bytes desplegado en una dirección. `0x` significa
+   * que no hay contrato, por lo que no tiene sentido invocar `ownerOf`.
+   */
+  async getCode(
+    chainId: number,
+    address: string,
+  ): Promise<string> {
+    return this.call<string>(chainId, 'eth_getCode', [
+      address,
+      'latest',
+    ]);
+  }
+
+  /**
+   * WEB3-003: `eth_call` contra un bloque pinneado. Un revert lanza
+   * `RpcCallRevertedError` (respuesta válida); un fallo de transporte lanza
+   * `ServiceUnavailableException`.
+   */
+  async ethCall(
+    chainId: number,
+    to: string,
+    data: string,
+    blockTag: string,
+  ): Promise<string> {
+    return this.call<string>(chainId, 'eth_call', [
+      { to, data },
+      blockTag,
+    ]);
   }
 }
