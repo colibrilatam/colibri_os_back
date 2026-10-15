@@ -10,6 +10,7 @@
 import { plainToInstance, Transform } from 'class-transformer';
 import {
   IsEnum,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -21,13 +22,13 @@ import {
   Max,
   MinLength,
   Validate,
-  ValidateIf,
   ValidatorConstraint,
   ValidatorConstraintInterface,
   ValidationArguments,
   validateSync,
   ValidationError,
 } from 'class-validator';
+import { DESTRUCTIVE_SEED_CONFIRMATION } from './seed.constants';
 
 export enum NodeEnv {
   Development = 'development',
@@ -69,10 +70,10 @@ class NoDestructiveSeedInProductionConstraint implements ValidatorConstraintInte
   validate(value: string | undefined, args: ValidationArguments): boolean {
     const obj = args.object as EnvironmentVariables;
     if (obj.NODE_ENV !== NodeEnv.Production) return true;
-    return value === undefined || value === '' || value.toLowerCase() !== 'true';
+    return value === undefined || value === '' || value !== DESTRUCTIVE_SEED_CONFIRMATION;
   }
   defaultMessage(): string {
-    return 'CONFIRM_DESTRUCTIVE_SEED no debe estar definida como "true" en producción';
+    return `CONFIRM_DESTRUCTIVE_SEED no debe estar definida como "${DESTRUCTIVE_SEED_CONFIRMATION}" en producción`;
   }
 }
 
@@ -196,7 +197,9 @@ export class EnvironmentVariables {
 
   @Transform(emptyToUndefined)
   @IsOptional()
-  @IsBooleanString({ message: 'CONFIRM_DESTRUCTIVE_SEED debe ser "true" o "false"' })
+  @IsIn([DESTRUCTIVE_SEED_CONFIRMATION], {
+    message: `CONFIRM_DESTRUCTIVE_SEED debe ser "${DESTRUCTIVE_SEED_CONFIRMATION}" (o quedar sin definir)`,
+  })
   @Validate(NoDestructiveSeedInProductionConstraint)
   CONFIRM_DESTRUCTIVE_SEED?: string;
 

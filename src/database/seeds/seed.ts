@@ -14,6 +14,7 @@ import { seedAlgorithmVersions } from './seeders/Algorithm-versions.seeder';
 import { seedMicroActionInstances } from './seeders/Micro-action-instances.seeder';
 import { seedEvidences } from './seeders/evidence.seeder';
 import { seedProjectPacs } from './seeders/ProjectPac.seeder';
+import { DESTRUCTIVE_SEED_CONFIRMATION } from '../../config/seed.constants';
 
 /**
  * OPS-002: kill-switch de seeds destructivas.
@@ -32,7 +33,7 @@ import { seedProjectPacs } from './seeders/ProjectPac.seeder';
  *   3. Todo intento (bloqueado o permitido) queda registrado en logSeedAttempt().
  */
 
-const DESTRUCTIVE_CONFIRMATION_VALUE = 'yes-destroy-data';
+const DESTRUCTIVE_CONFIRMATION_VALUE = DESTRUCTIVE_SEED_CONFIRMATION;
 
 function logSeedAttempt(event: string, details: Record<string, unknown> = {}): void {
   // eslint-disable-next-line no-console

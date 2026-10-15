@@ -25,7 +25,7 @@ en `src/main.ts`.
 | `FRONTEND_URL` | Sí | URL válida |
 | `FRONTEND_URLS` | No | lista de URLs separadas por coma, todas válidas |
 | `SWAGGER_ENABLED`, `MAINTENANCE_MODE` | No | `true`/`false` |
-| `CONFIRM_DESTRUCTIVE_SEED` | No | **no puede ser `true` en producción** |
+| `CONFIRM_DESTRUCTIVE_SEED` | No | único valor válido `yes-destroy-data`; **prohibido en producción** y no se deja en `.env` (se pasa inline al correr el seed) |
 | `MAX_JSON_BODY_SIZE` | No (default `1mb`) | formato de tamaño (`1mb`, `512kb`) |
 | `MAX_PROJECT_IMAGE_BYTES`, `REQUEST_TIMEOUT_MS`, `SOCKET_TIMEOUT_MS`, `OAUTH_STATE_COOKIE_MAX_AGE_MS`, `OAUTH_EXCHANGE_CODE_TTL_MS` | No | enteros positivos |
 | `WALLET_AUTH_DOMAIN` | No (default `localhost:3000`) | dominio SIWE (EIP-4361); **fijado por el backend**, nunca por el cliente |
