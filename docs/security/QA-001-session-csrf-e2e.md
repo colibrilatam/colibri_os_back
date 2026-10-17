@@ -110,18 +110,21 @@ Al montar el entorno E2E aparecieron dos endpoints inaccesibles por el
 
 ## 5. Throttling en entorno de tests
 
-Los límites de `@Throttle` (5/min en signin, etc.) rompían suites con muchos
-logins desde la misma IP. `src/common/throttle.util.ts` (`throttleLimit`)
-relaja el límite **solo** con `NODE_ENV=test`; en dev/prod conserva el valor
-real.
+Los límites de `@Throttle` (5/min en signin, etc.) rompían la suite Playwright
+(decenas de logins desde la misma IP). `src/common/throttle.util.ts`
+(`throttleLimit`) relaja el límite **solo** cuando `E2E_RELAX_THROTTLE=true`
+(definido por `docker-compose.e2e.yml` y por el workflow `e2e.yml` del frontend).
+Los tests Jest e2e (`NODE_ENV=test` sin esa variable) conservan el rate limiting
+real: varias suites (OPS-003, QA-002) lo verifican explícitamente.
 
 ---
 
 ## 6. Variables de entorno nuevas
 
-| Variable          | Uso                                                        |
-|-------------------|------------------------------------------------------------|
-| `E2E_OAUTH_FAKE`  | `true` activa el provider OAuth falso (solo E2E).          |
+| Variable             | Uso                                                                       |
+|----------------------|---------------------------------------------------------------------------|
+| `E2E_OAUTH_FAKE`     | `true` activa el provider OAuth falso (solo E2E).                         |
+| `E2E_RELAX_THROTTLE` | `true` relaja el rate limiting para la suite Playwright (solo E2E).       |
 
 Validada en `src/config/env.validation.ts` (booleano opcional).
 
