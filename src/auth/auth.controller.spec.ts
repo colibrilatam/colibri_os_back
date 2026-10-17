@@ -1,62 +1,109 @@
 import type { Response } from 'express';
 import { AuthController } from './auth.controller';
+import { UserStatus } from '../users/entities/user.entity';
 
-describe('AuthController - OAUTH-001', () => {
-  let authService: { resolveGoogleUser: jest.Mock; issueSessionForUser: jest.Mock };
+describe('AuthController — CODE-006', () => {
+  let authService: {
+    googleLogin: jest.Mock;
+    toPublicUser: jest.Mock;
+    issueProfileCompletionToken: jest.Mock;
+    buildAuthResult: jest.Mock;
+    completeProfile: jest.Mock;
+  };
   let oauthExchangeService: { issue: jest.Mock; consume: jest.Mock };
   let controller: AuthController;
   let res: { redirect: jest.Mock; cookie: jest.Mock; json: jest.Mock };
 
-  const googleUser = { email: 'a@b.com' } as never;
-  const resolvedUser = { id: 'user-1' } as never;
+  const googleUser = { email: 'a@b.com', fullName: 'Test User', googleId: 'g123', avatar: 'avatar.png' } as never;
+  const activeUser = { id: 'user-1', email: 'a@b.com', fullName: 'Test User', role: 'entrepreneur', status: UserStatus.ACTIVE } as never;
+  const pendingUser = { id: 'user-2', email: 'c@d.com', fullName: 'Pending User', role: null, status: UserStatus.PENDING_PROFILE } as never;
 
   beforeEach(() => {
     authService = {
-      resolveGoogleUser: jest.fn().mockResolvedValue(resolvedUser),
-      issueSessionForUser: jest.fn(),
+      googleLogin: jest.fn(),
+      toPublicUser: jest.fn((u) => u),
+      issueProfileCompletionToken: jest.fn().mockReturnValue('profile-completion-token-123'),
+      buildAuthResult: jest.fn((u) => ({ token: 'jwt-access-token', user: u })),
+      completeProfile: jest.fn(),
     };
     oauthExchangeService = {
-      issue: jest.fn().mockResolvedValue('codigo-opaco-de-un-solo-uso'),
+      issue: jest.fn().mockResolvedValue('opaque-code-123'),
       consume: jest.fn(),
     };
-    controller = new AuthController(authService as never, oauthExchangeService as never);
+    controller = new AuthController(authService as never, oauthExchangeService as never, {} as never);
     res = { redirect: jest.fn(), cookie: jest.fn(), json: jest.fn().mockReturnThis() };
     process.env.FRONTEND_URL = 'https://app.colibri.test';
   });
 
-  it('redirige con un código opaco, nunca con el JWT en la URL', async () => {
-    const req = { user: googleUser } as never;
+  describe('getGoogleCallback', () => {
+    it('redirige SOLO con ?code, nunca con tempToken, role, jwt o eyJ', async () => {
+      authService.googleLogin.mockResolvedValue({ user: activeUser, requiresProfileCompletion: false });
+      oauthExchangeService.issue.mockResolvedValue('opaque-code-123');
 
-    await controller.getGoogleCallback(req, res as never as Response);
+      const req = { user: googleUser } as never;
+      await controller.getGoogleCallback(req, res as never as Response);
 
-    expect(authService.resolveGoogleUser).toHaveBeenCalledWith(googleUser);
-    expect(oauthExchangeService.issue).toHaveBeenCalledWith(resolvedUser);
+      expect(authService.googleLogin).toHaveBeenCalledWith(googleUser);
+      expect(oauthExchangeService.issue).toHaveBeenCalledWith(activeUser);
 
-    const redirectUrl = new URL(res.redirect.mock.calls[0][0]);
-    expect(redirectUrl.searchParams.get('code')).toEqual('codigo-opaco-de-un-solo-uso');
-    expect([...redirectUrl.searchParams.keys()]).toEqual(['code']);
-    expect(redirectUrl.toString()).not.toMatch(/token|jwt|eyJ/i);
-  });
-
-  it('entrega el access token vía cookie segura, no en el body', async () => {
-    oauthExchangeService.consume.mockResolvedValue(resolvedUser);
-    authService.issueSessionForUser.mockResolvedValue({
-      Message: 'Usuario logueado con éxito',
-      token: 'jwt-de-acceso',
-      refreshToken: 'refresh-de-sesion',
+      const redirectUrl = new URL(res.redirect.mock.calls[0][0]);
+      expect(redirectUrl.searchParams.get('code')).toEqual('opaque-code-123');
+      expect([...redirectUrl.searchParams.keys()]).toEqual(['code']);
+      expect(redirectUrl.toString()).not.toMatch(/tempToken|role|jwt|eyJ/i);
+      expect(res.cookie).not.toHaveBeenCalled();
     });
 
-    await controller.exchangeGoogleCode({ code: 'codigo-opaco' } as never, res as never as Response);
+    it('redirige con ?code también para usuario PENDING_PROFILE', async () => {
+      authService.googleLogin.mockResolvedValue({ user: pendingUser, requiresProfileCompletion: true });
+      oauthExchangeService.issue.mockResolvedValue('opaque-code-456');
 
-    expect(oauthExchangeService.consume).toHaveBeenCalledWith('codigo-opaco');
-    expect(res.cookie).toHaveBeenCalledWith(
-      'colibri_access_token',
-      'jwt-de-acceso',
-      expect.objectContaining({ httpOnly: true, path: '/' }),
-    );
+      const req = { user: googleUser } as never;
+      await controller.getGoogleCallback(req, res as never as Response);
 
-    const jsonPayload = res.json.mock.calls[0][0];
-    expect(jsonPayload.token).toBeUndefined(); // el token no viaja en el body
-    expect(jsonPayload.refreshToken).toEqual('refresh-de-sesion');
+      const redirectUrl = new URL(res.redirect.mock.calls[0][0]);
+      expect(redirectUrl.searchParams.get('code')).toEqual('opaque-code-456');
+      expect([...redirectUrl.searchParams.keys()]).toEqual(['code']);
+      expect(res.cookie).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('exchangeGoogleCode', () => {
+    it('con usuario ACTIVE setea cookie y no expone token en body', async () => {
+      oauthExchangeService.consume.mockResolvedValue(activeUser);
+      authService.buildAuthResult.mockReturnValue({ token: 'jwt-access-token', user: activeUser });
+
+      const result = await controller.exchangeGoogleCode({ code: 'opaque-code-123' } as never, res as never as Response);
+
+      expect(oauthExchangeService.consume).toHaveBeenCalledWith('opaque-code-123');
+      expect(authService.buildAuthResult).toHaveBeenCalledWith(activeUser);
+      expect(res.cookie).toHaveBeenCalledWith(
+        'colibri_access_token',
+        'jwt-access-token',
+        expect.objectContaining({ httpOnly: true, path: '/' }),
+      );
+
+      expect(result.message).toEqual('Sesión iniciada con éxito');
+      expect(result.user).toEqual(activeUser);
+      expect(result.requiresProfileCompletion).toBe(false);
+      expect(result.profileCompletionToken).toBeUndefined();
+      expect(result.token).toBeUndefined();
+    });
+
+    it('con usuario PENDING_PROFILE devuelve profileCompletionToken y requiresProfileCompletion: true, sin cookie', async () => {
+      oauthExchangeService.consume.mockResolvedValue(pendingUser);
+      authService.toPublicUser.mockReturnValue(pendingUser);
+
+      const result = await controller.exchangeGoogleCode({ code: 'opaque-code-456' } as never, res as never as Response);
+
+      expect(oauthExchangeService.consume).toHaveBeenCalledWith('opaque-code-456');
+      expect(authService.toPublicUser).toHaveBeenCalledWith(pendingUser);
+      expect(authService.issueProfileCompletionToken).toHaveBeenCalledWith(pendingUser);
+      expect(res.cookie).not.toHaveBeenCalled();
+
+      expect(result.message).toEqual('Perfil pendiente de completar');
+      expect(result.user).toEqual(pendingUser);
+      expect(result.requiresProfileCompletion).toBe(true);
+      expect(result.profileCompletionToken).toEqual('profile-completion-token-123');
+    });
   });
 });

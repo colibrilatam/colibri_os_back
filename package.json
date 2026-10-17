@@ -5,6 +5,9 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "npx nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -20,11 +23,19 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
+    "test:e2e:setup-db": "node scripts/setup-test-db.mjs",
     "migration:generate": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d src/database/data-source.ts",
     "migration:run": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run -d src/database/data-source.ts",
     "migration:revert": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:revert -d src/database/data-source.ts",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts",
-    "sync:doc-issues": "node scripts/sync-doc-issues.mjs"
+    "seed:e2e": "ts-node -r tsconfig-paths/register src/database/seeds/seed-e2e.ts",
+    "sync:doc-issues": "node scripts/sync-doc-issues.mjs",
+    "contract:export": "nest build && node dist/scripts/export-openapi.js",
+    "contract:generate": "npm run contract:export && npm run generate-zod -w packages/contracts",
+    "contract:copy": "npm run copy-contracts -w packages/contracts",
+    "contract:sync": "npm run contract:generate && npm run contract:copy",
+    "contract:check": "npm run breaking-check -w packages/contracts",
+    "contract:test": "npm run test -w packages/contracts"
   },
   "overrides": {
     "qs": "^6.15.3",
@@ -51,6 +62,7 @@
     "class-validator": "^0.14.4",
     "cloudinary": "^2.9.0",
     "dotenv": "^17.3.1",
+    "ethers": "^6.17.0",
     "google-auth-library": "^10.6.2",
     "googleapis": "^171.4.0",
     "helmet": "^8.3.0",
@@ -61,6 +73,7 @@
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "siwe": "^3.0.0",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.28"
   },

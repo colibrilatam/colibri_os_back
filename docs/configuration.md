@@ -25,9 +25,18 @@ en `src/main.ts`.
 | `FRONTEND_URL` | Sí | URL válida |
 | `FRONTEND_URLS` | No | lista de URLs separadas por coma, todas válidas |
 | `SWAGGER_ENABLED`, `MAINTENANCE_MODE` | No | `true`/`false` |
-| `CONFIRM_DESTRUCTIVE_SEED` | No | **no puede ser `true` en producción** |
+| `CONFIRM_DESTRUCTIVE_SEED` | No | único valor válido `yes-destroy-data`; **prohibido en producción** y no se deja en `.env` (se pasa inline al correr el seed) |
 | `MAX_JSON_BODY_SIZE` | No (default `1mb`) | formato de tamaño (`1mb`, `512kb`) |
 | `MAX_PROJECT_IMAGE_BYTES`, `REQUEST_TIMEOUT_MS`, `SOCKET_TIMEOUT_MS`, `OAUTH_STATE_COOKIE_MAX_AGE_MS`, `OAUTH_EXCHANGE_CODE_TTL_MS` | No | enteros positivos |
+| `WALLET_AUTH_DOMAIN` | No (default `localhost:3000`) | dominio SIWE (EIP-4361); **fijado por el backend**, nunca por el cliente |
+| `WALLET_AUTH_URI` | No (default `http://localhost:3000`) | URI SIWE; **fijado por el backend** |
+| `WALLET_AUTH_NONCE_TTL_MS` | No (default `300000`) | vigencia del nonce en ms (5 min) |
+| `WALLET_AUTH_CHAIN_IDS` | No (default `1,137`) | chain IDs permitidos, separados por coma |
+
+> WEB3-002: `WALLET_AUTH_DOMAIN` y `WALLET_AUTH_URI` deben coincidir con el
+> origen real de la app en cada ambiente. El cliente solo firma el mensaje
+> que el backend devuelve; el backend revalida dominio, URI y chainId contra
+> esta configuración y contra las columnas persistidas del nonce.
 
 Ver `.env.example` para valores de referencia locales y el detalle completo
 de reglas en `src/config/env.validation.ts` y sus pruebas en

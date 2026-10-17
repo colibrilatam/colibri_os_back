@@ -7,12 +7,20 @@ import {
   Delete,
   UseGuards,
   ParseUUIDPipe,
+  ClassSerializerInterceptor,
+  UseInterceptors,
 } from '@nestjs/common';
-import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UpdateUserDto } from './dtos/userUpdate.dto';
+import { UserProfileResponseDto } from './dtos/user-profile-response.dto';
+import { toPublicUser } from './user.mapper';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -21,6 +29,7 @@ import { ChangeUserRoleDto } from './dtos/change-user-role.dto';
 import { ChangeUserStatusDto } from './dtos/change-user-status.dto';
 import { ChangePasswordDto } from './dtos/change-password.dto';
 
+@UseInterceptors(ClassSerializerInterceptor)
 @ApiTags('Users')
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -30,8 +39,13 @@ export class UsersController {
   @Get('profile')
   @ApiOperation({ summary: 'Obtener el perfil del usuario autenticado' })
   @ApiBearerAuth()
-  getProfile(@CurrentUser() user: JwtPayload): JwtPayload {
-    return user;
+  @ApiOkResponse({ type: UserProfileResponseDto, description: 'Perfil del usuario autenticado' })
+  async getProfile(@CurrentUser('id') userId: string, @CurrentUser('role') role: UserRole) {
+    const user = await this.usersService.findOneById(userId);
+    return {
+      ...toPublicUser(user),
+      permissions: this.usersService.getEffectivePermissions(role),
+    };
   }
 
   @ApiOperation({ summary: 'Cambiar la contraseña del usuario autenticado' })

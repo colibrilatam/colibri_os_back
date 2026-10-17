@@ -10,6 +10,7 @@ import { MicroActionInstance } from '../micro-action-instance/entities/micro-act
 import { Project } from '../projects/entities/project.entity';
 import { ReputationService } from './reputation.service';
 import { ReputationController } from './reputation.controller';
+import { ProjectsModule } from '../projects/projects.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ReputationController } from './reputation.controller';
       MicroActionInstance,
       Project,
     ]),
+    ProjectsModule,
   ],
   controllers: [ReputationController],
   providers: [ReputationService],

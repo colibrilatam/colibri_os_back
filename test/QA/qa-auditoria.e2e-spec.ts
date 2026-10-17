@@ -8,6 +8,14 @@ import { AuthProvider, User, UserRole } from '../../src/users/entities/user.enti
 import { Fixtures } from '../fixtures';
 import { cleanDatabase, closeTestApp, E2eContext } from '../e2e-setup';
 
+function extractCookie(res: request.Response, name: string): string | null {
+  const cookies = res.headers['set-cookie'];
+  if (!cookies) return null;
+  const cookie = cookies.find((c: string) => c.startsWith(`${name}=`));
+  if (!cookie) return null;
+  return cookie.split(';')[0].split('=')[1];
+}
+
 const QA_PRIMARY_ORIGIN = 'https://app.colibri.example/';
 const QA_EXTRA_ORIGINS = ' https://preview.vercel.app, https://staging.colibri.example ';
 
@@ -160,7 +168,8 @@ describe('QA audit battery - disponibilidad, CORS y auth', () => {
         .send(signupPayload)
         .expect(201);
 
-      expect(res.body.token).toEqual(expect.any(String));
+      expect(res.body.user).toBeDefined();
+      expect(res.body.user.email).toBe(signupPayload.email.toLowerCase());
 
       const storedUser = await ctx.dataSource.getRepository(User).findOneBy({
         email: signupPayload.email.toLowerCase(),
@@ -173,7 +182,8 @@ describe('QA audit battery - disponibilidad, CORS y auth', () => {
     it('permite login y acceso al perfil con el token emitido', async () => {
       await request(server()).post('/api/v1/auth/signup').send(signupPayload).expect(201);
 
-      const loginRes = await request(server())
+      const agent = request.agent(server());
+      const loginRes = await agent
         .post('/api/v1/auth/signin')
         .send({
           email: signupPayload.email.toLowerCase(),
@@ -181,12 +191,10 @@ describe('QA audit battery - disponibilidad, CORS y auth', () => {
         })
         .expect(201);
 
-      expect(loginRes.body.token).toEqual(expect.any(String));
+      expect(loginRes.body.user).toBeDefined();
+      expect(loginRes.body.user.email).toBe(signupPayload.email.toLowerCase());
 
-      const profileRes = await request(server())
-        .get('/api/v1/users/profile')
-        .set('Authorization', `Bearer ${loginRes.body.token}`)
-        .expect(200);
+      const profileRes = await agent.get('/api/v1/users/profile').expect(200);
 
       expect(profileRes.body.email).toBe(signupPayload.email.toLowerCase());
     });

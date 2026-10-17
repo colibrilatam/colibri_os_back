@@ -20,6 +20,7 @@ import {
 } from 'src/micro-action-instance/entities/micro-action-instance.entity';
 import { Evidence, EvidenceStatus } from 'src/evidence/entities/evidence.entity';
 import { Rubric, RubricTargetEntity } from 'src/evaluation/entities/rubric.entity';
+import { Evaluation, EvaluationType } from 'src/evaluation/entities/evaluation.entity';
 import { NftActor, ActorNftType } from 'src/nfts/entities/nft-actor.entity';
 import { NftProject } from 'src/nfts/entities/nft-project.entity';
 import { MecenasNftPortfolio } from 'src/nfts/entities/mecenas-nft-portfolio.entity';
@@ -267,6 +268,25 @@ export class Fixtures {
         criteriaJson: { dimensions: [{ name: 'consistency', weight: 1 }] },
         ...overrides,
       } as Rubric),
+    );
+  }
+
+  async createEvaluation(
+    evidenceId: string,
+    rubricId: string,
+    createdByUserId: string,
+    overrides: Partial<Evaluation> = {},
+  ): Promise<Evaluation> {
+    return this.rubricRepo.manager.save(
+      Evaluation,
+      {
+        evidenceId,
+        rubricId,
+        rubricVersion: 'v1.0',
+        createdByUserId,
+        evaluationType: EvaluationType.HYBRID,
+        ...overrides,
+      } as Evaluation,
     );
   }
 

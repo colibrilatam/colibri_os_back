@@ -4,7 +4,7 @@ import { ProjectStatus, TrajectoryStatus } from '../entities/project.entity';
 import { Transform } from 'class-transformer';
 
 export class CreateProjectDto {
-  @ApiProperty({ example: 'Mi Startup' })
+  @ApiProperty({  example: 'Mi Startup', minLength: 1 })
   @IsString()
   @IsNotEmpty()
   projectName: string;
@@ -40,17 +40,17 @@ export class CreateProjectDto {
   @IsOptional()
   shortDescription?: string;
 
-  @ApiPropertyOptional({ example: 'https://linkedin.com/company/mi-startup' })
+  @ApiPropertyOptional({ example: 'https://linkedin.com/company/mi-startup', format: 'uri' })
   @IsUrl()
   @IsOptional()
   startupLinkedinUrl?: string;
 
-  @ApiPropertyOptional({ example: 'https://mistartup.com' })
+  @ApiPropertyOptional({ example: 'https://mistartup.com', format: 'uri' })
   @IsUrl()
   @IsOptional()
   websiteUrl?: string;
 
-  @ApiPropertyOptional({ example: 'https://rlab.com/mi-startup' })
+  @ApiPropertyOptional({ example: 'https://rlab.com/mi-startup', format: 'uri' })
   @IsUrl()
   @IsOptional()
   rlabProfileUrl?: string;

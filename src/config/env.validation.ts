@@ -10,6 +10,7 @@
 import { plainToInstance, Transform } from 'class-transformer';
 import {
   IsEnum,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -21,13 +22,13 @@ import {
   Max,
   MinLength,
   Validate,
-  ValidateIf,
   ValidatorConstraint,
   ValidatorConstraintInterface,
   ValidationArguments,
   validateSync,
   ValidationError,
 } from 'class-validator';
+import { DESTRUCTIVE_SEED_CONFIRMATION } from './seed.constants';
 
 export enum NodeEnv {
   Development = 'development',
@@ -69,10 +70,10 @@ class NoDestructiveSeedInProductionConstraint implements ValidatorConstraintInte
   validate(value: string | undefined, args: ValidationArguments): boolean {
     const obj = args.object as EnvironmentVariables;
     if (obj.NODE_ENV !== NodeEnv.Production) return true;
-    return value === undefined || value === '' || value.toLowerCase() !== 'true';
+    return value === undefined || value === '' || value !== DESTRUCTIVE_SEED_CONFIRMATION;
   }
   defaultMessage(): string {
-    return 'CONFIRM_DESTRUCTIVE_SEED no debe estar definida como "true" en producción';
+    return `CONFIRM_DESTRUCTIVE_SEED no debe estar definida como "${DESTRUCTIVE_SEED_CONFIRMATION}" en producción`;
   }
 }
 
@@ -127,7 +128,9 @@ export class EnvironmentVariables {
 
   // ---------- JWT ----------
   @IsString()
-  @IsNotEmpty({ message: 'JWT_SECRET es obligatorio: la aplicación no puede firmar sesiones sin un secreto' })
+  @IsNotEmpty({
+    message: 'JWT_SECRET es obligatorio: la aplicación no puede firmar sesiones sin un secreto',
+  })
   @MinLength(32, { message: 'JWT_SECRET debe tener al menos 32 caracteres' })
   JWT_SECRET: string;
 
@@ -194,13 +197,43 @@ export class EnvironmentVariables {
 
   @Transform(emptyToUndefined)
   @IsOptional()
-  @IsBooleanString({ message: 'CONFIRM_DESTRUCTIVE_SEED debe ser "true" o "false"' })
+  @IsIn([DESTRUCTIVE_SEED_CONFIRMATION], {
+    message: `CONFIRM_DESTRUCTIVE_SEED debe ser "${DESTRUCTIVE_SEED_CONFIRMATION}" (o quedar sin definir)`,
+  })
   @Validate(NoDestructiveSeedInProductionConstraint)
   CONFIRM_DESTRUCTIVE_SEED?: string;
 
+  // ---------- SEGURIDAD (SEC-002) ----------
+  /**
+   * RolesGuard en modo enforce. Cuando es "true", los endpoints que tienen
+   * RolesGuard vinculado pero NO tienen @Roles declarado devuelven 403
+   * (fail-closed). Cuando es "false" (default), solo registran un warning
+   * en el log de auditoría.
+   *
+   * Fase 1 (actual): log-only. Fase 2: activar "true" tras 1 semana de
+   * auditoría. Revisar el log antes de activar.
+   */
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsBooleanString({ message: 'ROLES_GUARD_ENFORCE debe ser "true" o "false"' })
+  ROLES_GUARD_ENFORCE?: string;
+
+  // ---------- QA-001 (entorno E2E) ----------
+  /**
+   * QA-001: habilita el provider de OAuth falso (GoogleFakeStrategy) que
+   * simula el flujo completo sin llamar a Google. SOLO debe activarse en el
+   * entorno E2E aislado; en dev/prod queda sin definir.
+   */
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsBooleanString({ message: 'E2E_OAUTH_FAKE debe ser "true" o "false"' })
+  E2E_OAUTH_FAKE?: string;
+
   // ---------- LÍMITES / TIMEOUTS (expiraciones) ----------
   @IsOptional()
-  @Matches(BODY_SIZE_REGEX, { message: 'MAX_JSON_BODY_SIZE debe tener formato de tamaño (ej: 1mb, 512kb)' })
+  @Matches(BODY_SIZE_REGEX, {
+    message: 'MAX_JSON_BODY_SIZE debe tener formato de tamaño (ej: 1mb, 512kb)',
+  })
   MAX_JSON_BODY_SIZE: string = '1mb';
 
   @Transform(toNumber)
@@ -232,14 +265,39 @@ export class EnvironmentVariables {
   @IsInt({ message: 'OAUTH_EXCHANGE_CODE_TTL_MS debe ser un entero (ms)' })
   @Min(1, { message: 'OAUTH_EXCHANGE_CODE_TTL_MS debe ser mayor a 0' })
   OAUTH_EXCHANGE_CODE_TTL_MS: number = 60_000;
+
+  // ---------- WALLET AUTH (WEB3-002) ----------
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty({ message: 'WALLET_AUTH_DOMAIN no puede estar vacío' })
+  WALLET_AUTH_DOMAIN: string = 'localhost:3000';
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty({ message: 'WALLET_AUTH_URI no puede estar vacío' })
+  WALLET_AUTH_URI: string = 'http://localhost:3000';
+
+  @Transform(toNumber)
+  @IsOptional()
+  @IsInt({ message: 'WALLET_AUTH_NONCE_TTL_MS debe ser un entero (ms)' })
+  @Min(1, { message: 'WALLET_AUTH_NONCE_TTL_MS debe ser mayor a 0' })
+  WALLET_AUTH_NONCE_TTL_MS: number = 300_000;
+
+  @IsOptional()
+  @IsString()
+  WALLET_AUTH_CHAIN_IDS: string = '1,137';
 }
 
 /** Junta los mensajes de un árbol de ValidationError sin exponer los valores recibidos. */
 function flattenValidationErrors(errors: ValidationError[], prefix = ''): string[] {
   return errors.flatMap((error) => {
     const path = prefix ? `${prefix}.${error.property}` : error.property;
-    const ownMessages = error.constraints ? Object.values(error.constraints).map((m) => `- ${path}: ${m}`) : [];
-    const childMessages = error.children?.length ? flattenValidationErrors(error.children, path) : [];
+    const ownMessages = error.constraints
+      ? Object.values(error.constraints).map((m) => `- ${path}: ${m}`)
+      : [];
+    const childMessages = error.children?.length
+      ? flattenValidationErrors(error.children, path)
+      : [];
     return [...ownMessages, ...childMessages];
   });
 }

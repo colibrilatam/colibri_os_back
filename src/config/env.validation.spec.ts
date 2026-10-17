@@ -78,11 +78,25 @@ describe('validateEnv (OPS-004)', () => {
     ).toThrow(/OAUTH_EXCHANGE_CODE_TTL_MS/);
   });
 
-  it('falla si CONFIRM_DESTRUCTIVE_SEED=true en producción', () => {
+  it('acepta CONFIRM_DESTRUCTIVE_SEED=yes-destroy-data fuera de producción', () => {
     expect(() =>
       validateEnv(
-        baseValidConfig({ NODE_ENV: 'production', CONFIRM_DESTRUCTIVE_SEED: 'true' }),
+        baseValidConfig({ NODE_ENV: 'development', CONFIRM_DESTRUCTIVE_SEED: 'yes-destroy-data' }),
       ),
+    ).not.toThrow();
+  });
+
+  it('falla si CONFIRM_DESTRUCTIVE_SEED=yes-destroy-data en producción', () => {
+    expect(() =>
+      validateEnv(
+        baseValidConfig({ NODE_ENV: 'production', CONFIRM_DESTRUCTIVE_SEED: 'yes-destroy-data' }),
+      ),
+    ).toThrow(/CONFIRM_DESTRUCTIVE_SEED/);
+  });
+
+  it('rechaza CONFIRM_DESTRUCTIVE_SEED="true" (valor legacy/adivinado)', () => {
+    expect(() =>
+      validateEnv(baseValidConfig({ NODE_ENV: 'development', CONFIRM_DESTRUCTIVE_SEED: 'true' })),
     ).toThrow(/CONFIRM_DESTRUCTIVE_SEED/);
   });
 

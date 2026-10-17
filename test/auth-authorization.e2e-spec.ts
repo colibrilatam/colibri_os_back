@@ -50,10 +50,11 @@ describe('Auth — QA-SEC-001 (escalada de privilegios) (e2e)', () => {
       const res = await request(server()).post('/api/v1/auth/signup').send(basePayload);
 
       expect(res.status).toBe(201);
-      expect(res.body.token).toBeDefined();
-
-      const decoded = jwtService.decode(res.body.token);
-      expect(decoded.role).toBe(UserRole.ENTREPRENEUR);
+      expect(res.body.user).toBeDefined();
+      expect(res.body.user.role).toBe(UserRole.ENTREPRENEUR);
+      expect(res.headers['set-cookie']).toEqual(
+        expect.arrayContaining([expect.stringContaining('colibri_access_token=')]),
+      );
     });
 
     it('el JWT emitido nunca refleja un rol distinto al asignado en servidor', async () => {
@@ -64,8 +65,8 @@ describe('Auth — QA-SEC-001 (escalada de privilegios) (e2e)', () => {
       // Si el 400 de arriba fallara por algún motivo, esta es la red de
       // seguridad: aunque el body pase, el rol jamás debe ser admin.
       if (res.status === 201) {
-        const decoded = jwtService.decode(res.body.token);
-        expect(decoded.role).not.toBe(UserRole.ADMIN);
+        expect(res.body.user).toBeDefined();
+        expect(res.body.user.role).not.toBe(UserRole.ADMIN);
       }
     });
   });
