@@ -1,7 +1,10 @@
 # QA-001 — Sesión, CSRF y revocación (cambios de backend)
 
 **Ticket:** QA-001 (Sprint 1) · **Áreas:** Auth, Autorización, Sesión, CI
-**Estado:** implementado. **Rama:** `dev`.
+**Estado:** implementado y verificado en CI. **Rama:** `dev`.
+**Evidencia CI:** [PR #173](https://github.com/colibrilatam/colibri_os_back/pull/173)
+(head `b6e8084`) — CodeQL en verde. El PR es solo evidencia de CI; el código
+vive en `dev` (no se mergea a `main`).
 
 Este documento registra los cambios de backend introducidos por QA-001 como
 soporte de la suite Playwright (repo `colibri_os_front/e2e`) y las decisiones
@@ -139,3 +142,76 @@ Validada en `src/config/env.validation.ts` (booleano opcional).
   usuario de revocación y un usuario Google activo), proyectos A/B, evidencia y
   evaluación por proyecto, membresías y asignación del evaluador a A.
 - NO reemplaza a `seed.ts` (demo). Es exclusivo del entorno E2E.
+
+---
+
+## 8. Mitigación de alertas CodeQL (High) detectadas en el CI del PR
+
+El análisis SAST de CodeQL sobre el PR detectó **2 alertas High** introducidas
+por los cambios de QA-001. Se corrigieron en dos rondas (commits `ea25d16` y
+`b6e8084`).
+
+**Alerta 1 — `User-controlled bypass of security check`
+(`src/auth/auth.service.ts`, `revokeSessionFromToken`).**
+La condición `if (rawToken)` (valor controlado por el usuario) guardaba la
+verificación del JWT — CodeQL la lee como un bypass del check de seguridad.
+Corregido: `jwtService.verify(rawToken ?? '')` se intenta **siempre**; sin
+token válido `verify` lanza y cae al `catch`. Mismo comportamiento observable
+(idempotente: sin token no hay sesión que revocar).
+
+**Alerta 2 — `Remote property injection`
+(`src/auth/guards/csrf.guard.ts`, parseo de cookies).**
+El parser construía un objeto con llaves extraídas del header `Cookie`
+(controlado por el usuario). Primero se mitigó con `Object.create(null)` +
+denylist (`__proto__`/`constructor`), pero CodeQL **no acepta denylist**: exige
+*allowlist*. Corregido de forma estructural: `extractSessionCookies()` extrae
+**solo las dos cookies fijas** que el guard necesita (`csrf_token` y
+`colibri_access_token`); el nombre de la cookie nunca se usa como llave de
+escritura — se compara contra constantes y se asigna a variables conocidas.
+
+**Hardening complementario (no era alerta CodeQL, se mantiene por defense in
+depth):** `DEMO_ACCOUNT_EMAILS` en `AuthService` pasó de objeto indexable a
+`Map` + guard `!email` → 401 (evita indexación con llaves hostiles en
+`demoLogin`).
+
+**Tests de regresión de la mitigación:**
+- `src/auth/auth.service.spec.ts` — `demoLogin('investor' as any)` y
+  `demoLogin('__proto__' as any)` → `UnauthorizedException` sin tocar la DB.
+- `src/auth/guards/csrf.guard.spec.ts` — header
+  `__proto__=polluted; constructor=evil` → 403 y `Object.prototype` no
+  contaminado.
+
+---
+
+## 9. Evidencia CI (PR #173, head `b6e8084`)
+
+| Workflow / check | Resultado | Link |
+|---|---|---|
+| **CodeQL (SAST)** — *"No new alerts in code changed by this pull request"* | ✅ success | [run](https://github.com/colibrilatam/colibri_os_back/runs/117533826156) |
+| Analyze (javascript-typescript) | ✅ success | [job](https://github.com/colibrilatam/colibri_os_back/actions/runs/39079579125/job/117533610251) |
+| CI Negative Tests (gate CI-001: lint/unit/authorization/migration) | ✅ success | [run](https://github.com/colibrilatam/colibri_os_back/actions/runs/39079578937) |
+| Contracts | ✅ success | [run](https://github.com/colibrilatam/colibri_os_back/actions/runs/39079578921) |
+| Secret Scanning (Gitleaks) | ✅ success | [run](https://github.com/colibrilatam/colibri_os_back/actions/runs/39079578943) |
+| SCA — OSV-Scanner / Dependency Review | ⚠️ failure (**preexistente**, ajeno a QA-001) | [run](https://github.com/colibrilatam/colibri_os_back/actions/runs/39079578974) |
+
+Verificación local adicional (corrida del fix):
+- Jest unitario: **67/67** en verde.
+- Jest e2e (DB temporal con migraciones): **79/79** en las suites de
+  logout/revocación (`iam-001`), demo-login (`sec-002-escalation-regression`,
+  `sec-002-legacy-credentials`) y auditoría (`qa-auditoria`).
+
+---
+
+## 10. Fix del Backend CI (`ci-gate` roto desde 2026-08-25)
+
+**Hallazgo durante la verificación de QA-001.** El job `ci-gate` de
+`.github/workflows/main.yml` declaraba
+`needs: [..., sca-gate, sast-gate, secret-scan-gate]`, pero esos tres jobs ya
+no existían en el workflow (los checks viven ahora en `sca.yml`, `codeql.yml`
+y `secret-scanning.yml`). GitHub Actions no puede construir un grafo con
+`needs` a jobs inexistentes: **todo el workflow fallaba al arrancar** (runs de
+0 segundos, 0 jobs, `conclusion=failure`) en cada push y cada PR. Esto venía
+pasando desde el commit `b7b04f2` (2026-08-25), previo a QA-001.
+
+**Fix:** el `ci-gate` usa solo los jobs internos que sí existen:
+`needs: [lint-and-build, unit-tests, e2e-tests, build-artifact]`.
