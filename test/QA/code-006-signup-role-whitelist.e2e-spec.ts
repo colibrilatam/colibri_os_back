@@ -140,7 +140,12 @@ describe('CODE-006 — Signup Role Whitelist (e2e)', () => {
       });
 
     if (res.status === 400) {
-      expect(res.body.message).toContain('role debe ser uno de');
+      // QA-001: `message` es un array (ValidationPipe). Se usa el mismo matcher
+      // que los tests hermanos; `toContain` sobre un array compara igualdad
+      // exacta del elemento y fallaba contra el string largo del DTO.
+      expect(res.body.message).toEqual(
+        expect.arrayContaining([expect.stringContaining('role debe ser uno de')]),
+      );
     }
 
     const userInDb = await userRepo.findOneBy({ email });
