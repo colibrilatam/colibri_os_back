@@ -261,19 +261,21 @@ export class AuthService {
       await this.sessionsService.revokeRefreshToken(rawRefreshToken);
     }
 
-    if (rawToken) {
-      try {
-        const payload = this.jwtService.verify<{ sub?: string }>(rawToken);
-        if (payload?.sub) {
-          try {
-            await this.sessionsService.bumpSessionVersion(payload.sub);
-          } catch {
-            this.logger.warn(`Logout: no se pudo revocar la sesión de ${payload.sub}`);
-          }
+    // QA-001 / CodeQL: no se condiciona con un valor del usuario si se
+    // verifica el JWT. Se intenta verificar siempre (token ausente => ''
+    // => verify lanza => catch). Mismo comportamiento observable: sin token
+    // valido no hay sesion que revocar.
+    try {
+      const payload = this.jwtService.verify<{ sub?: string }>(rawToken ?? '');
+      if (payload?.sub) {
+        try {
+          await this.sessionsService.bumpSessionVersion(payload.sub);
+        } catch {
+          this.logger.warn(`Logout: no se pudo revocar la sesión de ${payload.sub}`);
         }
-      } catch {
-        // Token inválido o expirado: no hay sesión que revocar.
       }
+    } catch {
+      // Token inválido, expirado o ausente: no hay sesión que revocar.
     }
 
     return { message: 'Sesión cerrada correctamente' };

@@ -7,6 +7,9 @@ import {
 } from '@nestjs/common';
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '../cookie.helper';
 
+/** Cookie de sesión emitida por setAuthCookie (COOKIE_NAME en cookie.helper). */
+const SESSION_COOKIE_NAME = 'colibri_access_token';
+
 interface GuardRequest {
   method: string;
   path?: string;
@@ -73,10 +76,10 @@ export class CsrfGuard implements CanActivate {
       return true;
     }
 
-    const cookies = this.parseCookies(request);
+    const { csrfToken, accessToken } = this.extractSessionCookies(request);
 
     // Sin cookie de sesion no aplica: la autenticacion resolvera 401.
-    if (!cookies[CSRF_COOKIE_NAME] && !cookies['colibri_access_token']) {
+    if (!csrfToken && !accessToken) {
       return true;
     }
 
@@ -88,15 +91,14 @@ export class CsrfGuard implements CanActivate {
 
     const headerValue = request.headers[CSRF_HEADER_NAME];
     const provided = Array.isArray(headerValue) ? headerValue[0] : headerValue;
-    const cookieValue = cookies[CSRF_COOKIE_NAME];
 
-    if (!provided || !cookieValue || provided !== cookieValue) {
+    if (!provided || !csrfToken || provided !== csrfToken) {
       this.logger.warn(
         JSON.stringify({
           event: 'csrf_rejected',
           method: request.method,
           path,
-          hasCookie: Boolean(cookieValue),
+          hasCookie: Boolean(csrfToken),
           hasHeader: Boolean(provided),
         }),
       );
@@ -106,32 +108,43 @@ export class CsrfGuard implements CanActivate {
     return true;
   }
 
-  private parseCookies(request: GuardRequest): Record<string, string> {
+  /**
+   * QA-001 / CodeQL: extrae solo las dos cookies que este guard necesita.
+   *
+   * Nunca se usa el nombre de la cookie (controlado por el usuario) como
+   * llave de escritura de un objeto dinámico: se compara contra un allowlist
+   * fijo y se asigna a variables conocidas. Esto mitiga prototype pollution
+   * y Remote property injection de forma estructural (no con denylist).
+   */
+  private extractSessionCookies(request: GuardRequest): {
+    csrfToken?: string;
+    accessToken?: string;
+  } {
     if (request.cookies) {
-      return request.cookies;
+      return {
+        csrfToken: request.cookies[CSRF_COOKIE_NAME],
+        accessToken: request.cookies[SESSION_COOKIE_NAME],
+      };
     }
 
     const header = request.headers.cookie;
     const cookieHeader = Array.isArray(header) ? header[0] : header;
     if (!cookieHeader) return {};
 
-    // QA-001: objeto sin prototipo para mitigar prototype pollution vía
-    // cookies controladas por el usuario (p. ej. `__proto__=...`).
-    const cookies = Object.create(null) as Record<string, string>;
+    let csrfToken: string | undefined;
+    let accessToken: string | undefined;
 
     for (const pair of cookieHeader.split(';')) {
       const index = pair.indexOf('=');
       if (index === -1) continue;
 
       const name = pair.slice(0, index).trim();
-      // Filtro extra de llaves que puedan envenenar el prototipo.
-      if (!name || name === '__proto__' || name === 'constructor' || name === 'prototype') {
-        continue;
-      }
+      const value = decodeURIComponent(pair.slice(index + 1).trim());
 
-      cookies[name] = decodeURIComponent(pair.slice(index + 1).trim());
+      if (name === CSRF_COOKIE_NAME) csrfToken = value;
+      else if (name === SESSION_COOKIE_NAME) accessToken = value;
     }
 
-    return cookies;
+    return { csrfToken, accessToken };
   }
 }
