@@ -408,7 +408,7 @@ Antes de SEC-004, `ProjectAccessService` daba acceso global a EVALUATOR. A parti
 | **change status** (PATCH /users/:id/status) | ✅ | ❌ | ❌ |
 | **complete profile** (POST /auth/complete-profile) | — | ✅ (solo `evaluator` o `entrepreneur`, fallback `entrepreneur`) — **D2** | ❌ |
 
-**Regla exacta:** `assertSelfOrAdmin` para operaciones sobre sí mismo; ADMIN para operaciones sobre otros. `complete-profile` = D2. Cross-user → 403.
+**Regla exacta:** `assertSelfOrAdmin` para operaciones sobre sí mismo; ADMIN para operaciones sobre otros. `complete-profile` = D2 (endpoint `@Public()`: se autoriza con el `profileCompletionToken` del body, no con sesión; QA-001/CODE-006). Cross-user → 403.
 
 ---
 
@@ -503,9 +503,16 @@ Antes de SEC-004, `ProjectAccessService` daba acceso global a EVALUATOR. A parti
 | `POST /auth/forgot-password` | Recuperación de contraseña. |
 | `POST /auth/reset-password` | Reset de contraseña. |
 | `POST /auth/refresh` | Renovación de tokens. |
-| `POST /auth/logout` | Logout. |
+| `POST /auth/logout` | Logout (revoca la sesión vía `sessionVersion`; ver QA-001). |
+| `POST /auth/complete-profile` | Usuario `PENDING_PROFILE` aún sin sesión; autoriza el `profileCompletionToken` (JWT `purpose=profile-completion`) + whitelist de roles auto-asignables (D2). QA-001/CODE-006. |
 
 Todos los demás endpoints requieren autenticación.
+
+> **QA-001:** `GET /health` y `GET /ready` ahora llevan `@Public()` explícito
+> (antes quedaban detrás del `JwtAuthGuard` global y respondían 401, contra lo
+> documentado). El CSRF por doble submit (header `X-CSRF-Token` = cookie
+> `csrf_token`) aplica a los métodos mutantes basados en cookie; ver
+> `QA-001-session-csrf-e2e.md`.
 
 ---
 
