@@ -115,13 +115,23 @@ export class CsrfGuard implements CanActivate {
     const cookieHeader = Array.isArray(header) ? header[0] : header;
     if (!cookieHeader) return {};
 
-    return cookieHeader.split(';').reduce<Record<string, string>>((acc, pair) => {
+    // QA-001: objeto sin prototipo para mitigar prototype pollution vía
+    // cookies controladas por el usuario (p. ej. `__proto__=...`).
+    const cookies = Object.create(null) as Record<string, string>;
+
+    for (const pair of cookieHeader.split(';')) {
       const index = pair.indexOf('=');
-      if (index === -1) return acc;
+      if (index === -1) continue;
+
       const name = pair.slice(0, index).trim();
-      if (!name) return acc;
-      acc[name] = decodeURIComponent(pair.slice(index + 1).trim());
-      return acc;
-    }, {});
+      // Filtro extra de llaves que puedan envenenar el prototipo.
+      if (!name || name === '__proto__' || name === 'constructor' || name === 'prototype') {
+        continue;
+      }
+
+      cookies[name] = decodeURIComponent(pair.slice(index + 1).trim());
+    }
+
+    return cookies;
   }
 }

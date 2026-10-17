@@ -302,4 +302,20 @@ describe('AuthService — CODE-006', () => {
       expect(usersService.create).not.toHaveBeenCalled();
     });
   });
+
+  describe('demoLogin — QA-001 (mitigación CodeQL: bypass por rol controlado por el usuario)', () => {
+    it('rol fuera de la whitelist (investor) → UnauthorizedException y NO consulta la DB', async () => {
+      await expect(
+        service.demoLogin('investor' as any),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(usersService.findByEmail).not.toHaveBeenCalled();
+    });
+
+    it('rol hostil (__proto__) → UnauthorizedException (no indexa el prototipo del objeto)', async () => {
+      await expect(
+        service.demoLogin('__proto__' as any),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(usersService.findByEmail).not.toHaveBeenCalled();
+    });
+  });
 });

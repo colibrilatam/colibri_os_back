@@ -88,4 +88,19 @@ describe('CsrfGuard (QA-001)', () => {
     });
     expect(guard.canActivate(ctx)).toBe(true);
   });
+
+  it('QA-001: cookie __proto__ no contamina Object.prototype y el guard actúa sin cookie CSRF', () => {
+    const ctx = contextFor({
+      method: 'POST',
+      route: { path: '/api/v1/projects' },
+      headers: { cookie: `${sessionCookie}; __proto__=polluted; constructor=evil` },
+    });
+
+    // Sin cookie CSRF válida (el nombre peligroso fue filtrado) → 403.
+    expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
+
+    // Object.prototype no debe quedar contaminado por el parseo del header.
+    expect((Object.prototype as unknown as Record<string, unknown>)['polluted']).toBeUndefined();
+    expect(({} as Record<string, unknown>)['polluted']).toBeUndefined();
+  });
 });
