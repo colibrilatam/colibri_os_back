@@ -218,6 +218,17 @@ export class EnvironmentVariables {
   @IsBooleanString({ message: 'ROLES_GUARD_ENFORCE debe ser "true" o "false"' })
   ROLES_GUARD_ENFORCE?: string;
 
+  // ---------- QA-001 (entorno E2E) ----------
+  /**
+   * QA-001: habilita el provider de OAuth falso (GoogleFakeStrategy) que
+   * simula el flujo completo sin llamar a Google. SOLO debe activarse en el
+   * entorno E2E aislado; en dev/prod queda sin definir.
+   */
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsBooleanString({ message: 'E2E_OAUTH_FAKE debe ser "true" o "false"' })
+  E2E_OAUTH_FAKE?: string;
+
   // ---------- LÍMITES / TIMEOUTS (expiraciones) ----------
   @IsOptional()
   @Matches(BODY_SIZE_REGEX, {
