@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  Optional,
   Post,
   Req,
   Res,
@@ -11,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
+  ApiBody,
   ApiTags,
   ApiOkResponse,
   ApiCreatedResponse,
@@ -184,8 +186,12 @@ export class AuthController {
   @Post('logout')
   @HttpCode(200)
   @ApiOkResponse({ type: MessageResponseDto, description: 'Sesión cerrada exitosamente' })
+  // Body OPCIONAL (solo compatibilidad con clientes que envían refreshToken).
+  // required:false evita un breaking change de contrato frente al POST /logout
+  // sin cuerpo que existía antes de QA-001.
+  @ApiBody({ required: false, type: LogoutDto })
   async logout(
-    @Body() dto: LogoutDto,
+    @Optional() @Body() dto: LogoutDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
