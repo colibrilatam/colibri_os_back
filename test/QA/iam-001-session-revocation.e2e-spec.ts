@@ -213,5 +213,44 @@ describe('IAM-001 — Revocación de sesión (e2e)', () => {
       await request(server()).post('/api/v1/auth/logout').send({ refreshToken }).expect(200);
       await request(server()).post('/api/v1/auth/refresh').send({ refreshToken }).expect(401);
     });
+
+    it('QA-001: revoca la sesión (JWT) — reutilizar el token cerrado devuelve 401', async () => {
+      const user = await fixtures.createUser(UserRole.ENTREPRENEUR);
+      const token = fixtures.tokenFor(user);
+
+      await request(server())
+        .get('/api/v1/users/profile')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      await request(server())
+        .post('/api/v1/auth/logout')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(200);
+
+      await request(server())
+        .get('/api/v1/users/profile')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(401);
+    });
+
+    it('QA-001: logout es idempotente — sin token responde 200', async () => {
+      await request(server()).post('/api/v1/auth/logout').send({}).expect(200);
+    });
+
+    it('QA-001: logout invalida los refresh tokens previos del usuario', async () => {
+      const user = await fixtures.createUser(UserRole.ENTREPRENEUR);
+      const token = fixtures.tokenFor(user);
+      const refreshToken = await fixtures.issueRefreshToken(user);
+
+      await request(server())
+        .post('/api/v1/auth/logout')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(200);
+
+      await request(server()).post('/api/v1/auth/refresh').send({ refreshToken }).expect(401);
+    });
   });
 });

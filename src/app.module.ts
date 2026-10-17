@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, NestModule} from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectsModule } from './projects/projects.module';
@@ -25,12 +25,13 @@ import { HealthModule } from './health/health.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { DemoReadOnlyGuard } from './auth/guards/demo-readonly.guard';
+import { CsrfGuard } from './auth/guards/csrf.guard';
 import { MaintenanceModeMiddleware } from './common/middleware/maintenance-mode.middleware';
 import { validateEnv } from './config/env.validation';
+import { throttleLimit } from './common/throttle.util';
 import { AuthorizationModule } from './authorization/authorization.module';
 import { JwtAuthGuard } from './auth/guards/auth.guard';
 import { WalletAuthModule } from './wallet-auth/wallet-auth.module';
-
 
 @Module({
   imports: [
@@ -62,7 +63,9 @@ import { WalletAuthModule } from './wallet-auth/wallet-auth.module';
     ThrottlerModule.forRoot([
       {
         ttl: 60_000,
-        limit: 100,
+        // QA-001: en test se relaja para no romper suites con muchos logins
+        // desde la misma IP; en dev/prod se conserva el limite real.
+        limit: throttleLimit(100),
       },
     ]),
 
@@ -95,6 +98,9 @@ import { WalletAuthModule } from './wallet-auth/wallet-auth.module';
     // SEC-002: rol demo_readonly solo puede hacer GET. Se ejecuta después de
     // ThrottlerGuard y antes de los guards de controller.
     { provide: APP_GUARD, useClass: DemoReadOnlyGuard },
+    // QA-001: proteccion CSRF por doble submit para requests mutantes basadas
+    // en cookie. No interfiere con autenticacion por Bearer (tests Jest).
+    { provide: APP_GUARD, useClass: CsrfGuard },
     // SEC-004: guard global de autenticación. Deny by default: todo endpoint
     // requiere sesión válida salvo los marcados explícitamente con @Public().
     { provide: APP_GUARD, useClass: JwtAuthGuard },
