@@ -366,6 +366,34 @@ export class MicroActionInstanceController {
     return this.service.resolveVersion(versionId, dto);
   }
 
+    // ─── POST /micro-action-instances/versions/:versionId/notify ─────────────
+
+  @Post('versions/:versionId/notify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reintentar el correo de notificación al evaluador',
+    description:
+      'El correo se envía automáticamente al crear la versión (POST :id/versions). Este endpoint solo sirve para reintentar si el SMTP falló. Es idempotente: si ya se notificó, responde already_notified sin reenviar.',
+  })
+  @ApiParam({ name: 'versionId', description: 'UUID de la versión' })
+  @ApiResponse({
+    status: 200,
+    schema: { example: { versionId: 'uuid', status: 'sent' } },
+  })
+  @ApiResponse({ status: 400, description: 'La versión ya no está en estado submitted.' })
+  @ApiResponse({ status: 403, description: 'No sos el dueño de la instancia.' })
+  @ApiResponse({ status: 404, description: 'Versión no encontrada.' })
+  @ApiResponse({ status: 503, description: 'Falló el SMTP; se puede reintentar.' })
+  notifyVersion(
+    @Param('versionId', ParseUUIDPipe) versionId: string,
+    @CurrentUser() principal: { sub: string; role: UserRole },
+  ) {
+    return this.service.notifyVersionSubmitted(versionId, {
+      userId: principal.sub,
+      role: principal.role,
+    });
+  }
+
   // ─── GET /micro-action-instances/:id ─────────────────────────────────────
 
   @Get(':id')

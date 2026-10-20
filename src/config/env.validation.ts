@@ -166,6 +166,47 @@ export class EnvironmentVariables {
   @IsNotEmpty({ message: 'CLOUDINARY_API_SECRET es obligatorio' })
   CLOUDINARY_API_SECRET: string;
 
+  // ---------- SMTP / NOTIFICACIONES POR CORREO ----------
+  // Opcionales a propósito: si faltan, la app arranca igual y el envío de
+  // correos falla de forma controlada (se loguea; la carga igual se guarda).
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsString()
+  SMTP_HOST?: string;
+
+  @Transform(toNumber)
+  @IsOptional()
+  @IsInt({ message: 'SMTP_PORT debe ser un entero' })
+  @Min(1)
+  @Max(65535)
+  SMTP_PORT?: number;
+
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsString()
+  SMTP_USER?: string;
+
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsString()
+  SMTP_PASS?: string;
+
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsBooleanString({ message: 'SMTP_SECURE debe ser "true" o "false"' })
+  SMTP_SECURE?: string;
+
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsString()
+  MAIL_FROM?: string;
+
+  /** Uno o varios correos separados por coma. */
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsString()
+  MAIL_TO?: string;
+
   // ---------- FRONTEND / CORS ----------
   @IsUrl({ require_tld: false }, { message: 'FRONTEND_URL debe ser una URL válida' })
   FRONTEND_URL: string;

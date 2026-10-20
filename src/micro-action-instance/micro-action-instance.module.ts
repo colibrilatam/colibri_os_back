@@ -11,6 +11,7 @@ import { MicroActionInstanceService } from './micro-action-instance.service';
 import { MicroActionInstanceController } from './micro-action-instance.controller';
 import { ProjectsModule } from '../projects/projects.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { MailModule } from 'src/mail/mail.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
     ]),
     ProjectsModule,
     CloudinaryModule,
+    MailModule,
   ],
   controllers: [MicroActionInstanceController],
   providers: [MicroActionInstanceService],
