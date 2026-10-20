@@ -56,6 +56,45 @@ Los módulos `auth`, `cloudinary`, `hierarchy`, `curriculum` y `mecenas-semilla`
 | Documentación API | Swagger | UI en `/api/v1/docs` cuando `SWAGGER_ENABLED=true`. |
 | Entrega | GitHub Actions + Render | CI compila el backend y, ante éxito en `main`, el workflow de despliegue invoca el hook de Render. |
 
+## Despliegue
+
+```mermaid
+flowchart LR
+    dev["Desarrollador"] --> gh["GitHub"]
+    gh --> ci["GitHub Actions\nBackend CI"]
+    ci --> render["Render\nBackend API\n:3000"]
+    render --> db[("PostgreSQL")]
+    render --> cloudinary["Cloudinary"]
+    render --> google["Google OAuth"]
+    render --> blockchain["Blockchain RPC\nPolygon :137"]
+    fe["Frontend Next.js\n:3001"] --> render
+```
+
+- **CI**: GitHub Actions ejecuta `npm ci` + `npm run build` en cada PR y push a `main`.
+- **Deploy**: Al fusionar en `main`, el workflow `deploy.yml` invoca el webhook de Render.
+- **Producción**: Render ejecuta `npm run start:prod` con las variables de entorno del servicio.
+
+## Web3 / Blockchain
+
+El sistema integra verificación on-chain de NFTs y almacenamiento decentralizado:
+
+| Componente | Implementación | Detalle |
+| --- | --- | --- |
+| RPC Service | `BlockchainRpcService` | Llamadas JSON-RPC directas (sin librería ethers/web3.js). |
+| Cadena por defecto | Polygon (chainId `137`) | Configurable via `BLOCKCHAIN_RPC_URLS`. |
+| Verificación NFT | ERC-721 | Decodificación de logs `Transfer` (`0xddf252ad...`), validación de receipt, conteo de confirmaciones. |
+| Tipos de evento | Mint, Burn, Transfer, Assign, Sale | Cada tipo tiene campos específicos en `NftOwnershipEvent`. |
+| IPFS | Pinata | Subida de archivos vía JWT (`PINATA_JWT`), lectura vía gateway (`NEXT_PUBLIC_GATEWAY_URL`). |
+| Wallets | `cryptoWallet`, `credentialsWallet` | Campos en la entidad `User` para direcciones de billetera. |
+
+### Variables blockchain
+
+| Variable | Formato | Ejemplo |
+| --- | --- | --- |
+| `BLOCKCHAIN_RPC_URLS` | JSON: `{"chainId": "rpcUrl"}` | `{"137": "https://polygon-rpc.com"}` |
+| `BLOCKCHAIN_CONFIRMATIONS` | JSON: `{"chainId": num}` | `{"137": 12}` |
+| `BLOCKCHAIN_DEFAULT_CONFIRMATIONS` | Número | `12` |
+
 ## Convenciones de API
 
 - Prefijo global: `/api/v1`.

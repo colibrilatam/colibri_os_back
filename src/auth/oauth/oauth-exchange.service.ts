@@ -36,9 +36,11 @@ export class OAuthExchangeService {
 
   /**
    * Canjea un código por el usuario asociado. Rechaza códigos inexistentes,
-   * ya usados, expirados o cuyo usuario dejó de estar activo. Marca el
-   * código como usado antes de devolver el resultado, para que un segundo
-   * intento con el mismo código (replay) falle siempre.
+   * ya usados, expirados o cuyo usuario está inactivo/suspendido.
+   * Permite usuarios ACTIVE (login completo) y PENDING_PROFILE
+   * (necesitan completar perfil). Marca el código como usado antes de
+   * devolver el resultado, para que un segundo intento con el mismo
+   * código (replay) falle siempre.
    */
   async consume(rawCode: string): Promise<User> {
     const codeHash = this.hashCode(rawCode);
@@ -54,7 +56,11 @@ export class OAuthExchangeService {
     await this.exchangeCodeRepository.save(stored);
 
     const user = await this.userRepository.findOneBy({ id: stored.userId });
-    if (!user || user.status !== UserStatus.ACTIVE) {
+
+    // Se permiten usuarios ACTIVE (login completo) y PENDING_PROFILE
+    // (necesitan completar perfil). Cualquier otro estado sigue siendo rechazado.
+    const allowedStatuses = [UserStatus.ACTIVE, UserStatus.PENDING_PROFILE];
+    if (!user || !allowedStatuses.includes(user.status)) {
       throw new UnauthorizedException('Usuario inactivo o suspendido');
     }
 

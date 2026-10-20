@@ -7,6 +7,8 @@ import express from 'express';
 import { AppModule } from './app.module';
 import { PayloadTooLargeFilter } from './common/filters/payload-too-large.filter';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import { ContractVersionInterceptor } from './common/interceptors/contract-version.interceptor';
+import { buildSwaggerConfig } from './config/swagger.config';
 
 const logger = new Logger('Bootstrap');
 
@@ -82,19 +84,17 @@ async function bootstrap(): Promise<void> {
   // conexión colgada indefinidamente.
   app.useGlobalInterceptors(new TimeoutInterceptor());
 
+  // ARCH-003: agrega header X-Contract-Version a cada response exitosa.
+  // Se registra después de TimeoutInterceptor para que el header esté
+  // presente incluso en responses de timeout (aunque timeout lanza excepción).
+  app.useGlobalInterceptors(new ContractVersionInterceptor());
+
   // OPS-003: si el payload excede el límite configurado arriba, responder
   // 413 de forma prolija en vez de un 500 genérico.
   app.useGlobalFilters(new PayloadTooLargeFilter(app.getHttpAdapter()));
 
   if (process.env.SWAGGER_ENABLED === 'true') {
-    const config = new DocumentBuilder()
-      .setTitle('Colibrí OS API')
-      .setDescription('API del sistema Colibrí OS — RaaS (Reputación como Servicio)')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
-
-    const document = SwaggerModule.createDocument(app, config);
+    const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
     SwaggerModule.setup('docs', app, document);
 
     logger.log(`📚 Swagger: http://localhost:${process.env.PORT ?? 3000}/docs`);

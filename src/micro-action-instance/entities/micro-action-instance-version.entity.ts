@@ -77,6 +77,9 @@ export class MicroActionInstanceVersion {
   @Column({ name: 'created_by_user_id', type: 'uuid' })
   createdByUserId: string;
 
+  @Column({ name: 'evaluator_notified_at', type: 'timestamptz', nullable: true })
+  evaluatorNotifiedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

@@ -19,7 +19,8 @@ Todas las rutas usan el prefijo `/api/v1`. Esta matriz refleja los guards y deco
 
 | Recurso y operaciones | Protección efectiva declarada | Roles autorizados |
 | --- | --- | --- |
-| `auth`: `POST /signin`, `POST /signup`; `GET /google` y `/google/callback` | Público; el flujo Google usa su guard Passport específico. | No aplica. |
+| `auth`: `POST /signin`, `POST /signup`, `POST /google/exchange`, `POST /complete-profile` | Público con rate limit (Throttle 5/min). `POST /google/exchange` requiere `code` de un solo uso. `POST /complete-profile` requiere `profileCompletionToken` con `purpose=profile-completion`. `POST /signup` requiere `role` opcional limitado a `entrepreneur` / `evaluator`; cualquier otro valor retorna 400. | No aplica |
+| `auth`: `GET /google`, `GET /google/callback` | Passport Google + `OAuthStateStore` (cookie HttpOnly one-time) | No aplica |
 | `categories`, `hierarchy`, `mecenas-semilla`, `micro-action-definitions`, `nft-projects`, `pacs`, `projects/:projectId/members`, `projects/:projectId/profile`, `tramo-closure` | Sin `JwtAuthGuard` declarado en el controlador. | Público. |
 | `tramos`, incl. `DELETE /tramos/:id` | Sin `JwtAuthGuard` ni `RolesGuard` declarados. El decorador `@Roles(ADMIN)` del borrado no se evalúa sin `RolesGuard`. | Público. |
 | Lectura de proyectos: `GET /projects`, `GET /projects/:id` | Sin guard declarado. | Público. |
@@ -47,3 +48,20 @@ Todas las rutas usan el prefijo `/api/v1`. Esta matriz refleja los guards y deco
 4. Antes de liberar, probar un caso permitido y un caso denegado para cada operación privilegiada.
 
 Los procedimientos de despliegue y respuesta operativa están en los [runbooks](../runbooks/deployment.md).
+
+---
+
+## Rol demo_readonly (SEC-002)
+
+| Propiedad | Valor |
+| --- | --- |
+| Valor en API | `demo_readonly` |
+| Uso | Cuentas demo. Solo lectura. |
+| C�mo se impone | `DemoReadOnlyGuard` registrado como `APP_GUARD` global (`src/app.module.ts`). |
+| Operaciones permitidas | `GET` en cualquier endpoint. |
+| Operaciones denegadas | `POST`, `PATCH`, `PUT`, `DELETE` en cualquier endpoint ? **403**. |
+| Excepciones | `POST /auth/logout` y `POST /auth/refresh` (el demo puede cerrar sesi�n y renovar token). |
+| Autenticaci�n | `POST /auth/demo-login` (sin password, throttle 10/min). |
+| No puede | Aprobar, rechazar, revocar credenciales, modificar proyectos, gestionar usuarios, ni ninguna escritura. |
+
+**Nota:** El `DemoGuard` del frontend oculta botones de escritura, pero esto es UX, no seguridad. La restricci�n real es el 403 del backend.

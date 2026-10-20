@@ -94,6 +94,20 @@ export class MecenasNftPortfolioService {
     return portfolio;
   }
 
+  async assertOwnership(id: string, principal: NftResourcePrincipal): Promise<MecenasNftPortfolio> {
+    const portfolio = await this.mecenasNftRepository.findById(id);
+    if (!portfolio) throw new NotFoundException('No se encontró el portafolio de mecenas NFT');
+
+    const isOwner = portfolio.mecenasUserId === principal.userId;
+    const isAdmin = principal.role === UserRole.ADMIN;
+
+    if (!isOwner && !isAdmin) {
+      throw new ForbiddenException('No tenés permiso para acceder a este portafolio de NFT');
+    }
+
+    return portfolio;
+  }
+
   private async assertOwnershipAndWallet(
     id: string,
     principal: NftResourcePrincipal,

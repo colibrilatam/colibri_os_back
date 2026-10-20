@@ -4,15 +4,29 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  HttpCode,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiConflictResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiServiceUnavailableResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { NftProjectService } from './nfts-project.service';
 import { CreateNftProjectDto } from './dto/create-nft-project.dto';
 import { UpdateNftProjectDto } from './dto/update-nft-project.dto';
+import { VerifyNftOwnershipResponseDto } from './dto/verify-nft-ownership-response.dto';
+import { NftOwnershipVerificationService } from '../nft-ownership-verification.service';
+import { NftOwnershipThrottleGuard } from '../guards/nft-ownership-throttle.guard';
 import { JwtAuthGuard } from '../../auth/guards/auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -26,6 +40,7 @@ import { ProjectAccessService } from '../../projects/project-access.service';
 export class NftProjectController {
   constructor(
     private readonly nftProjectService: NftProjectService,
+    private readonly nftOwnershipVerificationService: NftOwnershipVerificationService,
     private readonly projectAccess: ProjectAccessService,
   ) {}
 
@@ -130,6 +145,39 @@ export class NftProjectController {
       throw new ForbiddenException('No tenÃ©s permiso para asociar este NFT');
     }
     return this.nftProjectService.associateToProject(dto.nftProjectId, dto.projectId);
+  }
+
+  @Post(':id/verify-ownership')
+  @HttpCode(200)
+  @SkipThrottle()
+  @UseGuards(NftOwnershipThrottleGuard)
+  @ApiOperation({
+    summary: 'Verificar la propiedad on-chain del NFT contra la wallet de la sesión',
+    description:
+      'Lee `ownerOf(uint256)` en la red y contrato configurados del NFT y lo compara con la wallet vinculada al usuario de la sesión. ' +
+      'Registra chainId, contrato, tokenId, bloque y timestamp. ' +
+      'Una wallet sin el activo devuelve 200 con `owned=false` y `status="not_owner"`. ' +
+      'Los errores RPC devuelven 503 y nunca se presentan como verificación correcta. ' +
+      'WEB3-003 cubre únicamente ERC-721; ERC-1155 queda fuera de alcance.',
+  })
+  @ApiOkResponse({ type: VerifyNftOwnershipResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Sesión inválida o ausente' })
+  @ApiNotFoundResponse({ description: 'El NFT de proyecto no existe' })
+  @ApiConflictResponse({
+    description:
+      'El NFT no tiene red/contrato configurados o el usuario no tiene wallet vinculada',
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'No se pudo consultar la red blockchain (RPC)',
+  })
+  async verifyOwnership(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.nftOwnershipVerificationService.verifyCurrentOwnership({
+      nftProjectId: id,
+      userId,
+    });
   }
 
   private async assertCanAccessNft(

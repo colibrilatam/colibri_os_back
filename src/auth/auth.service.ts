@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import { IGoogleUser } from './interfaces/googleUser.interface';
@@ -7,10 +13,26 @@ import { ILoginUser } from './interfaces/loginUser.interface';
 import bcrypt from 'bcrypt';
 import { IAuthCreate } from './interfaces/authCreate.interface';
 import { CompleteProfileDto } from './dto/complete-profile.dto';
+import { isSelfAssignableRole } from './allowed-roles';
 import { SessionsService } from './sessions/sessions.service';
+import { toPublicUser } from 'src/users/user.mapper';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
+  /**
+   * SEC-002 / PR-BE3: emails de las cuentas demo sembradas por PR-BE4.
+   * El selector de persona del body se mapea a uno de estos emails.
+   * Todas las cuentas tienen role='demo_readonly' en la DB.
+   */
+  private static readonly DEMO_ACCOUNT_EMAILS = new Map<string, string>([
+    ['entrepreneur', 'ana@colibri.com'],
+    ['mentor', 'mentor@colibri.com'],
+    ['evaluator', 'evaluator@colibri.com'],
+    ['mecenas_semilla', 'mecenas@colibri.com'],
+  ]);
+
   constructor(
     private readonly userService: UsersService,
     private readonly jwtService: JwtService,
@@ -41,17 +63,23 @@ export class AuthService {
     }
   }
 
+  /**
+   * SEC-002 / B1: segunda barrera, en la capa de servicio, para que la whitelist
+   * se mantenga aunque el DTO se saltee (llamadas internas, DTOs anidados, etc.).
+   * No confies en que la validacion siempre corra.
+   */
+  private assertSelfAssignableRole(role: UserRole | null | undefined) {
+    if (!isSelfAssignableRole(role)) {
+      this.logger.warn(`Intento de auto-asignar un rol no permitido: ${role ?? 'null'}`);
+      throw new BadRequestException('Rol no permitido');
+    }
+  }
+
   /** Arma la respuesta pública (token + datos del usuario) para un usuario ya resuelto. */
   buildAuthResult(user: User) {
     return {
       token: this.generateToken(user),
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        status: user.status,
-      },
+      user: this.toPublicUser(user),
     };
   }
 
@@ -59,24 +87,22 @@ export class AuthService {
     if (user.password !== user.confirmPassword) {
       throw new BadRequestException('Las contraseñas deben ser iguales');
     }
+
+    const requestedRole = user.role ?? UserRole.ENTREPRENEUR;
+    this.assertSelfAssignableRole(requestedRole);
+
     const passwordHash = await bcrypt.hash(user.password, 10);
     const userCreate = await this.userService.create({
       email: user.email,
       password: passwordHash,
       fullName: user.fullName,
       provider: AuthProvider.LOCAL,
-      role: UserRole.ENTREPRENEUR,
+      role: requestedRole,
     });
     return {
       message: 'Usuario registrado con éxito',
       token: this.generateToken(userCreate),
-      user: {
-        id: userCreate.id,
-        email: userCreate.email,
-        fullName: userCreate.fullName,
-        role: userCreate.role,
-        status: userCreate.status,
-      },
+      user: this.toPublicUser(userCreate),
     };
   }
 
@@ -92,81 +118,117 @@ export class AuthService {
     ) {
       throw new UnauthorizedException('El email o la contraseña son incorrectos');
     } else {
+      // QA-001: un usuario INACTIVE/SUSPENDED no debe poder iniciar sesión.
+      // Antes se le emitía un token que moría en el siguiente request; ahora se
+      // rechaza de entrada con 401 (alineado con IAM-001).
+      this.assertActive(userFound);
       const token = this.generateToken(userFound);
       return {
         message: 'Usuario logueado con éxito',
         token,
-        user: {
-          id: userFound.id,
-          email: userFound.email,
-          fullName: userFound.fullName,
-          role: userFound.role,
-          status: userFound.status,
-        },
+        user: this.toPublicUser(userFound),
       };
     }
   }
 
-  async googleLogin(user: IGoogleUser): Promise<{ token?: string; tempToken?: string; requiresProfileCompletion: boolean, role?: UserRole | null }> {
-    
-  let userFound = await this.userService.findByEmail(user.email);
-  
+  /**
+   * SEC-002 / PR-BE3: autentica una cuenta demo sin contraseña.
+   *
+   * El `role` del body es un selector de persona, no un rol de autorizacion.
+   * Se mapea a un email de cuenta demo sembrada (PR-BE4). El token se firma
+   * con el rol real de la cuenta en la DB — que debe ser `demo_readonly`.
+   * No hay password en el request ni en el frontend.
+   */
+  async demoLogin(requestedRole?: 'entrepreneur' | 'mentor' | 'evaluator' | 'mecenas_semilla') {
+    const email = AuthService.DEMO_ACCOUNT_EMAILS.get(requestedRole ?? 'entrepreneur');
 
-  if (!userFound) {
-    // Crear usuario pendiente
-    try{
-      userFound = await this.userService.create({
-      email: user.email,
-      fullName: user.fullName,
-      googleId: user.googleId,
-      password: null,
-      avatar: user.avatar,
-      provider: AuthProvider.GOOGLE,
-      role: null,
-      status: UserStatus.PENDING_PROFILE,
-    });
-    const tempToken = this.jwtService.sign(
-      { sub: userFound.id, purpose: 'profile-completion' },
-      { expiresIn: '1h' }
-    );
-    return { tempToken, requiresProfileCompletion: true };
+    if (!email) {
+      this.logger.warn(`Demo login falló: rol solicitado inválido ${requestedRole}`);
+      throw new UnauthorizedException('Entorno demo no disponible');
     }
-    catch(e){
-      console.log(e)
+
+    const user = await this.userService.findByEmail(email);
+
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      this.logger.warn(`Demo login falló: cuenta ${email} no existe o no está activa`);
+      throw new UnauthorizedException('Entorno demo no disponible');
+    }
+
+    // Defensa en profundidad: si por algun motivo la cuenta no tiene el rol
+    // demo_readonly, no se emite token. Evita que un seed incompleto o un
+    // cambio manual abra una sesion con permisos de mas.
+    if (user.role !== UserRole.DEMO_READONLY) {
+      this.logger.error(`Cuenta demo ${email} tiene role=${user.role}, se esperaba demo_readonly`);
+      throw new UnauthorizedException('Entorno demo no disponible');
+    }
+
+    return {
+      message: 'Sesión demo iniciada',
+      token: this.generateToken(user),
+      user: this.toPublicUser(user),
+    };
+  }
+
+  async googleLogin(
+    user: IGoogleUser,
+  ): Promise<{ user: User; requiresProfileCompletion: boolean }> {
+    let userFound = await this.userService.findByEmail(user.email);
+    if (!userFound) {
+      try {
+        userFound = await this.userService.create({
+          email: user.email,
+          fullName: user.fullName,
+          googleId: user.googleId,
+          password: null,
+          avatar: user.avatar,
+          provider: AuthProvider.GOOGLE,
+          role: null,
+          status: UserStatus.PENDING_PROFILE,
+        });
+      } catch {
+        this.logger.warn(`Race condition en googleLogin para ${user.email}; reintentando búsqueda`);
+        userFound = await this.userService.findByEmail(user.email);
+        if (!userFound) {
+          this.logger.error(`No se pudo crear ni encontrar el usuario Google ${user.email}`);
+          throw new InternalServerErrorException('Error durante la autenticación con Google');
+        }
       }
-    return { requiresProfileCompletion: true, tempToken: undefined };
+    }
+
+    return {
+      user: userFound,
+      requiresProfileCompletion: userFound.status === UserStatus.PENDING_PROFILE,
+    };
   }
 
-  if (userFound.status === UserStatus.PENDING_PROFILE) {
-    const tempToken = this.jwtService.sign(
-      { sub: userFound.id, purpose: 'profile-completion' },
-      { expiresIn: '1h' }
+  issueProfileCompletionToken(user: User): string {
+    return this.jwtService.sign(
+      { sub: user.id, purpose: 'profile-completion' },
+      { expiresIn: '1h' },
     );
-    return { tempToken, requiresProfileCompletion: true };
   }
 
-  // Usuario activo → login normal
-  const token = this.generateToken(userFound);
-  return { token, requiresProfileCompletion: false, role:userFound.role };
-}
+  toPublicUser(user: User) {
+    return toPublicUser(user);
+  }
 
-async completeProfile(dto: CompleteProfileDto) {
-  try {
-    const payload = this.jwtService.verify(dto.tempToken);
+  async completeProfile(dto: CompleteProfileDto) {
+    let payload: { sub: string; purpose?: string };
+    try {
+      payload = this.jwtService.verify(dto.profileCompletionToken);
+    } catch {
+      throw new UnauthorizedException('Token expirado o inválido');
+    }
     if (payload.purpose !== 'profile-completion') {
       throw new UnauthorizedException('Token inválido');
     }
-    const updatedUser = await this.userService.completeProfile(
-      payload.sub,
-      dto.role,
-      dto.gender,
-    );
+    // SEC-002 / B1: este endpoint es publico y antes permitia auto-asignar
+    // cualquier rol del enum, incluido admin.
+    this.assertSelfAssignableRole(dto.role);
+    const updatedUser = await this.userService.completeProfile(payload.sub, dto.role, dto.gender);
     const token = this.generateToken(updatedUser);
-    return { token, user: updatedUser };
-  } catch {
-    throw new UnauthorizedException('Token expirado o inválido');
+    return { token, user: this.toPublicUser(updatedUser) };
   }
-}
 
   /** Rota un refresh token válido y emite un nuevo par de tokens. */
   async refresh(rawRefreshToken: string) {
@@ -181,4 +243,41 @@ async completeProfile(dto: CompleteProfileDto) {
     return { message: 'Sesión cerrada correctamente' };
   }
 
+  /**
+   * QA-001: cierre de sesión con revocación real.
+   *
+   * Además de revocar el refresh token (si se envía), incrementa la
+   * `sessionVersion` del usuario identificado por el JWT de sesión. Eso
+   * invalida de inmediato CUALQUIER access token emitido antes, sin esperar
+   * a su expiración: reutilizar una sesión cerrada devuelve 401.
+   *
+   * Comportamiento global aceptado y documentado: cerrar sesión invalida
+   * todas las sesiones del usuario (no solo el dispositivo actual). Es
+   * idempotente: si el token es inválido/expirado o el usuario no existe,
+   * igualmente se limpia la cookie y se responde 200.
+   */
+  async revokeSessionFromToken(rawToken: string | null, rawRefreshToken?: string) {
+    if (rawRefreshToken) {
+      await this.sessionsService.revokeRefreshToken(rawRefreshToken);
+    }
+
+    // QA-001 / CodeQL: no se condiciona con un valor del usuario si se
+    // verifica el JWT. Se intenta verificar siempre (token ausente => ''
+    // => verify lanza => catch). Mismo comportamiento observable: sin token
+    // valido no hay sesion que revocar.
+    try {
+      const payload = this.jwtService.verify<{ sub?: string }>(rawToken ?? '');
+      if (payload?.sub) {
+        try {
+          await this.sessionsService.bumpSessionVersion(payload.sub);
+        } catch {
+          this.logger.warn(`Logout: no se pudo revocar la sesión de ${payload.sub}`);
+        }
+      }
+    } catch {
+      // Token inválido, expirado o ausente: no hay sesión que revocar.
+    }
+
+    return { message: 'Sesión cerrada correctamente' };
+  }
 }

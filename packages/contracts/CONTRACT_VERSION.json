@@ -1,0 +1,66 @@
+{
+  "version": "2.3.0",
+  "lastBreakingChange": "2026-10-11",
+  "changelog": [
+    {
+      "version": "2.3.0",
+      "date": "2026-10-17",
+      "changes": [
+        "QA-001: POST /auth/logout acepta un body OPCIONAL { refreshToken? } (LogoutDto). Sin cuerpo sigue funcionando igual que antes (no breaking).",
+        "QA-001: logout ahora revoca la sesión del emisor del JWT (bump de sessionVersion): reutilizar el access token previo responde 401."
+      ]
+    },
+    {
+      "version": "2.2.0",
+      "date": "2026-10-13",
+      "changes": [
+        "WEB3-002: User.provider (enum) añade el valor 'wallet' — aditivo; clientes con switch exhaustivo deben contemplarlo",
+        "WEB3-002: incorpora autenticación/vinculación de wallet con SIWE y nonce de un solo uso (endpoints /api/v1/wallet-auth/*, fuera del contrato OpenAPI acotado)"
+      ]
+    },
+    {
+      "version": "2.1.0",
+      "date": "2026-10-12",
+      "changes": [
+        "Nuevo schema UserProfileResponseDto (UserProfile) para GET /users/profile: añade 'permissions: string[]'",
+        "SEC: GET /users/profile deja de exponer password y sessionVersion (usa toPublicUser)"
+      ]
+    },
+    {
+      "version": "2.0.0",                
+      "date": "2026-10-11",
+      "changes": [
+        "BREAKING: UserRole añade valor 'demo_readonly' — clientes con switch exhaustivo se rompen",
+        "SEC-002: Nuevo endpoint POST /auth/demo-login (login demo sin password)",
+        "SEC-002: CompleteProfileDto.role restringido a ['entrepreneur', 'evaluator'] (cierra B1)"
+      ]
+    },
+    {
+      "version": "1.2.0",
+      "date": "2026-10-10",
+      "changes": [
+        "SEC-002: Nuevo endpoint POST /auth/demo-login (login demo sin password)",
+        "SEC-002: UserRole anade valor 'demo_readonly'",
+        "SEC-002: CompleteProfileDto.role restringido a ['entrepreneur', 'evaluator'] (cierra B1)"
+      ]
+    },
+    {
+      "version": "1.1.0",
+      "date": "2026-10-09",
+      "changes": [
+        "CreateUserDto.role ahora es opcional con default 'entrepreneur'",
+        "CreateUserDto.role restringido a ['entrepreneur', 'evaluator']"
+      ]
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-08-22",
+      "changes": [
+        "Initial contract: Auth (login, register)",
+        "Initial contract: Projects (CRUD)",
+        "Schemas: User, Project, AuthResponse, ErrorResponse",
+        "Enums: UserRole, UserStatus, ProjectStatus, TrajectoryStatus"
+      ]
+    }
+  ]
+}

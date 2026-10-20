@@ -2,12 +2,15 @@
 
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository, DataSource, Like } from 'typeorm';
+import { EntityManager, Repository, DataSource, Like, IsNull } from 'typeorm';
+import { MailService } from '../mail/mail.service';
 import {
   MicroActionInstance,
   MicroActionInstanceStatus,
@@ -29,6 +32,8 @@ import { UserRole } from '../users/entities/user.entity';
 
 @Injectable()
 export class MicroActionInstanceService {
+  private readonly logger = new Logger(MicroActionInstanceService.name);
+
   constructor(
     @InjectRepository(MicroActionInstance)
     private readonly repo: Repository<MicroActionInstance>,
@@ -48,6 +53,7 @@ export class MicroActionInstanceService {
     private readonly projectAccess: ProjectAccessService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly dataSource: DataSource,
+    private readonly mailService: MailService,
   ) {}
 
   async create(
@@ -160,7 +166,6 @@ export class MicroActionInstanceService {
 
     this.assertOwnership(instance, principal);
 
-    const previousStatus = instance.status;
     let statusChanged = false;
     let notesChanged = false;
 
@@ -219,9 +224,7 @@ export class MicroActionInstanceService {
       order: { versionNumber: 'DESC' },
     });
     if (lastVersion && lastVersion.changeType !== MicroActionInstanceChangeType.REJECTED) {
-      throw new BadRequestException(
-        `Ya hay una versión con estado: ${lastVersion.changeType}`,
-      );
+      throw new BadRequestException(`Ya hay una versión con estado: ${lastVersion.changeType}`);
     }
     const nextVersionNumber = lastVersion ? lastVersion.versionNumber + 1 : 1;
 
@@ -237,7 +240,10 @@ export class MicroActionInstanceService {
       changeType: MicroActionInstanceChangeType.SUBMITTED,
       status: MicroActionInstanceStatus.SUBMITTED,
       previousStatus: null,
-      executionNotes: dto.executionNotes && dto.executionNotes.length > 0 ? dto.executionNotes : 'El usuario no ingresó notas de ejecución',
+      executionNotes:
+        dto.executionNotes && dto.executionNotes.length > 0
+          ? dto.executionNotes
+          : 'El usuario no ingresó notas de ejecución',
       attemptNumber: instance.attemptNumber,
       reopenedCount: instance.reopenedCount,
       changeSummary: `Versión ${nextVersionNumber} enviada`,
@@ -246,7 +252,49 @@ export class MicroActionInstanceService {
       createdByUserId: principal.userId,
     });
 
-    return this.versionRepo.save(version);
+    const saved = await this.versionRepo.save(version);
+
+    // Notificación al evaluador: no bloquea la respuesta ni la invalida si falla.
+    void this.dispatchSubmissionNotification(saved.id, file.originalname);
+
+    return saved;
+  }
+
+  /**
+   * Reintento / envío manual del correo. Idempotente: si ya se notificó,
+   * no reenvía.
+   */
+  async notifyVersionSubmitted(
+    versionId: string,
+    principal: ProjectPrincipal,
+  ): Promise<{ versionId: string; status: 'sent' | 'already_notified' }> {
+    const version = await this.versionRepo.findOne({
+      where: { id: versionId },
+      relations: ['microActionInstance'],
+    });
+    if (!version) {
+      throw new NotFoundException(`Versión ${versionId} no encontrada`);
+    }
+
+    await this.projectAccess.assertCanAccessProject(
+      principal,
+      version.microActionInstance.projectId,
+    );
+    this.assertOwnership(version.microActionInstance, principal);
+
+    if (version.changeType !== MicroActionInstanceChangeType.SUBMITTED) {
+      throw new BadRequestException(
+        `Solo se notifican versiones en estado "submitted" (actual: ${version.changeType})`,
+      );
+    }
+
+    const result = await this.dispatchSubmissionNotification(versionId);
+    if (result === 'failed') {
+      throw new ServiceUnavailableException(
+        'No se pudo enviar el correo de notificación. Podés reintentar más tarde.',
+      );
+    }
+    return { versionId, status: result };
   }
 
   async resolveVersion(
@@ -272,8 +320,7 @@ export class MicroActionInstanceService {
       instance.validatedAt = new Date();
       instance.closedAt = new Date();
       if (instance.startedAt) {
-        const diffDays =
-          (Date.now() - instance.startedAt.getTime()) / (1000 * 60 * 60 * 24);
+        const diffDays = (Date.now() - instance.startedAt.getTime()) / (1000 * 60 * 60 * 24);
         instance.executionWindowDaysSnapshot = Math.floor(diffDays);
       }
       await this.repo.save(instance);
@@ -294,6 +341,70 @@ export class MicroActionInstanceService {
   }
 
   // ─── Helpers privados ────────────────────────────────────────────────────────
+
+  /**
+   * Nunca lanza: devuelve el resultado. Reclama el envío de forma atómica
+   * (UPDATE ... WHERE evaluator_notified_at IS NULL) para evitar duplicados.
+   * Si el SMTP falla, libera el reclamo para poder reintentar.
+   */
+  private async dispatchSubmissionNotification(
+    versionId: string,
+    fileName?: string,
+  ): Promise<'sent' | 'already_notified' | 'failed'> {
+    let claimed = false;
+    try {
+      const claim = await this.versionRepo.update(
+        { id: versionId, evaluatorNotifiedAt: IsNull() },
+        { evaluatorNotifiedAt: new Date() },
+      );
+      if (!claim.affected) return 'already_notified';
+      claimed = true;
+
+      const version = await this.versionRepo.findOneOrFail({
+        where: { id: versionId },
+        relations: {
+          microActionInstance: { actor: true, microActionDefinition: true },
+        },
+      });
+      const instance = version.microActionInstance;
+
+      await this.mailService.sendMicroActionSubmitted({
+        instanceId: instance.id,
+        microActionType: instance.microActionDefinition?.microActionType ?? null,
+        instructions: instance.microActionDefinition?.instruction_es ?? null,
+        executionNotes: version.executionNotes,
+        fileName: fileName ?? this.fileNameFromUri(version.canonicalUri),
+        entrepreneurName: instance.actor?.fullName ?? null,
+        entrepreneurEmail: instance.actor?.email ?? null,
+        uploadedAt: version.createdAt,
+        recipients: this.resolveRecipients(),
+      });
+      return 'sent';
+    } catch (error) {
+      this.logger.error(`Falló el correo de la versión ${versionId}: ${(error as Error).message}`);
+      if (claimed) {
+        await this.versionRepo
+          .update({ id: versionId }, { evaluatorNotifiedAt: null })
+          .catch(() => undefined);
+      }
+      return 'failed';
+    }
+  }
+
+  /** Punto único para decidir a quién notificar. Hoy: MAIL_TO. */
+  private resolveRecipients(): string[] {
+    return this.mailService.getDefaultRecipients();
+  }
+
+  private fileNameFromUri(uri: string | null): string | null {
+    if (!uri) return null;
+    try {
+      const last = new URL(uri).pathname.split('/').pop();
+      return last ? decodeURIComponent(last) : null;
+    } catch {
+      return null;
+    }
+  }
 
   private async createVersionRecord(
     manager: EntityManager,
@@ -375,9 +486,7 @@ export class MicroActionInstanceService {
     });
 
     if (!definition) {
-      throw new NotFoundException(
-        `Definición ${microActionDefinitionId} no encontrada`,
-      );
+      throw new NotFoundException(`Definición ${microActionDefinitionId} no encontrada`);
     }
 
     const code = definition.code;
@@ -428,10 +537,7 @@ export class MicroActionInstanceService {
     await this.activateNextProjectPac(projectId, definition.pacId);
   }
 
-  private async activateNextProjectPac(
-    projectId: string,
-    currentPacId: string,
-  ): Promise<void> {
+  private async activateNextProjectPac(projectId: string, currentPacId: string): Promise<void> {
     const currentPac = await this.pacRepo.findOne({
       where: { id: currentPacId },
     });

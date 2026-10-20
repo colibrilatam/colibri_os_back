@@ -7,7 +7,7 @@ tabla.
 
 | Fecha | Hallazgo (CVE / regla) | Justificación | Mitigación compensatoria | Dueño | Expiración | Issue |
 | --- | --- | --- | --- | --- | --- | --- |
-| _(sin excepciones registradas al momento de este cambio)_ | | | | | | |
+| 2026-10-05 | RFC 7636 PKCE no implementado en Google OAuth | Cliente confidencial (RFC 6749 §2.3.1); el backend custodia `GOOGLE_CLIENT_SECRET` y no hay `code_verifier` viajando por el browser | `state` anti-CSRF con cookie HttpOnly + exchange code single-use + cookie de sesión HttpOnly/Secure/SameSite | SEC | 2027-01-03 | CODE-006 |
 
 ## Cómo agregar una fila
 

@@ -23,6 +23,14 @@ export enum UserRole {
   MECENAS_CAMBIO = 'mecenas_cambio', // nuevo
   ADMIN = 'admin', // ← el rol sin nombre definido aún
   GUEST = 'guest',
+  /**
+   * SEC-002: rol de las cuentas demo. Solo lectura.
+   *
+   * Lo impone `DemoReadOnlyGuard` (APP_GUARD global): cualquier metodo distinto
+   * de GET devuelve 403. Las cuentas con este rol se crean por seed, nunca por
+   * auto-registro ni por complete-profile (ver `auth/allowed-roles.ts`).
+   */
+  DEMO_READONLY = 'demo_readonly',
 }
 
 export enum Gender {
@@ -43,6 +51,7 @@ export enum UserStatus {
 export enum AuthProvider {
   LOCAL = 'local',
   GOOGLE = 'google',
+  WALLET = 'wallet',
 }
 
 @Entity('users')
@@ -61,7 +70,7 @@ export class User {
   fullName: string;
 
   @Column({ type: 'enum', enum: UserRole, nullable: true })
-role: UserRole | null;
+  role: UserRole | null;
 
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
   status: UserStatus;
@@ -69,6 +78,7 @@ role: UserRole | null;
   // Se incrementa en cada evento crítico (suspensión, cambio de
   // contraseña, logout global). Viaja embebida en el JWT: si no coincide
   // con el valor actual, la sesión quedó revocada.
+  @Exclude()
   @Column({ name: 'session_version', type: 'int', default: 1 })
   sessionVersion: number;
 
@@ -85,8 +95,8 @@ role: UserRole | null;
   @Column({ name: 'google_id', nullable: true, unique: true })
   googleId: string;
 
-  @Column({ name: 'crypto_wallet', nullable: true })
-  cryptoWallet: string;
+  @Column({ name: 'crypto_wallet', type: 'varchar', nullable: true })
+  cryptoWallet: string | null;
 
   @Column({ name: 'credentials_wallet', nullable: true })
   credentialsWallet: string;

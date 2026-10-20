@@ -1,23 +1,54 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Optional,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import {
+  ApiBody,
+  ApiTags,
+  ApiOkResponse,
+  ApiCreatedResponse,
+  ApiUnauthorizedResponse,
+  ApiBadRequestResponse,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from './dto/create.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { GoogleExchangeDto } from './dto/google-exchange.dto';
-import { clearAuthCookie, setAuthCookie } from './cookie.helper';
+import { clearAuthCookie, extractTokenFromRequest, setAuthCookie } from './cookie.helper';
+import { LogoutDto } from './dto/logout.dto';
+import { throttleLimit } from '../common/throttle.util';
+import { AuthResponseDto } from './dto/auth-response.dto';
+import { RegisterResponseDto } from './dto/register-response.dto';
+import { CompleteProfileResponseDto } from './dto/complete-profile-response.dto';
+import { GoogleExchangeResponseDto } from './dto/google-exchange-response.dto';
+import { MessageResponseDto } from './dto/message-response.dto';
 import type { Request, Response } from 'express';
 import type { IGoogleUser } from './interfaces/googleUser.interface';
 import { CompleteProfileDto } from './dto/complete-profile.dto';
+import { DemoLoginDto } from './dto/demo-login.dto';
 import { OAuthExchangeService } from './oauth/oauth-exchange.service';
 import { Throttle } from '@nestjs/throttler';
 import { Ip } from '@nestjs/common';
+import { UserStatus } from '../users/entities/user.entity';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { PasswordResetService } from './password-reset/password-reset.service';
+import { Public } from './decorators/public.decorator';
 
 type GoogleAuthenticatedRequest = Request & { user: IGoogleUser };
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -26,8 +57,10 @@ export class AuthController {
     private readonly passwordResetService: PasswordResetService,
   ) {}
 
+  @Public()
   @UseGuards(AuthGuard('google'))
   @Get('google')
+  @ApiResponse({ status: 302, description: 'Redirect a Google OAuth' })
   async getGoogle() {}
 
   /**
@@ -37,85 +70,149 @@ export class AuthController {
    * de un solo uso; el JWT se emite recién cuando el frontend lo canjea
    * en POST /auth/google/exchange.
    */
+  @Public()
   @UseGuards(AuthGuard('google'))
   @Get('google/callback')
+  @ApiResponse({
+    status: 302,
+    description: 'Redirect al frontend con un código de intercambio opaco de un solo uso',
+  })
   async getGoogleCallback(@Req() req: GoogleAuthenticatedRequest, @Res() res: Response) {
-  
-  const result = await this.authService.googleLogin(req.user);
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  if (result.requiresProfileCompletion) {
-    const redirectUrl = `${process.env.FRONTEND_URL}/login/google-callback?tempToken=${result.tempToken}`;
-    return res.redirect(redirectUrl);
+    const { user } = await this.authService.googleLogin(req.user);
+    const code = await this.oauthExchangeService.issue(user);
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/login/google-callback?code=${encodeURIComponent(code)}`,
+    );
   }
-  res.cookie('colibri_access_token', result.token, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
-    maxAge: Number(process.env.AUTH_COOKIE_MAX_AGE_MS ?? 3_600_000),
-    path: '/',
-  });
 
-  return res.redirect(`${process.env.FRONTEND_URL}/login/google-callback?role=${result.role}`);
-}
-
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: throttleLimit(5), ttl: 60_000 } })
+  @Public()
   @Post('google/exchange')
   @HttpCode(200)
+  @ApiOkResponse({ type: GoogleExchangeResponseDto })
   async exchangeGoogleCode(
     @Body() dto: GoogleExchangeDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const user = await this.oauthExchangeService.consume(dto.code);
+
+    if (user.status === UserStatus.PENDING_PROFILE) {
+      return {
+        message: 'Perfil pendiente de completar',
+        user: this.authService.toPublicUser(user),
+        requiresProfileCompletion: true,
+        profileCompletionToken: this.authService.issueProfileCompletionToken(user),
+      };
+    }
+
     const result = this.authService.buildAuthResult(user);
     setAuthCookie(res, result.token);
-    return { message: 'Sesión iniciada con éxito', user: result.user };
+    return {
+      message: 'Sesión iniciada con éxito',
+      user: result.user,
+      requiresProfileCompletion: false,
+    };
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: throttleLimit(5), ttl: 60_000 } })
+  @Public()
   @Post('signin')
+  @ApiOkResponse({ type: AuthResponseDto, description: 'Login exitoso' })
+  @ApiUnauthorizedResponse({ description: 'Credenciales inválidas' })
   async loginUser(@Body() logindto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.loginUser(logindto);
     setAuthCookie(res, result.token);
     return { message: result.message, user: result.user };
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  /**
+   * SEC-002 / PR-BE3: login demo sin contraseña.
+   *
+   * Emite un token con role=demo_readonly (el rol real de la cuenta en la DB).
+   * El body acepta un selector de persona para elegir que cuenta demo usar.
+   * Throttle estricto para evitar abuso.
+   */
+  @Throttle({ default: { limit: throttleLimit(10), ttl: 60_000 } })
+  @Public()
+  @Post('demo-login')
+  @ApiOkResponse({ type: AuthResponseDto, description: 'Sesión demo iniciada' })
+  @ApiUnauthorizedResponse({ description: 'Entorno demo no disponible' })
+  async demoLogin(@Body() dto: DemoLoginDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.demoLogin(dto.role);
+    setAuthCookie(res, result.token);
+    return { message: result.message, user: result.user };
+  }
+
+  @Throttle({ default: { limit: throttleLimit(5), ttl: 60_000 } })
+  @Public()
   @Post('signup')
+  @ApiCreatedResponse({ type: RegisterResponseDto, description: 'Registro exitoso' })
+  @ApiBadRequestResponse({ description: 'Datos inválidos o email ya en uso' })
   async createUser(@Body() user: CreateUserDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.createUser(user);
     setAuthCookie(res, result.token);
     return { message: result.message, user: result.user };
   }
 
+  // QA-001/CODE-006: público por diseño. El usuario PENDING_PROFILE todavía no
+  // tiene sesión; la autorización de este endpoint es el `profileCompletionToken`
+  // (JWT con purpose='profile-completion') que el servicio verifica, más la
+  // whitelist de roles auto-asignables. Sin @Public() el JwtAuthGuard global lo
+  // bloqueaba con 401 y el flujo de perfil pendiente nunca podía completarse.
+  @Public()
   @Post('complete-profile')
-async completeProfile(@Body() dto: CompleteProfileDto, @Res({ passthrough: true }) res: Response) {
-  const result = await this.authService.completeProfile(dto);
-  setAuthCookie(res, result.token);
-  return { message: "Perfil completado con éxito", user: result.user };
-}
+  @ApiOkResponse({
+    type: CompleteProfileResponseDto,
+    description: 'Perfil completado exitosamente',
+  })
+  async completeProfile(
+    @Body() dto: CompleteProfileDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.completeProfile(dto);
+    setAuthCookie(res, result.token);
+    return { message: 'Perfil completado con éxito', user: result.user };
+  }
 
+  @Public()
   @Post('refresh')
   async refresh(@Body() dto: RefreshTokenDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.refresh(dto.refreshToken);
     setAuthCookie(res, result.token);
-    return { message: 'Tokens renovados correctamente'}
+    return { message: 'Tokens renovados correctamente' };
   }
 
+  @Public()
   @Post('logout')
   @HttpCode(200)
-  logout(@Res({ passthrough: true }) res: Response) {
+  @ApiOkResponse({ type: MessageResponseDto, description: 'Sesión cerrada exitosamente' })
+  // Body OPCIONAL (solo compatibilidad con clientes que envían refreshToken).
+  // required:false evita un breaking change de contrato frente al POST /logout
+  // sin cuerpo que existía antes de QA-001.
+  @ApiBody({ required: false, type: LogoutDto })
+  async logout(
+    @Optional() @Body() dto: LogoutDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // QA-001: revocación real de la sesión (bump de sessionVersion) a partir
+    // del JWT de sesión (cookie o Bearer), mas el refresh token opcional del
+    // body. Reutilizar el access token previo devolvera 401.
+    const token = extractTokenFromRequest(req);
+    await this.authService.revokeSessionFromToken(token, dto?.refreshToken);
     clearAuthCookie(res);
     return { message: 'Sesión cerrada con éxito' };
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 solicitudes / min por IP
+  @Throttle({ default: { limit: throttleLimit(5), ttl: 60_000 } }) // 5 solicitudes / min por IP
+  @Public()
   @Post('forgot-password')
   async forgotPassword(@Body() dto: ForgotPasswordDto, @Ip() ip: string) {
     return await this.passwordResetService.requestReset(dto.email, ip);
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: throttleLimit(5), ttl: 60_000 } })
+  @Public()
   @Post('reset-password')
   async resetPassword(@Body() dto: ResetPasswordDto) {
     if (dto.newPassword !== dto.confirmNewPassword) {

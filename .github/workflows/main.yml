@@ -210,7 +210,11 @@ jobs:
   ci-gate:
     name: CI Gate (usar este check en branch protection)
     runs-on: ubuntu-latest
-    needs: [lint-and-build, unit-tests, e2e-tests, build-artifact, sca-gate, sast-gate, secret-scan-gate]
+    # QA-001: sca-gate/sast-gate/secret-scan-gate se eliminaron de este
+    # workflow (viven ahora en sca.yml, codeql.yml y secret-scanning.yml).
+    # Referenciarlos aqui rompia el grafo de jobs y el workflow entero
+    # fallaba al arrancar (0 jobs) en cada push/PR desde 2026-08-25.
+    needs: [lint-and-build, unit-tests, e2e-tests, build-artifact]
     if: always()
     steps:
       - name: Verificar que todos los jobs requeridos pasaron
