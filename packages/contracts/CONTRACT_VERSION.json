@@ -1,7 +1,15 @@
 {
-  "version": "2.2.0",
+  "version": "2.3.0",
   "lastBreakingChange": "2026-10-11",
   "changelog": [
+    {
+      "version": "2.3.0",
+      "date": "2026-10-17",
+      "changes": [
+        "QA-001: POST /auth/logout acepta un body OPCIONAL { refreshToken? } (LogoutDto). Sin cuerpo sigue funcionando igual que antes (no breaking).",
+        "QA-001: logout ahora revoca la sesión del emisor del JWT (bump de sessionVersion): reutilizar el access token previo responde 401."
+      ]
+    },
     {
       "version": "2.2.0",
       "date": "2026-10-13",

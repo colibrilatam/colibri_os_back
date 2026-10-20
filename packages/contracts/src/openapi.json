@@ -221,6 +221,16 @@
       "post": {
         "operationId": "AuthController_logout",
         "parameters": [],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Sesión cerrada exitosamente",
@@ -801,7 +811,7 @@
   "info": {
     "title": "Colibrí OS API",
     "description": "API del sistema Colibrí OS — RaaS (Reputación como Servicio)",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "contact": {}
   },
   "tags": [],
@@ -1117,6 +1127,15 @@
         "required": [
           "refreshToken"
         ]
+      },
+      "LogoutDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh token a revocar (opcional, compatibilidad)."
+          }
+        }
       },
       "MessageResponseDto": {
         "type": "object",

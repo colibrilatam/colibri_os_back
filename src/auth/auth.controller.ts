@@ -1,6 +1,18 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Optional,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
+  ApiBody,
   ApiTags,
   ApiOkResponse,
   ApiCreatedResponse,
@@ -13,7 +25,9 @@ import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from './dto/create.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { GoogleExchangeDto } from './dto/google-exchange.dto';
-import { clearAuthCookie, setAuthCookie } from './cookie.helper';
+import { clearAuthCookie, extractTokenFromRequest, setAuthCookie } from './cookie.helper';
+import { LogoutDto } from './dto/logout.dto';
+import { throttleLimit } from '../common/throttle.util';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { CompleteProfileResponseDto } from './dto/complete-profile-response.dto';
@@ -71,7 +85,7 @@ export class AuthController {
     );
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: throttleLimit(5), ttl: 60_000 } })
   @Public()
   @Post('google/exchange')
   @HttpCode(200)
@@ -100,7 +114,7 @@ export class AuthController {
     };
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: throttleLimit(5), ttl: 60_000 } })
   @Public()
   @Post('signin')
   @ApiOkResponse({ type: AuthResponseDto, description: 'Login exitoso' })
@@ -118,7 +132,7 @@ export class AuthController {
    * El body acepta un selector de persona para elegir que cuenta demo usar.
    * Throttle estricto para evitar abuso.
    */
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: throttleLimit(10), ttl: 60_000 } })
   @Public()
   @Post('demo-login')
   @ApiOkResponse({ type: AuthResponseDto, description: 'Sesión demo iniciada' })
@@ -129,7 +143,7 @@ export class AuthController {
     return { message: result.message, user: result.user };
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: throttleLimit(5), ttl: 60_000 } })
   @Public()
   @Post('signup')
   @ApiCreatedResponse({ type: RegisterResponseDto, description: 'Registro exitoso' })
@@ -140,12 +154,24 @@ export class AuthController {
     return { message: result.message, user: result.user };
   }
 
-@Post('complete-profile')
-  @ApiOkResponse({ type: CompleteProfileResponseDto, description: 'Perfil completado exitosamente' })
-  async completeProfile(@Body() dto: CompleteProfileDto, @Res({ passthrough: true }) res: Response) {
+  // QA-001/CODE-006: público por diseño. El usuario PENDING_PROFILE todavía no
+  // tiene sesión; la autorización de este endpoint es el `profileCompletionToken`
+  // (JWT con purpose='profile-completion') que el servicio verifica, más la
+  // whitelist de roles auto-asignables. Sin @Public() el JwtAuthGuard global lo
+  // bloqueaba con 401 y el flujo de perfil pendiente nunca podía completarse.
+  @Public()
+  @Post('complete-profile')
+  @ApiOkResponse({
+    type: CompleteProfileResponseDto,
+    description: 'Perfil completado exitosamente',
+  })
+  async completeProfile(
+    @Body() dto: CompleteProfileDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const result = await this.authService.completeProfile(dto);
     setAuthCookie(res, result.token);
-    return { message: "Perfil completado con éxito", user: result.user };
+    return { message: 'Perfil completado con éxito', user: result.user };
   }
 
   @Public()
@@ -153,26 +179,39 @@ export class AuthController {
   async refresh(@Body() dto: RefreshTokenDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.refresh(dto.refreshToken);
     setAuthCookie(res, result.token);
-    return { message: 'Tokens renovados correctamente'}
+    return { message: 'Tokens renovados correctamente' };
   }
 
   @Public()
   @Post('logout')
   @HttpCode(200)
   @ApiOkResponse({ type: MessageResponseDto, description: 'Sesión cerrada exitosamente' })
-  logout(@Res({ passthrough: true }) res: Response) {
+  // Body OPCIONAL (solo compatibilidad con clientes que envían refreshToken).
+  // required:false evita un breaking change de contrato frente al POST /logout
+  // sin cuerpo que existía antes de QA-001.
+  @ApiBody({ required: false, type: LogoutDto })
+  async logout(
+    @Optional() @Body() dto: LogoutDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // QA-001: revocación real de la sesión (bump de sessionVersion) a partir
+    // del JWT de sesión (cookie o Bearer), mas el refresh token opcional del
+    // body. Reutilizar el access token previo devolvera 401.
+    const token = extractTokenFromRequest(req);
+    await this.authService.revokeSessionFromToken(token, dto?.refreshToken);
     clearAuthCookie(res);
     return { message: 'Sesión cerrada con éxito' };
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 solicitudes / min por IP
+  @Throttle({ default: { limit: throttleLimit(5), ttl: 60_000 } }) // 5 solicitudes / min por IP
   @Public()
   @Post('forgot-password')
   async forgotPassword(@Body() dto: ForgotPasswordDto, @Ip() ip: string) {
     return await this.passwordResetService.requestReset(dto.email, ip);
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: throttleLimit(5), ttl: 60_000 } })
   @Public()
   @Post('reset-password')
   async resetPassword(@Body() dto: ResetPasswordDto) {
